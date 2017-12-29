@@ -1,0 +1,62 @@
+-= kgdoom =-
+
+This is a first beta version of my Doom port.
+Intended platform was Nintendo Switch, but in future i will add other.
+Right now it is the only supported platform.
+
+This is a quick beta release and likely contains a lot of bugs.
+
+Aim of this port is not to stay compatible with original Doom, but to enhance it's fatures
+while keeping oldschool software renderer with all various color additional tricks.
+
+There are already some original Doom bugs fixed and small enhancemets added.
+
+Before you try anything:
+- you need firmware version 3.0.0
+- learn what pegaswitch is
+- sdbcore it will delete your Miis
+
+How to:
+- you need firmware version 3.0.0, again
+- you need libtransistor to compile this
+- you need ace_loader to run this (part of libtransistor)
+- you need pegaswitch to run ace_loader
+- 'temp' contains compiled ace loader and kgDoom
+- you have to modify pegaswitch to host static files
+ * find 'app.get('/cache',' in start.js and add line before:
+   app.use('/files', express.static(path.join(__dirname, 'files')));
+ * create new 'files' directory
+ * place 'kgdoom.nro' into 'files'
+ * place one of original IWADs here too (lowercase name), check command line options below
+ * save ace.nro somewhere accessible, can be in 'files'
+ * run pegaswitch with sdbcode, runnro ace.nro
+- connect using netcat to ACE loader, port 2991 (you have to know switch IP)
+- send command 'exec kgdoom.nro', optionaly check command line options below
+
+Command line options:
+- to run shareware (doom1.wad), just run 'kgdoom.nro'
+- to run doom 1 (doom.wad), run 'kgdoom.nro -doom'
+- to run doom ultimate (doomu.wad), run 'kgdoom.nro -doomu'
+- to run doom 2 (doom2.wad), run 'kgdoom.nro -doom2'
+- to run plutonia (plutonia.wad), run 'kgdoom.nro -plutonia'
+- to run TNT (tnt.wad), run 'kgdoom.nro -tnt'
+
+Known Bugs and unimplemented stuff:
+- HID (controller) initialization fails sometimes
+ * try again
+- no save / load, including configuration
+- no music
+- not 100% tested, i was able to finish shareware episode
+
+Switch controls:
+- check out options in main menu
+- hold 'weapon button' down and use right stick to pick a new weapon
+- use + or - to enter main menu
+- use A to confirm
+
+Some features planned:
+- Lua scripting; use Doom engine for your games (already WIP, about 50% done)
+- 3D floors; to add more depth to levels (i did this in a past, easy)
+- custom color remaps, sector lightmaps (fog effects), translucency using tables
+- renderer update: better math; 320x200 hides all imperfections
+
