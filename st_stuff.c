@@ -336,7 +336,7 @@ ST_Responder (event_t* ev)
 			int tmx = ev->data2;
 			int tmy = ev->data3;
 
-			if(abs(tmx) > 100 || abs(tmy) > 100)
+			if(abs(tmx) > 10000 || abs(tmy) > 10000)
 			{
 				an = R_PointToAngle2(0, 0, tmx * 8, tmy * -8) + (ANG45 / 2);
 #endif
