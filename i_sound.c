@@ -60,7 +60,7 @@ uint16_t 	rates[NUMSFX];
 int	audio_fd;
 
 // The channel step amount...
-uint16_t	channelstep[NUM_SFX_CHANNELS];
+int	channelstep[NUM_SFX_CHANNELS];
 
 
 // The channel data pointers, start and end.
