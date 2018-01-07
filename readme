@@ -21,10 +21,9 @@ How to:
 - you need libtransistor to compile this
 - you need ace_loader to run this (part of libtransistor)
 - you need pegaswitch to run ace_loader
-- 'temp' contains compiled ace loader and kgDoom
+- 'temp' contains compiled ace loader with GUI and kgDoom app directory
 - you have to modify pegaswitch to host static files
- * find 'app.get('/cache',' in start.js and add line before:
-   app.use('/files', express.static(path.join(__dirname, 'files')));
+ * see bellow
  * create new 'files' directory
  * place 'kgdoom.nro' into 'files'
  * place one of original IWADs here too (lowercase name), check command line options below
@@ -40,6 +39,8 @@ Command line options:
 - to run doom 2 (doom2.wad), run 'kgdoom.nro -doom2'
 - to run plutonia (plutonia.wad), run 'kgdoom.nro -plutonia'
 - to run TNT (tnt.wad), run 'kgdoom.nro -tnt'
+- to run FreeDoom (freedoom1.wad), run 'kgdoom.nro -freedoom'
+- to run FreeDoom2 (freedoom2.wad), run 'kgdoom.nro -freedoom2'
 
 Known Bugs and unimplemented stuff:
 - HID (controller) initialization fails sometimes
@@ -59,4 +60,21 @@ Some features planned:
 - 3D floors; to add more depth to levels (i did this in a past, easy)
 - custom color remaps, sector lightmaps (fog effects), translucency using tables
 - renderer update: better math; 320x200 hides all imperfections
+
+Pegaswitch modification, start.js, before line 'app.get('/cache', function (req, res) {':
+
+// static files for GUI
+app.use('/files', express.static(path.join(__dirname, 'files')));
+// app listing for GUI
+app.get('/files/app_list', function (req, res) {
+	var app_list = '';
+	var dir = path.join(__dirname, 'files') + '/';
+	var files = fs.readdirSync(dir);
+
+	for(var i = 0; i < files.length; i++)
+		if(fs.statSync(dir + files[i]).isDirectory())
+			app_list += files[i] + '\n';
+
+	res.end(app_list);
+});
 
