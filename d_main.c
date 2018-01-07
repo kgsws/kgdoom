@@ -471,6 +471,16 @@ void D_DoomMain (void)
 	{
 		gamemode = commercial;
 		iwad = "doom2.wad";
+	} else
+	if(M_CheckParm ("-freedoom"))
+	{
+		gamemode = retail;
+		iwad = "freedoom1.wad";
+	} else
+	if(M_CheckParm ("-freedoom2"))
+	{
+		gamemode = commercial;
+		iwad = "freedoom2.wad";
 	}
 
 	W_LoadWad(iwad);
