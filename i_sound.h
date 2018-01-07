@@ -47,6 +47,11 @@ I_StartSound
   int		priority,
   int slot ); // [kg] in-game slots connected to HW
 
+void I_ShutdownSound();
+#ifndef LINUX
+void I_UpdateSound();
+#endif
+
 // Stops a sound channel.
 void I_StopSound(int slot);
 

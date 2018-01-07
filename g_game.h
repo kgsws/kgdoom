@@ -6,6 +6,7 @@
 
 #define NUMKEYS		256 
 boolean         gamekeydown[NUMKEYS];
+boolean		joybuttons[NUM_JOYCON_BUTTONS];
 
 //
 // GAME
