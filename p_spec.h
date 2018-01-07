@@ -624,5 +624,10 @@ EV_Teleport
   int		side,
   mobj_t*	thing );
 
+sector_t*
+getNextSector
+( line_t*	line,
+  sector_t*	sec );
+
 #endif
 

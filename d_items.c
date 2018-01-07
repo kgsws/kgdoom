@@ -21,7 +21,7 @@
 //
 weaponinfo_t	weaponinfo[NUMWEAPONS] =
 {
-    {
+/*    {
 	// fist
 	am_noammo,
 	S_PUNCHUP,
@@ -101,6 +101,6 @@ weaponinfo_t	weaponinfo[NUMWEAPONS] =
 	S_DSGUN,
 	S_DSGUN1,
 	S_DSGUNFLASH1
-    },	
+    },	*/
 };
 

@@ -217,6 +217,7 @@ void P_LoadSectors (int lump)
     ss = sectors;
     for (i=0 ; i<numsectors ; i++, ss++, ms++)
     {
+	ss->soundorg.thinker.lua_type = TT_SECTOR;
 	ss->floorheight = SHORT(ms->floorheight)<<FRACBITS;
 	ss->ceilingheight = SHORT(ms->ceilingheight)<<FRACBITS;
 	ss->floorpic = R_FlatNumForName(ms->floorpic);
@@ -850,9 +851,9 @@ void P_Init (void)
     P_InitSwitchList ();
     P_InitPicAnims ();
 #ifdef SERVER
-    R_InitSpriteDefs(sprnames);
+    R_InitSpriteDefs();
 #else
-    R_InitSprites (sprnames);
+    R_InitSprites();
 #endif
 }
 

@@ -1,7 +1,6 @@
 // Data.
 #include "doomdef.h"
 #include "dstrings.h"
-#include "sounds.h"
 
 #include "doomstat.h"
 
@@ -222,7 +221,7 @@ P_KillMobj
 	
     target->flags &= ~(MF_SHOOTABLE|MF_FLOAT|MF_SKULLFLY);
 
-    if (target->type != MT_SKULL)
+//    if (target->type != MT_SKULL) // TODO: handle somehow
 	target->flags &= ~MF_NOGRAVITY;
 
     target->flags |= MF_CORPSE|MF_DROPOFF;
@@ -270,43 +269,12 @@ P_KillMobj
 	P_SetMobjState (target, target->info->xdeathstate);
     }
     else
+    if(target->info->deathstate)
 	P_SetMobjState (target, target->info->deathstate);
     target->tics -= P_Random()&3;
 
     if (target->tics < 1)
 	target->tics = 1;
-		
-    //	I_StartSound (&actor->r, actor->info->deathsound);
-
-
-    // Drop stuff.
-    // This determines the kind of object spawned
-    // during the death frame of a thing.
-    switch (target->type)
-    {
-      case MT_WOLFSS:
-      case MT_POSSESSED:
-	item = MT_CLIP;
-	break;
-	
-      case MT_SHOTGUY:
-	item = MT_SHOTGUN;
-	break;
-	
-      case MT_CHAINGUY:
-	item = MT_CHAINGUN;
-	break;
-	
-      default:
-	return;
-    }
-
-    mo = P_SpawnMobj (target->x,target->y,ONFLOORZ, item);
-    mo->flags |= MF_DROPPED;	// special versions of items
-#ifdef SERVER
-    // tell clients about this
-    SV_SpawnMobj(mo, SV_MOBJF_FLAGS);
-#endif
 }
 
 
@@ -335,6 +303,14 @@ P_DamageMobj
     player_t*	player;
     fixed_t	thrust;
     int		temp;
+    boolean	isneg = false;
+
+    if(damage < 0)
+    {
+	isneg = true;
+	damage = -damage;
+    }
+
 #ifdef SERVER
     // [kg] no damage in overtime, unless it is forced
     if(exit_countdown && damage < 1000)
@@ -350,11 +326,8 @@ P_DamageMobj
     {
 	target->momx = target->momy = target->momz = 0;
     }
-	
-    player = target->player;
 
-	if(!netgame && player && inflictor && inflictor->player)
-		return;
+    player = target->player;
 
     if (player && gameskill == sk_baby && damage < 1000)
 	damage >>= 1; 	// take half damage in trainer mode
@@ -365,21 +338,16 @@ P_DamageMobj
     // thus kick away unless using the chainsaw.
     if (inflictor
 	&& !(target->flags & MF_NOCLIP)
-	&& (!source
-	    || !source->player
-	    || source->player->readyweapon != wp_chainsaw))
+	&& damage != INSTANTKILL)
     {
 	ang = R_PointToAngle2 ( inflictor->x,
 				inflictor->y,
 				target->x,
 				target->y);
 	
-	if(damage != INSTANTKILL)	
-		thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
-	else
-		thrust = 0;
+	thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
 
-	// make fall forwards sometimes
+	// make fall forwards sometimes; TODO: what with this?
 	if ( damage < 40
 	     && damage > target->health
 	     && target->z - inflictor->z > 64*FRACUNIT
@@ -388,6 +356,9 @@ P_DamageMobj
 	    ang += ANG180;
 	    thrust *= 4;
 	}
+
+	if(isneg)
+	    ang += ANG180;
 		
 	ang >>= ANGLETOFINESHIFT;
 	target->momx += FixedMul (thrust, finecosine[ang]);
@@ -476,15 +447,16 @@ P_DamageMobj
 	 && !(target->flags&MF_SKULLFLY) )
     {
 	target->flags |= MF_JUSTHIT;	// fight back!
-	
-	P_SetMobjState (target, target->info->painstate);
+	if(target->info->painstate)
+	    P_SetMobjState (target, target->info->painstate);
     }
 			
     target->reactiontime = 0;		// we're awake now...	
 
-    if ( (!target->threshold || target->type == MT_VILE)
+/*    if ( (!target->threshold || target->type == MT_VILE)
 	 && source && source != target
-	 && source->type != MT_VILE)
+	 && source->type != MT_VILE)*/
+    if ( (!target->threshold) && source && source != target)
     {
 	// if not intent on another player,
 	// chase after this one

@@ -139,6 +139,25 @@ int W_GetNumForName (char* name)
     return i;
 }
 
+//
+// W_GetNumForNameLua
+// [kg] same as W_GetNumForName with "-" for zero
+// used in Lua API
+int	W_GetNumForNameLua (const char* tex)
+{
+	int lump;
+
+	if(tex[0] == '-' && tex[1] == 0)
+		lump = 0;
+	else
+	{
+		char temp[8];
+		strncpy(temp, tex, sizeof(temp));
+		lump = W_GetNumForName(temp);
+	}
+
+	return lump;
+}
 
 //
 // W_LumpLength

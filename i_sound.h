@@ -11,7 +11,6 @@ extern char* sndserver_filename;
 #endif
 
 #include "doomstat.h"
-#include "sounds.h"
 
 #define NUM_SFX_CHANNELS	32
 
@@ -33,10 +32,6 @@ void I_ShutdownSound(void);
 // Initialize channels?
 void I_SetChannels();
 
-// Get raw data lump index for sound descriptor.
-int I_GetSfxLumpNum (sfxinfo_t* sfxinfo );
-
-
 // Starts a sound in a particular sound channel.
 int
 I_StartSound
@@ -47,13 +42,13 @@ I_StartSound
   int		priority,
   int slot ); // [kg] in-game slots connected to HW
 
+// Stops a sound channel.
+void I_StopSound(int slot);
+
 void I_ShutdownSound();
 #ifndef LINUX
 void I_UpdateSound();
 #endif
-
-// Stops a sound channel.
-void I_StopSound(int slot);
 
 // Called by S_*() functions
 //  to see if a channel is still playing.
@@ -95,7 +90,7 @@ void I_StopSong(int handle);
 // See above (register), then think backwards
 void I_UnRegisterSong(int handle);
 
-void I_ShutdownSound();
+
 
 #endif
 

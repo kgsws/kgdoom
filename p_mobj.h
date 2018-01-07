@@ -179,22 +179,12 @@ typedef enum
     //  in death match mode (e.g. key cards).
     MF_NOTDMATCH    	= 0x2000000,
 
-    // Player sprites in multiplayer modes are modified
-    //  using an internal color lookup table for re-indexing.
-    // If 0x4 0x8 or 0xc,
-    //  use a translation table for player colormaps
-    MF_TRANSLATION  	= 0xc000000,
-    // Hmm ???.
-    MF_TRANSSHIFT	= 26,
+    // [kg] new flags
+    MF_ISMONSTER	= 0x4000000,
+    MF_NORADIUSDMG	= 0x8000000,
 
-    // [kg] blood color
-    MF_GREENBLOOD	= 0x10000000,
-    MF_BLUEBLOOD	= 0x20000000,
-    MF_BLOODCOLOR	= 0x30000000,
-    MF_BCSHIFT		= 28,
-
-	// [kg] holey rendering
-	MF_HOLEY = 0x40000000,
+    // [kg] holey rendering
+    MF_HOLEY = 0x40000000,
 
 } mobjflag_t;
 
@@ -255,9 +245,13 @@ typedef struct mobj_s
     int			movedir;	// 0-7
     int			movecount;	// when 0, select a new dir
 
-    // Thing being chased/attacked (or NULL),
-    // also the originator for missiles.
+    // [kg] pointer rewrite
+    // Thing being chased/attacked (or NULL)
     struct mobj_s*	target;
+    // originator for missiles
+    struct mobj_s*	source;
+    // [kg] gerenal purpose mobj
+    struct mobj_s*	mobj;
 
     // Reaction time: if non 0, don't attack yet.
     // Used by player to freeze a bit after teleporting.
@@ -277,10 +271,7 @@ typedef struct mobj_s
     // For nightmare respawn.
     mapthing_hexen_t		spawnpoint;	
 
-    // Thing being chased/attacked for tracers.
-    struct mobj_s*	tracer;	
-
-    // [kg] network ID (and savegame too)
+    // [kg] network ID
     int netid;
 
 } mobj_t;

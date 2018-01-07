@@ -18,9 +18,6 @@
 
 #include "doomstat.h"
 
-// Data.
-#include "sounds.h"
-
 // Needs access to LFB.
 #include "v_video.h"
 
@@ -879,15 +876,15 @@ void WI_updateDeathmatchStats(void)
 	}
 	
 
-	S_StartSound(0, sfx_barexp, 0);
+//	S_StartSound(0, sfx_barexp, 0);
 	dm_state = 4;
     }
 
     
     if (dm_state == 2)
     {
-	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	if (!(bcnt&3))
+//	    S_StartSound(0, sfx_pistol, 0);
 	
 	stillticking = false;
 
@@ -926,7 +923,7 @@ void WI_updateDeathmatchStats(void)
 	}
 	if (!stillticking)
 	{
-	    S_StartSound(0, sfx_barexp, 0);
+//	    S_StartSound(0, sfx_barexp, 0);
 	    dm_state++;
 	}
 
@@ -935,7 +932,7 @@ void WI_updateDeathmatchStats(void)
     {
 	if (acceleratestage)
 	{
-	    S_StartSound(0, sfx_slop, 0);
+//	    S_StartSound(0, sfx_slop, 0);
 
 	    if ( gamemode == commercial)
 		WI_initNoState();
@@ -1106,14 +1103,14 @@ void WI_updateNetgameStats(void)
 	    if (dofrags)
 		cnt_frags[i] = WI_fragSum(i);
 	}
-	S_StartSound(0, sfx_barexp, 0);
+//	S_StartSound(0, sfx_barexp, 0);
 	ng_state = 10;
     }
 
     if (ng_state == 2)
     {
-	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	if (!(bcnt&3))
+//	    S_StartSound(0, sfx_pistol, 0);
 
 	stillticking = false;
 
@@ -1132,14 +1129,14 @@ void WI_updateNetgameStats(void)
 	
 	if (!stillticking)
 	{
-	    S_StartSound(0, sfx_barexp, 0);
+//	    S_StartSound(0, sfx_barexp, 0);
 	    ng_state++;
 	}
     }
     else if (ng_state == 4)
     {
 	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	    S_StartSound(0, sfx_pistol, 0);
 
 	stillticking = false;
 
@@ -1156,14 +1153,14 @@ void WI_updateNetgameStats(void)
 	}
 	if (!stillticking)
 	{
-	    S_StartSound(0, sfx_barexp, 0);
+//	    S_StartSound(0, sfx_barexp, 0);
 	    ng_state++;
 	}
     }
     else if (ng_state == 6)
     {
-	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	if (!(bcnt&3))
+//	    S_StartSound(0, sfx_pistol, 0);
 
 	stillticking = false;
 
@@ -1182,14 +1179,14 @@ void WI_updateNetgameStats(void)
 	
 	if (!stillticking)
 	{
-	    S_StartSound(0, sfx_barexp, 0);
+//	    S_StartSound(0, sfx_barexp, 0);
 	    ng_state += 1 + 2*!dofrags;
 	}
     }
     else if (ng_state == 8)
     {
-	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	if (!(bcnt&3))
+//	    S_StartSound(0, sfx_pistol, 0);
 
 	stillticking = false;
 
@@ -1208,7 +1205,7 @@ void WI_updateNetgameStats(void)
 	
 	if (!stillticking)
 	{
-	    S_StartSound(0, sfx_pldeth, 0);
+//	    S_StartSound(0, sfx_pldeth, 0);
 	    ng_state++;
 	}
     }
@@ -1216,7 +1213,7 @@ void WI_updateNetgameStats(void)
     {
 	if (acceleratestage)
 	{
-	    S_StartSound(0, sfx_sgcock, 0);
+//	    S_StartSound(0, sfx_sgcock, 0);
 	    if ( gamemode == commercial )
 		WI_initNoState();
 	    else
@@ -1317,7 +1314,7 @@ void WI_updateStats(void)
 	cnt_secret[0] = (plrs[me].ssecret * 100) / wbs->maxsecret;
 	cnt_time = plrs[me].stime / TICRATE;
 	cnt_par = wbs->partime / TICRATE;
-	S_StartSound(0, sfx_barexp, 0);
+//	S_StartSound(0, sfx_barexp, 0);
 	sp_state = 10;
     }
 
@@ -1325,13 +1322,13 @@ void WI_updateStats(void)
     {
 	cnt_kills[0] += 2;
 
-	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	if (!(bcnt&3))
+//	    S_StartSound(0, sfx_pistol, 0);
 
 	if (cnt_kills[0] >= (plrs[me].skills * 100) / wbs->maxkills)
 	{
 	    cnt_kills[0] = (plrs[me].skills * 100) / wbs->maxkills;
-	    S_StartSound(0, sfx_barexp, 0);
+//	    S_StartSound(0, sfx_barexp, 0);
 	    sp_state++;
 	}
     }
@@ -1339,13 +1336,13 @@ void WI_updateStats(void)
     {
 	cnt_items[0] += 2;
 
-	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	if (!(bcnt&3))
+//	    S_StartSound(0, sfx_pistol, 0);
 
 	if (cnt_items[0] >= (plrs[me].sitems * 100) / wbs->maxitems)
 	{
 	    cnt_items[0] = (plrs[me].sitems * 100) / wbs->maxitems;
-	    S_StartSound(0, sfx_barexp, 0);
+//	    S_StartSound(0, sfx_barexp, 0);
 	    sp_state++;
 	}
     }
@@ -1353,21 +1350,21 @@ void WI_updateStats(void)
     {
 	cnt_secret[0] += 2;
 
-	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	if (!(bcnt&3))
+//	    S_StartSound(0, sfx_pistol, 0);
 
 	if (cnt_secret[0] >= (plrs[me].ssecret * 100) / wbs->maxsecret)
 	{
 	    cnt_secret[0] = (plrs[me].ssecret * 100) / wbs->maxsecret;
-	    S_StartSound(0, sfx_barexp, 0);
+//	    S_StartSound(0, sfx_barexp, 0);
 	    sp_state++;
 	}
     }
 
     else if (sp_state == 8)
     {
-	if (!(bcnt&3))
-	    S_StartSound(0, sfx_pistol, 0);
+//	if (!(bcnt&3))
+//	    S_StartSound(0, sfx_pistol, 0);
 
 	cnt_time += 3;
 
@@ -1382,7 +1379,7 @@ void WI_updateStats(void)
 
 	    if (cnt_time >= plrs[me].stime / TICRATE)
 	    {
-		S_StartSound(0, sfx_barexp, 0);
+//		S_StartSound(0, sfx_barexp, 0);
 		sp_state++;
 	    }
 	}
@@ -1391,7 +1388,7 @@ void WI_updateStats(void)
     {
 	if (acceleratestage)
 	{
-	    S_StartSound(0, sfx_sgcock, 0);
+//	    S_StartSound(0, sfx_sgcock, 0);
 
 	    if (gamemode == commercial)
 		WI_initNoState();
@@ -1482,7 +1479,7 @@ void WI_Ticker(void)
     // counter for general background animation
     bcnt++;  
 
-    if (bcnt == 1)
+/*    if (bcnt == 1)
     {
 	// intermission music
   	if ( gamemode == commercial )
@@ -1490,7 +1487,7 @@ void WI_Ticker(void)
 	else
 	  S_ChangeMusic(mus_inter, true); 
     }
-
+*/
     WI_checkForAccelerate();
 
     switch (state)
@@ -1631,7 +1628,7 @@ void WI_loadData(void)
      // "secret"
     sp_secret = W_CacheLumpName("WISCRT2");
 
-    // "items"
+    // Yuck. 
     items = W_CacheLumpName("WIOSTI");
 
     // "frgs"

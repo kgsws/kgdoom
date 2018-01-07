@@ -19,9 +19,6 @@
 // State.
 #include "r_state.h"
 
-// Data.
-#include "sounds.h"
-
 #ifdef SERVER
 #include <netinet/in.h>
 #include "network.h"
@@ -1175,7 +1172,7 @@ void P_UpdateSpecials (void)
 		}
 #else
 //		S_StartSound((mobj_t *)&buttonlist[i].soundorg,sfx_swtchn, SOUND_BODY);
-		S_StartSound((mobj_t *)&buttonlist[i].line->frontsector->soundorg,sfx_swtchn, SOUND_BODY);
+//		S_StartSound((mobj_t *)&buttonlist[i].line->frontsector->soundorg,sfx_swtchn, SOUND_BODY);
 #endif
 		memset(&buttonlist[i],0,sizeof(button_t));
 	    }
@@ -1219,7 +1216,7 @@ int EV_DoDonut(line_t*	line)
 	    
 	    //	Spawn rising slime
 	    floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
-	    P_AddThinker (&floor->thinker);
+	    P_AddThinker (&floor->thinker, TT_INVALID);
 	    s2->specialdata = floor;
 	    floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
 	    floor->type = donutRaise;
@@ -1236,7 +1233,7 @@ int EV_DoDonut(line_t*	line)
 #endif
 	    //	Spawn lowering donut-hole
 	    floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
-	    P_AddThinker (&floor->thinker);
+	    P_AddThinker (&floor->thinker, TT_INVALID);
 	    s1->specialdata = floor;
 	    floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
 	    floor->type = lowerFloor;

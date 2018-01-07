@@ -6,9 +6,6 @@
 
 #include "s_sound.h"
 
-// Data.
-#include "sounds.h"
-
 // State.
 #include "doomstat.h"
 #include "r_state.h"
@@ -141,11 +138,11 @@ P_ChangeSwitchTexture
     int     texMid;
     int     texBot;
     int     i;
-    int     sound = sfx_swtchn;
+    int     sound = 0;//sfx_swtchn;
 
     // EXIT SWITCH?
     if (line->special == 11)
-	sound = sfx_swtchx;
+	sound = 0;//sfx_swtchx;
 
     if (!useAgain)
 	line->special = 0;

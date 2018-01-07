@@ -29,7 +29,15 @@ typedef union
 } actionf_t;
 
 
-
+// [kg] types for lua
+typedef enum
+{
+	TT_INVALID, // should not be used
+	TT_MOBJ,
+	TT_MOBJINFO, // degen
+	TT_PLAYER, // degen
+	TT_SECTOR, // degen?
+} luathinker_t;
 
 
 // Historically, "think_t" is yet another
@@ -41,13 +49,17 @@ typedef actionf_t  think_t;
 // Doubly linked list of actors.
 typedef struct thinker_s
 {
-    struct thinker_s*	prev;
-    struct thinker_s*	next;
-    think_t		function;
-    
+	luathinker_t lua_type;
+	struct thinker_s*	prev;
+	struct thinker_s*	next;
+	think_t			function;
 } thinker_t;
 
-
+// [kg] simplified thinker for non-tickers
+typedef struct
+{
+	luathinker_t lua_type;
+} degenthinker_t;
 
 #endif
 

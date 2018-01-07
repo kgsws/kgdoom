@@ -16,8 +16,6 @@
 #include "doomstat.h"
 
 #include "dstrings.h"
-#include "sounds.h"
-
 
 #include "z_zone.h"
 #include "w_wad.h"
@@ -44,8 +42,9 @@
 #include "p_setup.h"
 #include "r_local.h"
 
-
 #include "d_main.h"
+
+#include "kg_lua.h"
 
 //
 // D-DoomLoop()
@@ -366,11 +365,11 @@ void D_AdvanceDemo (void)
 	    pagetic = 170;
 	gamestate = GS_DEMOSCREEN;
 	pagename = "TITLEPIC";
-	if ( gamemode == commercial )
+/*	if ( gamemode == commercial )
 	  S_StartMusic(mus_dm2ttl);
 	else
 	  S_StartMusic (mus_intro);
-	break;
+*/	break;
       case 1:
 //	G_DeferedPlayDemo ("demo1");
 	break;
@@ -388,7 +387,7 @@ void D_AdvanceDemo (void)
 	{
 	    pagetic = 35 * 11;
 	    pagename = "TITLEPIC";
-	    S_StartMusic(mus_dm2ttl);
+//	    S_StartMusic(mus_dm2ttl);
 	}
 	else
 	{
@@ -442,6 +441,9 @@ void D_DoomMain (void)
     I_InitNetwork();
 
     printf ("W_Init: Init WADfiles.\n");
+
+	// common wad
+	W_LoadWad("kgdoom.wad");
 
 	// pick an IWAD
 	gamemode = shareware;
@@ -665,21 +667,6 @@ void D_DoomMain (void)
 	startmap = 1;
 	autostart = true;
     }
-	
-    p = M_CheckParm ("-timer");
-    if (p && p < myargc-1 && deathmatch)
-    {
-	int     time;
-	time = atoi(myargv[p+1]);
-	printf("Levels will end after %d minute",time);
-	if (time>1)
-	    printf("s");
-	printf(".\n");
-    }
-
-    p = M_CheckParm ("-avg");
-    if (p && p < myargc-1 && deathmatch)
-	printf("Austin Virtual Gaming: Levels will end after 20 minutes\n");
 
     p = M_CheckParm ("-warp");
     if (p && p < myargc-1)
@@ -731,6 +718,10 @@ void D_DoomMain (void)
     printf ("M_Init: Init miscellaneous info.\n");
     M_Init ();
 #endif
+
+// [kg] load main game script
+    printf("L_Init: Init kgsws' DoomLUA\n");
+    L_Init();
 
     printf ("R_Init: Init DOOM refresh daemon - ");
     R_Init ();

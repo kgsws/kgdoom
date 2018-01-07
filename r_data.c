@@ -792,7 +792,7 @@ int R_FlatNumForName (char* name)
 
 	if(flat_lump == -1)
 	{
-		printf("R_FlatNumForName: %.8s not found", name);
+		printf("R_FlatNumForName: %.8s not found\n", name);
 		return 0;
 	}
 	return flat_lump;

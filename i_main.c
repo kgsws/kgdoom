@@ -1,7 +1,3 @@
-#ifndef LINUX
-#include <libtransistor/err.h>
-#endif
-
 #include "doomdef.h"
 #include "doomstat.h"
 
@@ -51,16 +47,6 @@ static struct sockaddr_in server_addr =
 	.sin_family = AF_INET,
 	.sin_port = htons(80)
 };
-
-// +temporary
-struct bsd_pollfd
-{
-	int	fd;
-	short	events;
-	short	revents;
-};
-#define	BSD_POLLIN	0x0001
-// -temporary
 
 static int http_socket;
 
@@ -201,60 +187,6 @@ char *test_argv[] =
 	NULL
 };
 
-// +temporary
-int bsd_poll(struct bsd_pollfd *fds, int nfds, int timeout)
-{
-	result_t r;
-	ipc_object_t bsd_object = bsd_get_object();
-
-	int32_t raw[] = {nfds, timeout};
-
-	ipc_buffer_t fds_in = {
-		.addr = fds,
-		.size = sizeof(struct bsd_pollfd) * nfds,
-		.type = 0x21
-	};
-
-	ipc_buffer_t fds_out = {
-		.addr = fds,
-		.size = sizeof(struct bsd_pollfd) * nfds,
-		.type = 0x22
-	};
-
-	ipc_buffer_t *buffers[] = {
-		&fds_in,
-		&fds_out,
-	};
-
-	ipc_request_t rq = ipc_default_request;
-	rq.request_id = 6;
-	rq.raw_data = (uint32_t*)raw;
-	rq.raw_data_size = sizeof(raw);
-	rq.num_buffers = 2;
-	rq.buffers = buffers;
-
-	int32_t response[2]; // ret, errno
-  
-	ipc_response_fmt_t rs = ipc_default_response_fmt;
-	rs.raw_data_size = sizeof(response);
-	rs.raw_data = (uint32_t*) response;
-  
-	r = ipc_send(bsd_object, &rq, &rs);
-	if(r) {
-		bsd_result = r;
-		return -1;
-	}
-
-	if(response[0] < 0) {
-		bsd_result = LIBTRANSISTOR_ERR_BSD_ERRNO_SET;
-		bsd_errno = response[1];
-		return -1;
-	}
-  
-	return response[0];
-}
-// -temporary
-
 #endif
 
 void main_finish()
@@ -358,24 +290,6 @@ int main(int argc, char **argv)
 
 void I_InitNetwork()
 {
-	int ip[4];
-	int port;
-	int p = M_CheckParm ("-connect");
-
-	if(p && p < myargc-1 && sscanf(myargv[p+1], "%u.%u.%u.%u:%u", &ip[0], &ip[1], &ip[2], &ip[3], &port) == 5)
-	{
-		netgame = 1;
-		strcpy(network_message, "connecting to server\n....");
-		client_addr.sin_addr.s_addr = make_ip(ip[0],ip[1],ip[2],ip[3]);
-		client_addr.sin_port = htons(port);
-		client_socket = bsd_socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-		if(client_socket < 0)
-			I_Error("I_InitNetwork: failed to create socket");
-		if(bsd_connect(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)))
-			I_Error("I_InitNetwork: failed to connect socket");
-		// local spectator player
-		consoleplayer = MAXPLAYERS;
-	} else
 	{
 		// singleplayer game
 		consoleplayer = 0;
@@ -387,197 +301,6 @@ void I_InitNetwork()
 
 void I_NetUpdate()
 {
-	static int animate;
-	int length;
-	uint8_t cmd;
-	uint32_t packet;
-	static uint32_t packetnum;
-#ifndef LINUX
-	static struct bsd_pollfd pfd;
-#endif
 
-	if(!netgame)
-		return;
-
-	// read and parse all packets
-	while(1)
-	{
-#ifdef LINUX
-		length = 0;
-		ioctl(client_socket, FIONREAD, &length);
-		if(length <= 0)
-			break;
-		if(length > MAX_PACKET_LEN) // should never happen with normal clients
-			length = MAX_PACKET_LEN;
-		recvlen = recv(client_socket, recvbuf, length, 0);
-#else
-		pfd.fd = client_socket;
-		pfd.events = BSD_POLLIN;
-		pfd.revents = 0;
-
-		length = bsd_poll(&pfd, 1, 0);
-		if(length != 1 || !(pfd.revents & BSD_POLLIN))
-			break;
-
-		length = MAX_PACKET_LEN;
-		recvlen = bsd_recv(client_socket, recvbuf, length, 0);
-		if(recvlen <= 0)
-			break;
-#endif
-		recvpos = 0;
-		if(!NET_GetUint32(&packet))
-		{
-			if(packet == 0xFFFFFFFF)
-			{
-				// unreliable; get current reliable packet number, just to check for any losses
-				NET_GetUint32(&packet);
-				// check for eventual packet loss, do not advance anything
-				if(packet >= packetnum)
-				{
-					// missed at least one packet, request
-					CL_RequestResend(packetnum);
-					// ignore rest of this packet
-					continue;
-				}
-			} else
-			{
-				if(packet != packetnum)
-				{
-					if(packet > packetnum)
-					{
-						// request resend
-						CL_RequestResend(packetnum);
-					}
-					// ignore rest of this packet
-					continue;
-				} else
-					// advance counter
-					packetnum = packet + 1;
-			}
-			while(!NET_GetByte(&cmd))
-			{
-				last_packet_tic = gametic;
-				switch(cmd)
-				{
-					case SVM_CONNECT:
-						CL_CmdConnected();
-					break;
-					case SVM_DISCONNECT:
-						CL_CmdDisconnected();
-					break;
-					case SVM_KEEP_ALIVE:
-						// do nothing
-					break;
-					case SVM_CHANGE_SECTOR:
-						CL_CmdChangeSector();
-					break;
-					case SVM_CHANGE_LSIDE:
-						CL_CmdChangeSidedef();
-					break;
-					case SVM_SPAWN_MOBJ:
-						CL_CmdSpawnMobj();
-					break;
-					case SVM_SPAWN_PLAYER:
-						CL_CmdSpawnPlayer();
-					break;
-					case SVM_CEILING:
-						CL_CmdCeiling();
-					break;
-					case SVM_FLOOR:
-						CL_CmdFloor();
-					break;
-					case SVM_PLAYER_INFO:
-						CL_CmdPlayerInfo();
-					break;
-					case SVM_UPDATE_MOBJ:
-						CL_CmdUpdateMobj();
-					break;
-					case SVM_REMOVE_MOBJ:
-						CL_CmdRemoveMobj();
-					break;
-					case SVM_PLAYER_PICKUP:
-						CL_CmdPlayerPickup();
-					break;
-					case SVM_PLAYER_INVENTORY:
-						CL_CmdPlayerInventory();
-					break;
-					case SVM_PLAYER_MESSAGE:
-						CL_CmdPlayerMessage();
-					break;
-					case SVM_SOUND:
-						CL_CmdSound();
-					break;
-					default:
-						// something is wrong, ignore packet
-						recvpos = recvlen;
-					break;
-				}
-			}
-		}
-	}
-
-	if(netgame == 1)
-	{
-		// connecting
-		if(net_timeout < gametic)
-		{
-			// send request
-			CL_Connect();
-			// reset timeout
-			net_timeout = gametic + TICRATE;
-			network_message[22+animate] = '.';
-			animate = (animate + 1) & 3;
-			network_message[22+animate] = 0;
-		}
-	} else
-	if(netgame == 2)
-	{
-		if(gamestate == GS_LEVEL)
-		{
-			if(net_timeout < gametic)
-			{
-				net_timeout = gametic + CLIENT_MOTDTIME;
-				netgame = 3;
-				CL_Loaded();
-				printf("- level loaded\n");
-			}
-		}
-	} else
-	{
-		if(net_timeout && net_timeout < gametic)
-		{
-			// remove MOTD
-			net_timeout = 0;
-			network_message[0] = 0;
-		}
-		if(netgame == 3)
-		{
-			if(last_packet_tic + 2 * SERVER_CLIENT_KEEPALIVE < gametic)
-			{
-				netgame = 4;
-				strcpy(network_message, "Connection lost ...");
-			} else
-			if(keep_alive < gametic)
-				CL_KeepAlive();
-		} else
-		{
-			if(last_packet_tic + 2 * SERVER_CLIENT_KEEPALIVE > gametic)
-			{
-				netgame = 3;
-				network_message[0] = 0;
-			}
-		}
-	}
-
-	// spectator join
-	if(players[consoleplayer].cheats & CF_SPECTATOR && (gamekeydown[key_use] || joybuttons[joybuse]))
-	{
-		gamekeydown[key_use] = 0;
-		joybuttons[joybuse] = 0;
-		CL_Join(0);
-	}
-
-	// send out all buffered commands
-	NET_SendCommand();
 }
 

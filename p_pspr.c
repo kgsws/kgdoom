@@ -9,13 +9,13 @@
 // State.
 #include "doomstat.h"
 
-// Data.
-#include "sounds.h"
-
 #include "p_pspr.h"
 
 // [kg] weapon change
 #include "st_stuff.h"
+
+// [kg] LUA support
+#include "kg_lua.h"
 
 #ifdef SERVER
 #include <netinet/in.h>
@@ -61,23 +61,19 @@ P_SetPsprite
 	state = &states[stnum];
 	psp->state = state;
 	psp->tics = state->tics;	// could be 0
-
+/*
 	if (state->misc1)
 	{
 	    // coordinate set
 	    psp->sx = state->misc1 << FRACBITS;
 	    psp->sy = state->misc2 << FRACBITS;
 	}
-	
-	// Call action routine.
-	// Modified handling.
-	if (state->action.acp2)
-	{
-	    state->action.acp2(player, psp);
-	    if (!psp->state)
-		break;
-	}
-	
+*/
+	// [kg] call LUA function
+	L_StateCall(state, player->mo);
+	if(!psp->state)
+	    break;
+
 	stnum = psp->state->nextstate;
 	
     } while (!psp->tics);
@@ -125,8 +121,8 @@ void P_BringUpWeapon (player_t* player)
     if (player->pendingweapon == wp_nochange)
 	player->pendingweapon = player->readyweapon;
 		
-    if (player->pendingweapon == wp_chainsaw)
-	S_StartSound (player->mo, sfx_sawup, SOUND_WEAPON);
+//    if (player->pendingweapon == wp_chainsaw)
+//	S_StartSound (player->mo, sfx_sawup, SOUND_WEAPON);
 		
     newstate = weaponinfo[player->pendingweapon].upstate;
 
@@ -241,7 +237,7 @@ void P_FireWeapon (player_t* player)
     if (!P_CheckAmmo (player))
 	return;
 
-    P_SetMobjState (player->mo, S_PLAY_ATK1);
+//    P_SetMobjState (player->mo, S_PLAY_ATK1);
     newstate = weaponinfo[player->readyweapon].atkstate;
     P_SetPsprite (player, ps_weapon, newstate);
     P_NoiseAlert (player->mo, player->mo);
@@ -264,7 +260,7 @@ void P_SetAttack(player_t *player)
 {
 	if(player->health <= 0)
 		return;
-	P_SetMobjState (player->mo, S_PLAY_ATK2);
+//	P_SetMobjState (player->mo, S_PLAY_ATK2);
 }
 
 //
@@ -284,17 +280,17 @@ A_WeaponReady
 
     if(player->health > 0)
     {
-	// get out of attack state
-	if(player->mo->state == &states[S_PLAY_ATK1] || player->mo->state == &states[S_PLAY_ATK2])
+	// get out of attack state // TODO: handle player animation
+/*	if(player->mo->state == &states[S_PLAY_ATK1] || player->mo->state == &states[S_PLAY_ATK2])
 	{
 	    P_SetMobjState (player->mo, S_PLAY);
 	}
-
-	if (player->readyweapon == wp_chainsaw
+*/
+/*	if (player->readyweapon == wp_chainsaw
 	    && psp->state == &states[S_SAW])
 	{
 	    S_StartSound (player->mo, sfx_sawidl, SOUND_WEAPON);
-	}
+	}*/
     }
     
     // check for change
@@ -450,7 +446,7 @@ A_GunFlash
 {
     if(player->health <= 0)
 	return;
-    P_SetMobjState (player->mo, S_PLAY_ATK2);
+//    P_SetMobjState (player->mo, S_PLAY_ATK2);
     P_SetPsprite (player,ps_flash,weaponinfo[player->readyweapon].flashstate);
 }
 
@@ -469,7 +465,7 @@ A_Punch
 ( player_t*	player,
   pspdef_t*	psp ) 
 {
-    angle_t	angle;
+/*    angle_t	angle;
     int		damage;
     int		slope;
 	
@@ -497,7 +493,7 @@ A_Punch
 					     linetarget->x,
 					     linetarget->y);
 #endif
-    }
+    }*/
 }
 
 
@@ -509,7 +505,7 @@ A_Saw
 ( player_t*	player,
   pspdef_t*	psp ) 
 {
-    angle_t	angle;
+/*    angle_t	angle;
     int		damage;
     int		slope;
 
@@ -545,7 +541,7 @@ A_Saw
 	else
 	    player->mo->angle += ANG90/20;
     }
-//    player->mo->flags |= MF_JUSTATTACKED;
+//    player->mo->flags |= MF_JUSTATTACKED;*/
 }
 
 
@@ -564,7 +560,7 @@ A_FireMissile
 	if(netgame)
 		return;
 #endif
-	P_SpawnPlayerMissile (player->mo, MT_ROCKET);
+//	P_SpawnPlayerMissile (player->mo, MT_ROCKET);
 }
 
 
@@ -582,7 +578,7 @@ A_FireBFG
 	if(netgame)
 		return;
 #endif
-	P_SpawnPlayerMissile (player->mo, MT_BFG);
+//	P_SpawnPlayerMissile (player->mo, MT_BFG);
 }
 
 
@@ -602,7 +598,7 @@ A_FirePlasma
 	if(netgame)
 		return;
 #endif
-	P_SpawnPlayerMissile (player->mo, MT_PLASMA);
+//	P_SpawnPlayerMissile (player->mo, MT_PLASMA);
 }
 
 
@@ -625,165 +621,23 @@ void P_BulletSlope (mobj_t*	mo)
     else
     {
 	an = mo->angle;
-	bulletslope = P_AimLineAttack (mo, an, 16*64*FRACUNIT);
+	bulletslope = P_AimLineAttack (mo, an, 16*64*FRACUNIT, NULL);
 
 	if (!linetarget)
 	{
 	    an += 1<<26;
-	    bulletslope = P_AimLineAttack (mo, an, 16*64*FRACUNIT);
+	    bulletslope = P_AimLineAttack (mo, an, 16*64*FRACUNIT, NULL);
 	    if (!linetarget)
 	    {
 		an -= 2<<26;
-		bulletslope = P_AimLineAttack (mo, an, 16*64*FRACUNIT);
+		bulletslope = P_AimLineAttack (mo, an, 16*64*FRACUNIT, NULL);
 	    }
 	}
     }
 }
 
-
 //
-// P_GunShot
-//
-void
-P_GunShot
-( mobj_t*	mo,
-  boolean	accurate )
-{
-    angle_t	angle;
-    int		damage;
-	
-    damage = 5*(P_Random ()%3+1);
-    angle = mo->angle;
-
-    if (!accurate)
-	angle += (P_Random()-P_Random())<<18;
-
-    P_LineAttack (mo, angle, MISSILERANGE, bulletslope, damage);
-}
-
-
-//
-// A_FirePistol
-//
-void
-A_FirePistol
-( player_t*	player,
-  pspdef_t*	psp ) 
-{
-	S_StartSound (player->mo, sfx_pistol, SOUND_WEAPON);
-
-	P_SetAttack(player);
-
-	if(!(player->cheats & CF_INFAMMO))
-		player->ammo[weaponinfo[player->readyweapon].ammo]--;
-
-	P_SetPsprite (player, ps_flash, weaponinfo[player->readyweapon].flashstate);
-#ifndef SERVER
-	if(netgame)
-		return;
-#endif
-	P_BulletSlope (player->mo);
-	P_GunShot (player->mo, !player->refire);
-}
-
-
-//
-// A_FireShotgun
-//
-void
-A_FireShotgun
-( player_t*	player,
-  pspdef_t*	psp ) 
-{
-	int		i;
-
-	S_StartSound (player->mo, sfx_shotgn, SOUND_WEAPON);
-	P_SetAttack(player);
-
-	if(!(player->cheats & CF_INFAMMO))
-		player->ammo[weaponinfo[player->readyweapon].ammo]--;
-
-	P_SetPsprite (player, ps_flash, weaponinfo[player->readyweapon].flashstate);
-#ifndef SERVER
-	if(netgame)
-		return;
-#endif
-	P_BulletSlope (player->mo);
-
-	for (i=0 ; i<7 ; i++)
-		P_GunShot (player->mo, false);
-}
-
-
-
-//
-// A_FireShotgun2
-//
-void
-A_FireShotgun2
-( player_t*	player,
-  pspdef_t*	psp ) 
-{
-	int		i;
-	angle_t	angle;
-	int		damage;
-
-
-	S_StartSound (player->mo, sfx_dshtgn, SOUND_WEAPON);
-	P_SetAttack(player);
-
-	if(!(player->cheats & CF_INFAMMO))
-		player->ammo[weaponinfo[player->readyweapon].ammo]-=2;
-
-	P_SetPsprite (player, ps_flash, weaponinfo[player->readyweapon].flashstate);
-#ifndef SERVER
-	if(netgame)
-		return;
-#endif
-	P_BulletSlope (player->mo);
-
-	for (i=0 ; i<20 ; i++)
-	{
-		damage = 5*(P_Random ()%3+1);
-		angle = player->mo->angle;
-		angle += (P_Random()-P_Random())<<19;
-		P_LineAttack (player->mo, angle, MISSILERANGE, bulletslope + ((P_Random()-P_Random())<<5), damage);
-	}
-}
-
-
-//
-// A_FireCGun
-//
-void
-A_FireCGun
-( player_t*	player,
-  pspdef_t*	psp ) 
-{
-	if (!(player->cheats & CF_INFAMMO) && !player->ammo[weaponinfo[player->readyweapon].ammo])
-		return;
-
-	S_StartSound (player->mo, sfx_pistol, SOUND_WEAPON);
-
-	P_SetAttack(player);
-
-	if(!(player->cheats & CF_INFAMMO))
-		player->ammo[weaponinfo[player->readyweapon].ammo]--;
-
-	if(psp)
-		P_SetPsprite (player, ps_flash, weaponinfo[player->readyweapon].flashstate + psp->state - &states[S_CHAIN1] );
-#ifndef SERVER
-	if(netgame)
-		return;
-#endif
-	P_BulletSlope (player->mo);
-	P_GunShot (player->mo, !player->refire);
-}
-
-
-
-//
-// ?
+// light flash
 //
 void A_Light0 (player_t *player, pspdef_t *psp)
 {
@@ -799,68 +653,6 @@ void A_Light2 (player_t *player, pspdef_t *psp)
 {
     player->extralight = 2;
 }
-
-
-//
-// A_BFGSpray
-// Spawn a BFG explosion on every monster in view
-//
-void A_BFGSpray (mobj_t* mo) 
-{
-    int			i;
-    int			j;
-    int			damage;
-    angle_t		an;
-    mobj_t *dmo;
-
-#ifndef SERVER
-    if(netgame)
-	return;
-#endif
-	
-    // offset angles from its attack angle
-    for (i=0 ; i<40 ; i++)
-    {
-	an = mo->angle - ANG90/2 + ANG90/40*i;
-
-	// mo->target is the originator (player)
-	//  of the missile
-	P_AimLineAttack (mo->target, an, 16*64*FRACUNIT);
-
-	if (!linetarget)
-	    continue;
-
-	dmo = P_SpawnMobj (linetarget->x,
-		     linetarget->y,
-		     linetarget->z + (linetarget->height>>2),
-		     MT_EXTRABFG);
-
-#ifdef SERVER
-	// tell clients about this
-	SV_SpawnMobj(dmo, 0);
-#endif
-	
-	damage = 0;
-	for (j=0;j<15;j++)
-	    damage += (P_Random()&7) + 1;
-
-	P_DamageMobj (linetarget, mo->target,mo->target, damage);
-    }
-}
-
-
-//
-// A_BFGsound
-//
-void
-A_BFGsound
-( player_t*	player,
-  pspdef_t*	psp )
-{
-    S_StartSound (player->mo, sfx_bfg, SOUND_WEAPON);
-}
-
-
 
 //
 // P_SetupPsprites

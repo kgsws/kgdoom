@@ -10,6 +10,7 @@
 
 // [kg] new gameplay stuff
 
+extern int sv_zcollision;
 extern int sv_freeaim;
 extern int sv_itemrespawn;
 extern int sv_weaponrespawn;

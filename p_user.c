@@ -51,7 +51,7 @@ void P_CalcHeight (player_t* player)
 	int	angle;
 	fixed_t	bob;
 
-	if(player->cheats & CF_SPECTATOR)
+	if(player->cheats & CF_SPECTATOR || !player->mo->info->bobz)
 	{
 		bob = 0;
 	} else
@@ -66,12 +66,15 @@ void P_CalcHeight (player_t* player)
 
 		player->bob >>= 2;
 
-		if (player->bob>MAXBOB)
+		if (player->bob > MAXBOB)
 			player->bob = MAXBOB;
+
+		// [kg] scale
+		player->bob = FixedMul(player->bob, player->mo->info->bobz / 16);
 
 		if ((player->cheats & CF_NOMOMENTUM) || !onground)
 		{
-			player->viewz = player->mo->z + VIEWHEIGHT;
+			player->viewz = player->mo->z + player->mo->info->viewz;
 
 			if (player->viewz > player->mo->ceilingz-4*FRACUNIT)
 			player->viewz = player->mo->ceilingz-4*FRACUNIT;
@@ -89,15 +92,15 @@ void P_CalcHeight (player_t* player)
 	{
 		player->viewheight += player->deltaviewheight;
 
-		if (player->viewheight > VIEWHEIGHT)
+		if (player->viewheight > player->mo->info->viewz)
 		{
-			player->viewheight = VIEWHEIGHT;
+			player->viewheight = player->mo->info->viewz;
 			player->deltaviewheight = 0;
 		}
 
-		if (player->viewheight < VIEWHEIGHT/2)
+		if (player->viewheight < player->mo->info->viewz/2)
 		{
-			player->viewheight = VIEWHEIGHT/2;
+			player->viewheight = player->mo->info->viewz/2;
 			if (player->deltaviewheight <= 0)
 				player->deltaviewheight = 1;
 		}
@@ -113,6 +116,9 @@ void P_CalcHeight (player_t* player)
 
 	if (player->viewz > player->mo->ceilingz-4*FRACUNIT)
 		player->viewz = player->mo->ceilingz-4*FRACUNIT;
+
+	if (player->viewz <= player->mo->floorz)
+		player->viewz = player->mo->floorz + 1;
 }
 
 
@@ -164,11 +170,12 @@ void P_MovePlayer (player_t* player)
 
     if(!netgame || player == localpl)
 #endif
-    if ( (cmd->forwardmove || cmd->sidemove)
+{}
+/*    if ( (cmd->forwardmove || cmd->sidemove)
 	 && player->mo->state == &states[S_PLAY] )
     {
 	P_SetMobjState (player->mo, S_PLAY_RUN1);
-    }
+    }*/ // TODO: handle player animations
 }	
 
 
@@ -198,6 +205,13 @@ void P_DeathThink (player_t* player)
 
     if (player->viewheight < 6*FRACUNIT)
 	player->viewheight = 6*FRACUNIT;
+
+    // [kg] slope
+    if(player->mo->pitch > 0)
+	player->mo->pitch -= 3000;
+
+    if(player->mo->pitch < 0)
+	player->mo->pitch += 3000;
 
     player->deltaviewheight = 0;
     onground = (player->mo->z <= player->mo->floorz);

@@ -37,7 +37,6 @@
 
 // Data.
 #include "dstrings.h"
-#include "sounds.h"
 
 //
 // STATUS BAR DATA
@@ -71,35 +70,7 @@
 #define RADIATIONPAL		13
 
 // crosshair
-static uint8_t pointer[] =
-{
-	8, 0,	// witdh
-	8, 0,	// height
-	0, 0,	// left
-	0, 0,	// top
-	40, 0, 0, 0, // col0
-	40, 0, 0, 0, // col1
-	40, 0, 0, 0, // col2
-	47, 0, 0, 0, // col3
-	47, 0, 0, 0, // col4
-	40, 0, 0, 0, // col5
-	40, 0, 0, 0, // col6
-	40, 0, 0, 0, // col7
-	// colA
-	3, // top
-	2, // length
-	0, // garbage
-	0, 0, // pixels
-	0, // garbage
-	0xFF, // end
-	// colB
-	0, // top
-	8, // length
-	0, // garbage
-	0, 0, 0, 0, 0, 0, 0, 0, // pixels
-	0, // garbage
-	0xFF, // end
-};
+static patch_t*		pointer;
 
 // main player in game
 static player_t*	plyr; 
@@ -560,7 +531,7 @@ ST_Responder (event_t* ev)
       // 'mus' cheat for changing music
       else if (cht_CheckCheat(&cheat_mus, ev->data1))
       {
-	
+/*	
 	char	buf[3];
 	int		musnum;
 	
@@ -585,7 +556,7 @@ ST_Responder (event_t* ev)
 	  else
 	    S_ChangeMusic(musnum, 1);
 	}
-      }
+*/      }
       // Simplified, accepting both "noclip" and "idspispopd".
       // no clipping mode cheat
       else if ( cht_CheckCheat(&cheat_noclip, ev->data1) 
@@ -783,7 +754,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 
 	// crosshair
 	if(sv_freeaim)
-		V_DrawPatchRemap1((SCREENWIDTH / 2) - 4, SCREENHEIGHT / 2, (patch_t*)pointer, imap);
+		V_DrawPatchRemap1((SCREENWIDTH / 2) - 4, SCREENHEIGHT / 2, pointer, imap);
 
 	// health
 	V_DrawPatchNew(STBAR_HEALTH_X, STBAR_HEALTH_Y, hp_back, v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_NONE, 2);
@@ -914,6 +885,9 @@ void ST_loadGraphics(void)
 	char namebuf[9];
 
 	STlib_init();
+
+	// pointer
+	pointer = (patch_t *)W_CacheLumpName("POINTER");
 
 	// key cards
 	for(i = 0; i < NUMCARDS; i++)

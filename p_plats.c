@@ -5,14 +5,9 @@
 #include "doomdef.h"
 #include "p_local.h"
 
-#include "s_sound.h"
-
 // State.
 #include "doomstat.h"
 #include "r_state.h"
-
-// Data.
-#include "sounds.h"
 
 #ifdef SERVER
 #include <netinet/in.h>
@@ -38,9 +33,8 @@ void T_PlatRaise(plat_t* plat)
 	if (plat->type == raiseAndChange
 	    || plat->type == raiseToNearestAndChange)
 	{
-	    if (!(leveltime&7))
-		S_StartSound((mobj_t *)&plat->sector->soundorg,
-			     sfx_stnmov, SOUND_BODY);
+//	    if (!(leveltime&7))
+//		S_StartSound((mobj_t *)&plat->sector->soundorg, sfx_stnmov, SOUND_BODY);
 	}
 	
 				
@@ -48,8 +42,7 @@ void T_PlatRaise(plat_t* plat)
 	{
 	    plat->count = plat->wait;
 	    plat->status = down;
-	    S_StartSound((mobj_t *)&plat->sector->soundorg,
-			 sfx_pstart, SOUND_BODY);
+//	    S_StartSound((mobj_t *)&plat->sector->soundorg, sfx_pstart, SOUND_BODY);
 #ifdef SERVER
 	    // tell clients about this
 	    SV_SectorPlatform(plat);
@@ -61,8 +54,7 @@ void T_PlatRaise(plat_t* plat)
 	    {
 		plat->count = plat->wait;
 		plat->status = waiting;
-		S_StartSound((mobj_t *)&plat->sector->soundorg,
-			     sfx_pstop, SOUND_BODY);
+//		S_StartSound((mobj_t *)&plat->sector->soundorg, sfx_pstop, SOUND_BODY);
 
 		switch(plat->type)
 		{
@@ -90,7 +82,7 @@ void T_PlatRaise(plat_t* plat)
 	{
 	    plat->count = plat->wait;
 	    plat->status = waiting;
-	    S_StartSound((mobj_t *)&plat->sector->soundorg,sfx_pstop, SOUND_BODY);
+//	    S_StartSound((mobj_t *)&plat->sector->soundorg,sfx_pstop, SOUND_BODY);
 	}
 	break;
 	
@@ -101,7 +93,7 @@ void T_PlatRaise(plat_t* plat)
 		plat->status = up;
 	    else
 		plat->status = down;
-	    S_StartSound((mobj_t *)&plat->sector->soundorg,sfx_pstart, SOUND_BODY);
+//	    S_StartSound((mobj_t *)&plat->sector->soundorg,sfx_pstart, SOUND_BODY);
 #ifdef SERVER
 	    // tell clients about this
 	    SV_SectorPlatform(plat);
@@ -153,7 +145,7 @@ EV_DoPlat
 	// Find lowest & highest floors around sector
 	rtn = 1;
 	plat = Z_Malloc( sizeof(*plat), PU_LEVSPEC, 0);
-	P_AddThinker(&plat->thinker);
+	P_AddThinker(&plat->thinker, TT_INVALID);
 		
 	plat->type = type;
 	plat->sector = sec;
@@ -173,7 +165,7 @@ EV_DoPlat
 	    // NO MORE DAMAGE, IF APPLICABLE
 	    sec->special = 0;		
 
-	    S_StartSound((mobj_t *)&sec->soundorg,sfx_stnmov, SOUND_BODY);
+//	    S_StartSound((mobj_t *)&sec->soundorg,sfx_stnmov, SOUND_BODY);
 	    break;
 	    
 	  case raiseAndChange:
@@ -183,7 +175,7 @@ EV_DoPlat
 	    plat->wait = 0;
 	    plat->status = up;
 
-	    S_StartSound((mobj_t *)&sec->soundorg,sfx_stnmov, SOUND_BODY);
+//	    S_StartSound((mobj_t *)&sec->soundorg,sfx_stnmov, SOUND_BODY);
 	    break;
 	    
 	  case downWaitUpStay:
@@ -196,7 +188,7 @@ EV_DoPlat
 	    plat->high = sec->floorheight;
 	    plat->wait = 35*PLATWAIT;
 	    plat->status = down;
-	    S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart, SOUND_BODY);
+//	    S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart, SOUND_BODY);
 	    break;
 	    
 	  case blazeDWUS:
@@ -209,7 +201,7 @@ EV_DoPlat
 	    plat->high = sec->floorheight;
 	    plat->wait = 35*PLATWAIT;
 	    plat->status = down;
-	    S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart, SOUND_BODY);
+//	    S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart, SOUND_BODY);
 	    break;
 	    
 	  case perpetualRaise:
@@ -227,7 +219,7 @@ EV_DoPlat
 	    plat->wait = 35*PLATWAIT;
 	    plat->status = P_Random()&1;
 
-	    S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart, SOUND_BODY);
+//	    S_StartSound((mobj_t *)&sec->soundorg,sfx_pstart, SOUND_BODY);
 	    break;
 	}
 #ifdef SERVER

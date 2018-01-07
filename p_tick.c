@@ -41,12 +41,13 @@ void P_InitThinkers (void)
 // P_AddThinker
 // Adds a new thinker at the end of the list.
 //
-void P_AddThinker (thinker_t* thinker)
+void P_AddThinker (thinker_t* thinker, luathinker_t type)
 {
-    thinkercap.prev->next = thinker;
-    thinker->next = &thinkercap;
-    thinker->prev = thinkercap.prev;
-    thinkercap.prev = thinker;
+	thinker->lua_type = type;
+	thinkercap.prev->next = thinker;
+	thinker->next = &thinkercap;
+	thinker->prev = thinkercap.prev;
+	thinkercap.prev = thinker;
 }
 
 

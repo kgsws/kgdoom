@@ -20,7 +20,7 @@ byte*		save_p;
 //
 void P_ArchivePlayers (void)
 {
-    int		i;
+/*    int		i;
     int		j;
     player_t*	dest;
 		
@@ -42,7 +42,7 @@ void P_ArchivePlayers (void)
 		    = (state_t *)(dest->psprites[j].state-states);
 	    }
 	}
-    }
+    }*/
 }
 
 
@@ -52,7 +52,7 @@ void P_ArchivePlayers (void)
 //
 void P_UnArchivePlayers (void)
 {
-    int		i;
+/*    int		i;
     int		j;
 	
     for (i=0 ; i<MAXPLAYERS ; i++)
@@ -78,7 +78,7 @@ void P_UnArchivePlayers (void)
 		    = &states[ (int)players[i].psprites[j].state ];
 	    }
 	}
-    }
+    }*/
 }
 
 
@@ -87,7 +87,7 @@ void P_UnArchivePlayers (void)
 //
 void P_ArchiveWorld (void)
 {
-    int			i;
+/*    int			i;
     int			j;
     sector_t*		sec;
     line_t*		li;
@@ -130,7 +130,7 @@ void P_ArchiveWorld (void)
 	}
     }
 	
-    save_p = (byte *)put;
+    save_p = (byte *)put;*/
 }
 
 
@@ -140,7 +140,7 @@ void P_ArchiveWorld (void)
 //
 void P_UnArchiveWorld (void)
 {
-    int			i;
+/*    int			i;
     int			j;
     sector_t*		sec;
     line_t*		li;
@@ -181,7 +181,7 @@ void P_UnArchiveWorld (void)
 	    si->midtexture = *get++;
 	}
     }
-    save_p = (byte *)get;	
+    save_p = (byte *)get;*/
 }
 
 
@@ -205,7 +205,7 @@ typedef enum
 //
 void P_ArchiveThinkers (void)
 {
-    thinker_t*		th;
+/*    thinker_t*		th;
     mobj_t*		mobj;
 	
     // save off the current thinkers
@@ -229,7 +229,7 @@ void P_ArchiveThinkers (void)
     }
 
     // add a terminating marker
-    *save_p++ = tc_end;	
+    *save_p++ = tc_end;	*/
 }
 
 
@@ -239,7 +239,7 @@ void P_ArchiveThinkers (void)
 //
 void P_UnArchiveThinkers (void)
 {
-    byte		tclass;
+/*    byte		tclass;
     thinker_t*		currentthinker;
     thinker_t*		next;
     mobj_t*		mobj;
@@ -293,7 +293,7 @@ void P_UnArchiveThinkers (void)
 	}
 	
     }
-
+*/
 }
 
 

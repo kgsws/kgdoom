@@ -34,7 +34,6 @@
 
 // Data.
 #include "dstrings.h"
-#include "sounds.h"
 
 // SKY handling - still the wrong place.
 #include "r_data.h"
@@ -136,7 +135,6 @@ int             mousebstrafe;
 int             mousebforward;
 int		mousebuse;
 
-
 #define MAXPLMOVE		(forwardmove[1]) 
  
 #define TURBOTHRESHOLD	0x32
@@ -144,8 +142,8 @@ int		mousebuse;
 fixed_t		forwardmove[2] = {0x19, 0x32};
 fixed_t		sidemove[2] = {0x18, 0x28};
 fixed_t		anglemove = 1280 << 16;
+short		pitchturn = 5;
 short		pitchmove = 50;
-
 fixed_t		joyforwardmove[2] = {550*2, 550};
 fixed_t		joysidemove[2] = {770*2, 770};
 
@@ -174,7 +172,7 @@ int		joyymove;
 int             joyxmove2;
 int		joyymove2;
 boolean		joybuttons[NUM_JOYCON_BUTTONS];
- 
+
 int		savegameslot; 
 char		savedescription[32];
 
@@ -248,11 +246,11 @@ void G_BuildTiccmd (ticcmd_t* cmd)
     if(i_ctrl_roles)
     {
 	angleturn -= joyxmove * 2345;
-	pitchturn += joyymove / 6;
+	pitchturn += joyymove / 588;
     } else
     {
 	angleturn -= joyxmove2 * 2345;
-	pitchturn += joyymove2 / 6;
+	pitchturn += joyymove2 / 588;
     }
 
     if(i_ctrl_roles)
@@ -584,9 +582,7 @@ void G_Ticker (void)
 #endif
 	    break; 
 	  case ga_victory: 
-#ifndef SERVER
-	    F_StartFinale ();
-#endif
+//	    F_StartFinale (); 
 	    break; 
 	  case ga_worlddone: 
 	    G_DoWorldDone (); 
@@ -1237,10 +1233,11 @@ void G_ResetPlayer()
 {
 	// [kg] reset saved inventory
 	memset(&prespawn, 0, sizeof(player_t));
+// TODO: somehow handle this in LUA
 	prespawn.health = MAXHEALTH;
-	prespawn.readyweapon = prespawn.pendingweapon = wp_pistol;
-	prespawn.weaponowned[wp_fist] = true;
-	prespawn.weaponowned[wp_pistol] = true;
+	prespawn.readyweapon = prespawn.pendingweapon = wp_nochange;
+//	prespawn.weaponowned[wp_fist] = true;
+//	prespawn.weaponowned[wp_pistol] = true;
 	prespawn.ammo[am_clip] = 50;
 	for (int i=0 ; i<NUMAMMO ; i++)
 		prespawn.maxammo[i] = maxammo[i];
@@ -1338,7 +1335,8 @@ G_InitNew
 	respawnmonsters = true;
     else
 	respawnmonsters = false;
-		
+
+/*
     if (fastparm || (skill == sk_nightmare && gameskill != sk_nightmare) )
     { 
 	for (i=S_SARG_RUN1 ; i<=S_SARG_PAIN2 ; i++) 
@@ -1355,8 +1353,8 @@ G_InitNew
 	mobjinfo[MT_HEADSHOT].speed = 10*FRACUNIT; 
 	mobjinfo[MT_TROOPSHOT].speed = 10*FRACUNIT; 
     } 
-	 
-			 
+*/
+
     // force players to be initialized upon first level load         
     for (i=0 ; i<MAXPLAYERS ; i++) 
 	players[i].playerstate = PST_REBORN; 

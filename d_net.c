@@ -15,6 +15,7 @@
 
 // [kg] new gameplay stuff
 
+int sv_zcollision;
 int sv_freeaim;
 int sv_itemrespawn;	// in ticks
 int sv_weaponrespawn;	// in ticks

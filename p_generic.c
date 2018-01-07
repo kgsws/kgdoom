@@ -66,28 +66,28 @@ void T_GenericCeiling(generic_plane_t *gp)
 	}
 }
 
-void P_GenericSectorCeiling(sector_t *sec, generic_info_t *info)
+void P_GenericSectorCeiling(generic_info_t *info)
 {
 	generic_plane_t *gp;
 
 	// remove old one
-	if(sec->specialdata)
-		P_RemoveThinker(sec->specialdata);
+	if(info->sector->specialdata)
+		P_RemoveThinker(info->sector->specialdata);
 	// check speed
 	if(!info->speed)
 		return;
 	// add new one
 	gp = Z_Malloc(sizeof(generic_plane_t), PU_LEVSPEC, 0);
-	P_AddThinker(&gp->thinker);
+	P_AddThinker(&gp->thinker, TT_INVALID);
 	gp->info = *info;
 	gp->thinker.function.acp1 = (actionf_p1)T_GenericCeiling;
-	sec->specialdata = gp;
+	info->sector->specialdata = gp;
 	// set starting parameters
 	gp->speed = gp->info.speed;
-	sec->ceilingheight = info->startz;
-	sec->ceilingpic = info->startpic;
+	info->sector->ceilingheight = info->startz;
+	info->sector->ceilingpic = info->startpic;
 	if(info->startsound)
-		S_StartSound((mobj_t *)&sec->soundorg, info->startsound, SOUND_BODY);
+		S_StartSound((mobj_t *)&info->sector->soundorg, info->startsound, SOUND_BODY);
 }
 
 //
@@ -147,27 +147,27 @@ void T_GenericFloor(generic_plane_t *gp)
 	}
 }
 
-void P_GenericSectorFloor(sector_t *sec, generic_info_t *info)
+void P_GenericSectorFloor(generic_info_t *info)
 {
 	generic_plane_t *gp;
 
 	// remove old one
-	if(sec->specialdata)
-		P_RemoveThinker(sec->specialdata);
+	if(info->sector->specialdata)
+		P_RemoveThinker(info->sector->specialdata);
 	// check speed
 	if(!info->speed)
 		return;
 	// add new one
 	gp = Z_Malloc(sizeof(generic_plane_t), PU_LEVSPEC, 0);
-	P_AddThinker(&gp->thinker);
+	P_AddThinker(&gp->thinker, TT_INVALID);
 	gp->info = *info;
 	gp->thinker.function.acp1 = (actionf_p1)T_GenericFloor;
-	sec->specialdata = gp;
+	info->sector->specialdata = gp;
 	// set starting parameters
 	gp->speed = gp->info.speed;
-	sec->floorheight = info->startz;
-	sec->floorpic = info->startpic;
+	info->sector->floorheight = info->startz;
+	info->sector->floorpic = info->startpic;
 	if(info->startsound)
-		S_StartSound((mobj_t *)&sec->soundorg, info->startsound, SOUND_BODY);
+		S_StartSound((mobj_t *)&info->sector->soundorg, info->startsound, SOUND_BODY);
 }
 

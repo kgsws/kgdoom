@@ -21,7 +21,7 @@
 
 // doom Malloc heap
 int doom_heapsize = 64*1024*1024;
-//uint8_t doom_heap[64*1024*1024];
+uint8_t doom_heap[64*1024*1024];
 
 void
 I_Tactile
@@ -49,11 +49,11 @@ byte* I_ZoneBase (int*	size)
 {
 	void *ptr;
 	*size = doom_heapsize;
-	ptr = malloc(doom_heapsize);
+/*	ptr = malloc(doom_heapsize);
 	if(!ptr)
 		I_Error("I_ZoneBase: allocation failed");
-	return ptr;
-//	return doom_heap;
+	return ptr;*/
+	return doom_heap;
 }
 
 

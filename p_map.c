@@ -12,8 +12,6 @@
 // State.
 #include "doomstat.h"
 #include "r_state.h"
-// Data.
-#include "sounds.h"
 
 #include "p_pickup.h"
 
@@ -253,6 +251,15 @@ boolean PIT_CheckThing (mobj_t* thing)
     // don't clip against self
     if (thing == tmthing)
 	return true;
+
+    // [kg] Z collision checking
+    if(sv_zcollision)
+    {
+	if(tmthing->z + tmthing->height < thing->z)
+	    return true;
+	if(tmthing->z >= thing->z + thing->height)
+	    return true;
+    }
     
     // check for skulls slamming into things
     if (tmthing->flags & MF_SKULLFLY && thing->flags & MF_SOLID)
@@ -288,24 +295,17 @@ boolean PIT_CheckThing (mobj_t* thing)
 	    return true;		// overhead
 	if (tmthing->z+tmthing->height < thing->z)
 	    return true;		// underneath
-		
-	if (tmthing->target && (
-	    tmthing->target->type == thing->type || 
-	    (tmthing->target->type == MT_KNIGHT && thing->type == MT_BRUISER)||
-	    (tmthing->target->type == MT_BRUISER && thing->type == MT_KNIGHT) ) )
-	{
-	    // Don't hit same species as originator.
-	    if (thing == tmthing->target)
-		return true;
+	
+	// [kg] do not hit self
+	if(thing == tmthing->source)
+	    return true;
 
-	    if (thing->type != MT_PLAYER)
-	    {
-		// Explode, but do no damage.
-		// Let players missile other players.
-		// save hit thing
-		hitmobj = thing;
-		return false;
-	    }
+	// [kg] new species handling
+	if(thing->info->species && tmthing->source && thing->info->species == tmthing->source->info->species)
+	{
+	    // hit, but no damage
+	    hitmobj = thing;
+	    return false;
 	}
 	
 	if (! (thing->flags & MF_SHOOTABLE) )
@@ -321,9 +321,13 @@ boolean PIT_CheckThing (mobj_t* thing)
 	}
 	
 	// damage / explode
-	damage = ((P_Random()%8)+1)*tmthing->info->damage;
-	P_DamageMobj (thing, tmthing, tmthing->target, damage);
-
+	damage = tmthing->info->damage;
+	if(damage)
+	{
+	    if(damage < 0) // Doom random
+		damage = ((P_Random()%8)+1)*-damage;
+	    P_DamageMobj (thing, tmthing, tmthing->source, damage);
+	}
 	// save hit thing
 	hitmobj = thing;
 
@@ -806,6 +810,10 @@ fixed_t		shootz;
 int		la_damage;
 fixed_t		attackrange;
 
+// [kg] custom puffs
+mobjtype_t	la_pufftype;
+mobj_t		*la_puffmobj;
+
 fixed_t		aimslope;
 
 // slopes to top and bottom of target
@@ -863,14 +871,24 @@ PTR_AimTraverse (intercept_t* in)
 			
 	return true;			// shot continues
     }
-    
+
     // shoot a thing
     th = in->d.thing;
-    if (th == shootthing)
-	return true;			// can't shoot self
-    
-    if (!(th->flags&MF_SHOOTABLE))
-	return true;			// corpse or something
+
+    // [kg] maybe target is already chosen
+    if(linetarget)
+    {
+	if(linetarget != th)
+	    return true; // it is not a chosen one
+    } else
+    {
+	// [kg] choosing a target skips these checks
+	if (th == shootthing)
+	    return true;			// can't shoot self
+
+	if (!(th->flags&MF_SHOOTABLE))
+	    return true;			// corpse or something
+    }
 
     // check angles to see if the thing can be aimed at
     dist = FixedMul (attackrange, in->frac);
@@ -1006,7 +1024,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	y = trace.y + FixedMul (trace.dy, frac);
 
 	// Spawn bullet puffs.
-	P_SpawnPuff (x,y,z);
+	P_SpawnPuff (x,y,z, shootthing);
 	
 	// don't go any farther
 	return false;	
@@ -1051,9 +1069,9 @@ boolean PTR_ShootTraverse (intercept_t* in)
     // Spawn bullet puffs or blod spots,
     // depending on target type.
     if (in->d.thing->flags & MF_NOBLOOD)
-	P_SpawnPuff (x,y,z);
+	P_SpawnPuff (x,y,z, shootthing);
     else
-	P_SpawnBlood (x,y,z, la_damage, in->d.thing);
+	P_SpawnBlood (x,y,z, shootthing);
 
     if (la_damage)
 	P_DamageMobj (th, shootthing, shootthing, la_damage);
@@ -1070,24 +1088,29 @@ fixed_t
 P_AimLineAttack
 ( mobj_t*	t1,
   angle_t	angle,
-  fixed_t	distance )
+  fixed_t	distance,
+  mobj_t*	target )
 {
     fixed_t	x2;
     fixed_t	y2;
 	
     angle >>= ANGLETOFINESHIFT;
     shootthing = t1;
-    
+
     x2 = t1->x + (distance>>FRACBITS)*finecosine[angle];
     y2 = t1->y + (distance>>FRACBITS)*finesine[angle];
-    shootz = t1->z + (t1->height>>1) + 8*FRACUNIT;
+    shootz = t1->z + t1->info->shootz;
 
     // can't shoot outside view angles
     topslope = 100*FRACUNIT/160;	
     bottomslope = -100*FRACUNIT/160;
     
     attackrange = distance;
-    linetarget = NULL;
+
+    if(target)
+	linetarget = target;
+    else
+	linetarget = NULL;
 	
     P_PathTraverse ( t1->x, t1->y,
 		     x2, y2,
@@ -1112,26 +1135,44 @@ P_LineAttack
   angle_t	angle,
   fixed_t	distance,
   fixed_t	slope,
-  int		damage )
+  int		damage,
+  fixed_t	zo,
+  fixed_t	xo )
 {
+    fixed_t	x1 = t1->x;
+    fixed_t	y1 = t1->y;
     fixed_t	x2;
     fixed_t	y2;
-	
+
+    if(xo)
+    {
+	x1 += FixedMul(xo, finecosine[(angle+ANG90)>>ANGLETOFINESHIFT]);
+	y1 += FixedMul(xo, finesine[(angle+ANG90)>>ANGLETOFINESHIFT]);
+    }
+
     angle >>= ANGLETOFINESHIFT;
     shootthing = t1;
     la_damage = damage;
-    x2 = t1->x + (distance>>FRACBITS)*finecosine[angle];
-    y2 = t1->y + (distance>>FRACBITS)*finesine[angle];
-    shootz = t1->z + (t1->height>>1) + 8*FRACUNIT;
+    x2 = x1 + (distance>>FRACBITS)*finecosine[angle];
+    y2 = y1 + (distance>>FRACBITS)*finesine[angle];
+    shootz = t1->z + t1->info->shootz + zo;
     attackrange = distance;
     aimslope = slope;
 
     linetarget = NULL;
+    la_puffmobj = NULL;
 		
-    P_PathTraverse ( t1->x, t1->y,
+    P_PathTraverse ( x1, y1,
 		     x2, y2,
 		     PT_ADDLINES|PT_ADDTHINGS,
 		     PTR_ShootTraverse );
+
+    if(la_puffmobj)
+    {
+	la_puffmobj->target = t1;
+	la_puffmobj->source = linetarget;
+	la_puffmobj->health = damage;
+    }
 }
  
 
@@ -1150,7 +1191,7 @@ boolean	PTR_UseTraverse (intercept_t* in)
 	P_LineOpening (in->d.line);
 	if (openrange <= 0)
 	{
-	    S_StartSound (usething, sfx_noway, SOUND_BODY);
+//	    S_StartSound (usething, sfx_noway, SOUND_BODY);
 	    
 	    // can't use through a wall
 	    return false;	
@@ -1205,7 +1246,8 @@ void P_UseLines (player_t*	player)
 mobj_t*		bombsource;
 mobj_t*		bombspot;
 int		bombdamage;
-
+fixed_t		bombdist;
+boolean		bombhurt;
 
 //
 // PIT_RadiusAttack
@@ -1216,33 +1258,50 @@ boolean PIT_RadiusAttack (mobj_t* thing)
 {
     fixed_t	dx;
     fixed_t	dy;
+    fixed_t	dz;
     fixed_t	dist;
+    int		damage;
 	
     if (!(thing->flags & MF_SHOOTABLE) )
 	return true;
 
     // Boss spider and cyborg
     // take no damage from concussion.
-    if (thing->type == MT_CYBORG
-	|| thing->type == MT_SPIDER)
-	return true;	
-		
+    if (thing->flags & MF_NORADIUSDMG)
+	return true;
+
+    // [kg] don't hurt origin
+    if(!bombhurt && thing == bombsource)
+	return true;
+
     dx = abs(thing->x - bombspot->x);
     dy = abs(thing->y - bombspot->y);
     
-    dist = dx>dy ? dx : dy;
-    dist = (dist - thing->radius) >> FRACBITS;
+    dist = dx > dy ? dx : dy;
+    dx = dist - thing->radius;
+    if (dx < 0)
+	dx = 0;
 
-    if (dist < 0)
-	dist = 0;
+    // [kg] check z distance
+    dz = abs(thing->z - bombspot->z);
+    dz = dz - thing->height;
+    if(dz < 0)
+	dz = 0;
 
-    if (dist >= bombdamage)
+    dist = dx > dz ? dx : dz;
+
+    if (dist >= bombdist)
+	return true;	// out of range
+
+    damage = FixedMul(bombdamage, FixedDiv(bombdist - dist, bombdist)) / FRACUNIT;
+
+    if (damage == 0)
 	return true;	// out of range
 
     if ( P_CheckSight (thing, bombspot) )
     {
 	// must be in direct path
-	P_DamageMobj (thing, bombspot, bombsource, bombdamage - dist);
+	P_DamageMobj (thing, bombspot, bombsource, damage);
     }
     
     return true;
@@ -1257,7 +1316,9 @@ void
 P_RadiusAttack
 ( mobj_t*	spot,
   mobj_t*	source,
-  int		damage )
+  fixed_t	range,
+  int		damage,
+  boolean	hurtsource )
 {
     int		x;
     int		y;
@@ -1267,16 +1328,15 @@ P_RadiusAttack
     int		yl;
     int		yh;
     
-    fixed_t	dist;
-	
-    dist = (damage)<<FRACBITS;
-    yh = (spot->y + dist - bmaporgy)>>MAPBLOCKSHIFT;
-    yl = (spot->y - dist - bmaporgy)>>MAPBLOCKSHIFT;
-    xh = (spot->x + dist - bmaporgx)>>MAPBLOCKSHIFT;
-    xl = (spot->x - dist - bmaporgx)>>MAPBLOCKSHIFT;
+    bombdist = range;
+    yh = (spot->y + range - bmaporgy)>>MAPBLOCKSHIFT;
+    yl = (spot->y - range - bmaporgy)>>MAPBLOCKSHIFT;
+    xh = (spot->x + range - bmaporgx)>>MAPBLOCKSHIFT;
+    xl = (spot->x - range - bmaporgx)>>MAPBLOCKSHIFT;
     bombspot = spot;
     bombsource = source;
-    bombdamage = damage;
+    bombdamage = damage * FRACUNIT;
+    bombhurt = hurtsource;
 	
     for (y=yl ; y<=yh ; y++)
 	for (x=xl ; x<=xh ; x++)
@@ -1325,7 +1385,7 @@ boolean PIT_ChangeSector (mobj_t*	thing)
 
 	if(!(thing->flags & MF_NOBLOOD))
 	{
-		P_SetMobjState (thing, S_GIBS);
+//		P_SetMobjState (thing, S_GIBS); // TODO: gibs state
 		thing->flags &= ~(MF_SOLID|MF_COUNTKILL);
 //		thing->height = 0;
 //		thing->radius = 0;
@@ -1365,14 +1425,15 @@ boolean PIT_ChangeSector (mobj_t*	thing)
     if (crushchange && !(leveltime&3) )
     {
 	P_DamageMobj(thing,NULL,NULL,10);
-
+	// TODO: crush blood?
+/*
 	// spray blood in a random direction
 	mo = P_SpawnMobj (thing->x,
 			  thing->y,
 			  thing->z + thing->height/2, MT_BLOOD);
 	
 	mo->momx = (P_Random() - P_Random ())<<12;
-	mo->momy = (P_Random() - P_Random ())<<12;
+	mo->momy = (P_Random() - P_Random ())<<12;*/
     }
 
     // keep checking (crush other things)	

@@ -8,9 +8,6 @@
 #include "doomstat.h"
 #include "r_state.h"
 
-// Data.
-#include "sounds.h"
-
 #ifdef SERVER
 #include <netinet/in.h>
 #include "network.h"
@@ -47,11 +44,9 @@ void T_MoveCeiling (ceiling_t* ceiling)
 	    {
 	      case silentCrushAndRaise:
 		break;
-	      default:
-		S_StartSound((mobj_t *)&ceiling->sector->soundorg,
-			     sfx_stnmov, SOUND_BODY);
-		// ?
-		break;
+//	      default:
+//		S_StartSound((mobj_t *)&ceiling->sector->soundorg, sfx_stnmov, SOUND_BODY);
+//		break;
 	    }
 	}
 	
@@ -64,8 +59,7 @@ void T_MoveCeiling (ceiling_t* ceiling)
 		break;
 		
 	      case silentCrushAndRaise:
-		S_StartSound((mobj_t *)&ceiling->sector->soundorg,
-			     sfx_pstop, SOUND_BODY);
+//		S_StartSound((mobj_t *)&ceiling->sector->soundorg, sfx_pstop, SOUND_BODY);
 	      case fastCrushAndRaise:
 	      case crushAndRaise:
 		ceiling->direction = -1;
@@ -94,9 +88,9 @@ void T_MoveCeiling (ceiling_t* ceiling)
 	    switch(ceiling->type)
 	    {
 	      case silentCrushAndRaise: break;
-	      default:
-		S_StartSound((mobj_t *)&ceiling->sector->soundorg,
-			     sfx_stnmov, SOUND_BODY);
+//	      default:
+//		S_StartSound((mobj_t *)&ceiling->sector->soundorg, sfx_stnmov, SOUND_BODY);
+//		break;
 	    }
 	}
 	
@@ -105,8 +99,7 @@ void T_MoveCeiling (ceiling_t* ceiling)
 	    switch(ceiling->type)
 	    {
 	      case silentCrushAndRaise:
-		S_StartSound((mobj_t *)&ceiling->sector->soundorg,
-			     sfx_pstop, SOUND_BODY);
+//		S_StartSound((mobj_t *)&ceiling->sector->soundorg, sfx_pstop, SOUND_BODY);
 	      case crushAndRaise:
 		ceiling->speed = CEILSPEED;
 	      case fastCrushAndRaise:
@@ -185,7 +178,7 @@ EV_DoCeiling
 	// new door thinker
 	rtn = 1;
 	ceiling = Z_Malloc (sizeof(*ceiling), PU_LEVSPEC, 0);
-	P_AddThinker (&ceiling->thinker);
+	P_AddThinker (&ceiling->thinker, TT_INVALID);
 	sec->specialdata = ceiling;
 	ceiling->thinker.function.acp1 = (actionf_p1)T_MoveCeiling;
 	ceiling->sector = sec;

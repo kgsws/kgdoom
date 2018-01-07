@@ -24,8 +24,6 @@
 #include "doomstat.h"
 
 // Data.
-#include "sounds.h"
-
 #include "m_menu.h"
 
 
@@ -678,10 +676,10 @@ char    tempstring[80];
 
 void M_QuickSaveResponse(int ch)
 {
-    if (ch == 'y')
+    if (ch == 'y' && ch != KEY_ENTER)
     {
 	M_DoSave(quickSaveSlot);
-	S_StartSound(NULL,sfx_swtchx,0);
+//	S_StartSound(NULL,sfx_swtchx,0);
     }
 }
 
@@ -689,7 +687,7 @@ void M_QuickSave(void)
 {
     if (!usergame)
     {
-	S_StartSound(NULL,sfx_oof,0);
+//	S_StartSound(NULL,sfx_oof,0);
 	return;
     }
 
@@ -715,10 +713,10 @@ void M_QuickSave(void)
 //
 void M_QuickLoadResponse(int ch)
 {
-    if (ch == 'y')
+    if (ch == 'y' && ch != KEY_ENTER)
     {
 	M_LoadSelect(quickSaveSlot);
-	S_StartSound(NULL,sfx_swtchx,0);
+//	S_StartSound(NULL,sfx_swtchx,0);
     }
 }
 
@@ -838,7 +836,7 @@ void M_DrawEpisode(void)
 
 void M_VerifyNightmare(int ch)
 {
-    if (ch != 'y')
+    if (ch != 'y' && ch != KEY_ENTER)
 	return;
 		
     G_DeferedInitNew(nightmare,epi+1,1);
@@ -910,26 +908,26 @@ void M_FinishReadThis(int choice)
 //
 int     quitsounds[8] =
 {
-    sfx_pldeth,
-    sfx_dmpain,
-    sfx_popain,
-    sfx_slop,
-    sfx_telept,
-    sfx_posit1,
-    sfx_posit3,
-    sfx_sgtatk
+    0,// sfx_pldeth,
+    0,// sfx_dmpain,
+    0,// sfx_popain,
+    0,// sfx_slop,
+    0,// sfx_telept,
+    0,// sfx_posit1,
+    0,// sfx_posit3,
+    0,// sfx_sgtatk
 };
 
 int     quitsounds2[8] =
 {
-    sfx_vilact,
-    sfx_getpow,
-    sfx_boscub,
-    sfx_slop,
-    sfx_skeswg,
-    sfx_kntdth,
-    sfx_bspact,
-    sfx_sgtatk
+    0,// sfx_vilact,
+    0,// sfx_getpow,
+    0,// sfx_boscub,
+    0,// sfx_slop,
+    0,// sfx_skeswg,
+    0,// sfx_kntdth,
+    0,// sfx_bspact,
+    0,// sfx_sgtatk
 };
 
 
@@ -1086,7 +1084,7 @@ M_StartMessage
     messageString = string;
     messageRoutine = routine;
     messageNeedsInput = input;
-    messageSound = sfx_swtchx;
+    messageSound = 0;// sfx_swtchx;
     menuactive = true;
 	GrabMouse(0);
     return;
@@ -1297,7 +1295,7 @@ boolean M_Responder (event_t* ev)
 						i_ctrl_btn[menu_get_key] = i;
 						menu_get_key = -1;
 						// back to menu
-						messageSound = sfx_pistol;
+						messageSound = 0; // sfx_pistol;
 						ch = KEY_ESCAPE;
 						break;
 					}
@@ -1410,7 +1408,7 @@ boolean M_Responder (event_t* ev)
 	if (ch == KEY_ESCAPE)
 	{
 	    M_StartControlPanel ();
-	    S_StartSound(NULL,sfx_swtchn,0);
+//	    S_StartSound(NULL,sfx_swtchn,0);
 	    return true;
 	}
 	return false;
@@ -1426,7 +1424,7 @@ boolean M_Responder (event_t* ev)
 	    if (itemOn+1 > currentMenu->numitems-1)
 		itemOn = 0;
 	    else itemOn++;
-	    S_StartSound(NULL,sfx_pstop,0);
+//	    S_StartSound(NULL,sfx_pstop,0);
 	} while(currentMenu->menuitems[itemOn].status==-1);
 	return true;
 		
@@ -1436,7 +1434,7 @@ boolean M_Responder (event_t* ev)
 	    if (!itemOn)
 		itemOn = currentMenu->numitems-1;
 	    else itemOn--;
-	    S_StartSound(NULL,sfx_pstop,0);
+//	    S_StartSound(NULL,sfx_pstop,0);
 	} while(currentMenu->menuitems[itemOn].status==-1);
 	return true;
 
@@ -1444,7 +1442,7 @@ boolean M_Responder (event_t* ev)
 	if (currentMenu->menuitems[itemOn].routine &&
 	    currentMenu->menuitems[itemOn].status == 2)
 	{
-	    S_StartSound(NULL,sfx_stnmov,0);
+//	    S_StartSound(NULL,sfx_stnmov,0);
 	    currentMenu->menuitems[itemOn].routine(0);
 	}
 	return true;
@@ -1453,7 +1451,7 @@ boolean M_Responder (event_t* ev)
 	if (currentMenu->menuitems[itemOn].routine &&
 	    currentMenu->menuitems[itemOn].status == 2)
 	{
-	    S_StartSound(NULL,sfx_stnmov,0);
+//	    S_StartSound(NULL,sfx_stnmov,0);
 	    currentMenu->menuitems[itemOn].routine(1);
 	}
 	return true;
@@ -1466,12 +1464,12 @@ boolean M_Responder (event_t* ev)
 	    if (currentMenu->menuitems[itemOn].status == 2)
 	    {
 		currentMenu->menuitems[itemOn].routine(1);      // right arrow
-		S_StartSound(NULL,sfx_stnmov,0);
+//		S_StartSound(NULL,sfx_stnmov,0);
 	    }
 	    else
 	    {
 		currentMenu->menuitems[itemOn].routine(itemOn);
-		S_StartSound(NULL,sfx_pistol,0);
+//		S_StartSound(NULL,sfx_pistol,0);
 	    }
 	}
 	return true;
@@ -1479,7 +1477,7 @@ boolean M_Responder (event_t* ev)
       case KEY_ESCAPE:
 	currentMenu->lastOn = itemOn;
 	M_ClearMenus ();
-	S_StartSound(NULL,sfx_swtchx,0);
+//	S_StartSound(NULL,sfx_swtchx,0);
 	return true;
 		
       case KEY_BACKSPACE:
@@ -1488,7 +1486,7 @@ boolean M_Responder (event_t* ev)
 	{
 	    currentMenu = currentMenu->prevMenu;
 	    itemOn = currentMenu->lastOn;
-	    S_StartSound(NULL,sfx_swtchn,0);
+//	    S_StartSound(NULL,sfx_swtchn,0);
 	}
 	return true;
 

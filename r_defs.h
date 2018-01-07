@@ -65,7 +65,7 @@ struct line_s;
 //  updated.
 typedef struct
 {
-    thinker_t		thinker;	// not used for anything
+    thinker_t		thinker;	// [kg] now used for lua
     fixed_t		x;
     fixed_t		y;
     fixed_t		z;
@@ -78,6 +78,10 @@ typedef struct
 //
 typedef	struct
 {
+    // origin for any sounds played by the sector
+    // [kg] this also servers as thinker_t for Lua
+    degenmobj_t	soundorg;
+
     fixed_t	floorheight;
     fixed_t	ceilingheight;
     int	floorpic;
@@ -94,9 +98,6 @@ typedef	struct
 
     // mapblock bounding box for height changes
     int		blockbox[4];
-
-    // origin for any sounds played by the sector
-    degenmobj_t	soundorg;
 
     // if == validcount, already checked
     int		validcount;

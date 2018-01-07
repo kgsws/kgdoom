@@ -7,7 +7,6 @@
 #include "p_pickup.h"
 
 #include "s_sound.h"
-#include "sounds.h"
 
 #ifdef SERVER
 #include <netinet/in.h>

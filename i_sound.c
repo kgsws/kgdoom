@@ -52,9 +52,8 @@ static int flag = 0;
 #define SAMPLERATE		48000	// Hz
 #define SAMPLESIZE		2   	// 16bit
 
-// The actual lengths of all sound effects.
-int 		lengths[NUMSFX];
-uint16_t 	rates[NUMSFX];
+// [kg] sampling rate
+uint16_t rates[NUM_SFX_CHANNELS];
 
 // The actual output device.
 int	audio_fd;
@@ -67,18 +66,6 @@ int	channelstep[NUM_SFX_CHANNELS];
 unsigned char*	channels[NUM_SFX_CHANNELS];
 unsigned char*	channelsend[NUM_SFX_CHANNELS];
 
-
-// Time/gametic that the channel started playing,
-//  used to determine oldest, which automatically
-//  has lowest priority.
-// In case number of active sounds exceeds
-//  available channels.
-int		channelstart[NUM_SFX_CHANNELS];
-
-// SFX id of the playing sound effect.
-// Used to catch duplicates (like chainsaw).
-int		channelids[NUM_SFX_CHANNELS];			
-
 // Pitch to stepping lookup, unused.
 int		steptable[256];
 
@@ -90,7 +77,7 @@ int*		channelleftvol_lookup[NUM_SFX_CHANNELS];
 int*		channelrightvol_lookup[NUM_SFX_CHANNELS];
 
 #ifndef LINUX
-#define num_frames_per_chunk	(48000 / 35)
+#define num_frames_per_chunk	(SAMPLERATE / 35)
 static const size_t chunk_size = ((num_frames_per_chunk * sizeof(uint32_t)) + 0xfff) & ~0xfff;
 static uint32_t __attribute__((aligned(0x1000))) chunks[2][chunk_size / sizeof(uint32_t)];
 static audio_output_t output;
@@ -230,18 +217,6 @@ void I_SetMusicVolume(int volume)
   // Whatever( snd_MusciVolume );
 }
 
-
-//
-// Retrieve the raw data lump index
-//  for a given SFX name.
-//
-int I_GetSfxLumpNum(sfxinfo_t* sfx)
-{
-    char namebuf[9];
-    sprintf(namebuf, "ds%s", sfx->name);
-    return W_GetNumForName(namebuf);
-}
-
 //
 // Starting a sound means adding it
 //  to the current list of active sounds
@@ -275,16 +250,16 @@ I_StartSound
 
     // Okay, in the less recent channel,
     //  we will handle the new SFX.
-    // Set pointer to raw data.
-    channels[slot] = (unsigned char *)S_sfx[sfxid].data + 16;
+    channels[slot] = (unsigned char *)W_CacheLumpNum(sfxid);
     // Set pointer to end of raw data.
-    channelsend[slot] = channels[slot] + lengths[sfxid];
-
-    // [kg] support multiple rates
+    channelsend[slot] = channels[slot] + W_LumpLength(sfxid) - 32;
+    // [kg] handle multiple rates
+    rates[slot] = *(uint16_t*)(channels[slot] + 2);
+    // [kg] reset rate ticker
     channelstep[slot] = 0;
 
-    // Should be gametic, I presume.
-    channelstart[slot] = gametic;
+    // Set pointer to raw data.
+    channels[slot] += 16;
 
     // Separation, that is, orientation/stereo.
     //  range is: 1 - 256
@@ -313,10 +288,6 @@ I_StartSound
     //  for this volume level???
     channelleftvol_lookup[slot] = &vol_lookup[leftvol*256];
     channelrightvol_lookup[slot] = &vol_lookup[rightvol*256];
-
-    // Preserve sound SFX id,
-    //  e.g. for avoiding duplicates of chainsaw.
-    channelids[slot] = sfxid;
 
     return slot;
 }
@@ -418,7 +389,7 @@ void SND_Mix(void *unused, int16_t *mixbuffer, int samples)
 		dl += channelleftvol_lookup[ chan ][sample] * 2;
 		dr += channelrightvol_lookup[ chan ][sample] * 2;
 
-		channelstep[chan] += rates[channelids[chan]] >> step;
+		channelstep[chan] += rates[chan] >> step;
 		if(channelstep[chan] >= SAMPLERATE)
 		{
 			channelstep[chan] -= SAMPLERATE;
@@ -494,9 +465,6 @@ I_UpdateSoundParams
     channelrightvol_lookup[slot] = &vol_lookup[rightvol*256];
 }
 
-
-
-
 void I_ShutdownSound(void)
 {
 #ifndef LINUX
@@ -536,7 +504,6 @@ void I_UpdateSound()
 	}
 }
 #endif
-
 
 void
 I_InitSound()
@@ -602,8 +569,6 @@ I_InitSound()
 		I_Error("I_InitSound: audio_ipc_output_start failed 0x%08X", r);
 #endif
 }
-
-
 
 
 //

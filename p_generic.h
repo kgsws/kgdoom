@@ -23,8 +23,8 @@ typedef struct
 } generic_plane_t;
 
 void T_GenericCeiling(generic_plane_t *gp);
-void P_GenericSectorCeiling(sector_t *sec, generic_info_t *info);
+void P_GenericSectorCeiling(generic_info_t *info);
 
 void T_GenericFloor(generic_plane_t *gp);
-void P_GenericSectorFloor(sector_t *sec, generic_info_t *info);
+void P_GenericSectorFloor(generic_info_t *info);
 

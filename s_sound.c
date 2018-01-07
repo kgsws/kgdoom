@@ -3,7 +3,6 @@
 
 #include "i_system.h"
 #include "i_sound.h"
-#include "sounds.h"
 #include "s_sound.h"
 
 #include "z_zone.h"
@@ -14,9 +13,6 @@
 #include "p_local.h"
 
 #include "doomstat.h"
-
-extern int 		lengths[NUMSFX];
-extern uint16_t 	rates[NUMSFX];
 
 // Purpose?
 const char snd_prefixen[]
@@ -66,8 +62,8 @@ extern int snd_DesiredSfxDevice;
 
 typedef struct
 {
-    // sound information (if null, channel avail.)
-    sfxinfo_t*	sfxinfo;
+    // [kg] sfx lump
+    int lump;
 
     // origin of sound
     void*	origin;
@@ -97,9 +93,6 @@ int 		snd_MusicVolume = 15;
 // whether songs are mus_paused
 static boolean		mus_paused;	
 
-// music currently being played
-static musicinfo_t*	mus_playing=0;
-
 static int		nextcleanup;
 
 
@@ -110,7 +103,7 @@ static int		nextcleanup;
 int
 S_getChannel
 ( void*		origin,
-  sfxinfo_t*	sfxinfo,
+  int	sfxinfo,
   soundslot_t   origin_slot );
 
 
@@ -148,14 +141,10 @@ void S_Init
 
   // Free all channels for use
   for (i=0 ; i<NUM_SFX_CHANNELS ; i++)
-    channels[i].sfxinfo = 0;
-  
+    channels[i].lump = 0;
+
   // no sounds are playing, and they are not mus_paused
   mus_paused = 0;
-
-  // Note that sounds have not been cached (yet).
-  for (i=1 ; i<NUMSFX ; i++)
-    S_sfx[i].lumpnum = S_sfx[i].usefulness = -1;
 }
 
 
@@ -175,12 +164,12 @@ void S_Start(void)
   // kill all playing sounds at start of level
   //  (trust me - a good idea)
   for (cnum=0 ; cnum<NUM_SFX_CHANNELS ; cnum++)
-    if (channels[cnum].sfxinfo)
+    if (channels[cnum].lump)
       S_StopChannel(cnum);
   
   // start new music for the level
   mus_paused = 0;
-  
+/*
   if (gamemode == commercial)
     mnum = mus_runnin + gamemap - 1;
   else
@@ -211,7 +200,7 @@ void S_Start(void)
   //      mnum -= mus_e3m9;
   
   S_ChangeMusic(mnum, true);
-  
+*/  
   nextcleanup = 15;
 #endif
 }	
@@ -232,36 +221,16 @@ S_StartSoundAtVolume
   int		sep;
   int		pitch;
   int		priority;
-  sfxinfo_t*	sfx;
   int		cnum;
 
   mobj_t*	origin = (mobj_t *) origin_p;
 
   // check for bogus sound #
-  if (sfx_id < 1 || sfx_id > NUMSFX)
-    I_Error("Bad sfx #: %d", sfx_id);
+  if(!sfx_id)
+    return;
   
-  sfx = &S_sfx[sfx_id];
-  
-  // Initialize sound parameters
-  if (sfx->link)
-  {
-    pitch = sfx->pitch;
-    priority = sfx->priority;
-    volume += sfx->volume;
-    
-    if (volume < 1)
-      return;
-    
-    if (volume > snd_SfxVolume)
-      volume = snd_SfxVolume;
-  }	
-  else
-  {
     pitch = NORM_PITCH;
     priority = NORM_PRIORITY;
-  }
-
 
   // Check to see if it is audible,
   //  and if not, modify the params
@@ -313,7 +282,7 @@ S_StartSoundAtVolume
   S_StopSound(origin, origin_slot);
 
   // try to find a channel
-  cnum = S_getChannel(origin, sfx, origin_slot);
+  cnum = S_getChannel(origin, sfx_id, origin_slot);
   
   if (cnum<0)
     return;
@@ -323,33 +292,6 @@ S_StartSoundAtVolume
   // For some odd reason, the caching is done nearly
   //  each time the sound is needed?
   //
-
-  // get lumpnum if necessary
-  if (sfx->lumpnum < 0)
-    sfx->lumpnum = I_GetSfxLumpNum(sfx);
-
-  // cache data if necessary
-  if (!sfx->data)
-  {
-//    fprintf( stderr, "S_StartSoundAtVolume: 16bit and not pre-cached - wtf?\n");
-
-    // DOS remains, 8bit handling
-    sfx->data = (void *) W_CacheLumpNum(sfx->lumpnum);
-	lengths[sfx_id] = W_LumpLength(sfx->lumpnum) - 32;
-
-	// [kg] handle multiple rates
-	uint16_t *rate = (uint16_t*)(sfx->data + 2);
-	rates[sfx_id] = *rate;
-
-    // fprintf( stderr,
-    //	     "S_StartSoundAtVolume: loading %d (lump %d) : 0x%x\n",
-    //       sfx_id, sfx->lumpnum, (int)sfx->data );
-    
-  }
-
-  // increase the usefulness
-  if (sfx->usefulness++ < 0)
-    sfx->usefulness = 1;
 
   // Assigns the handle to one of the channels in the
   //  mix/output buffer.
@@ -378,7 +320,7 @@ void S_StopSound(void* origin, soundslot_t origin_slot)
 
     for (cnum=0 ; cnum<NUM_SFX_CHANNELS ; cnum++)
     {
-	if (channels[cnum].sfxinfo && channels[cnum].origin == origin && (origin_slot == SOUND_STOP_ALL || channels[cnum].slot == origin_slot))
+	if (channels[cnum].lump && channels[cnum].origin == origin && (origin_slot == SOUND_STOP_ALL || channels[cnum].slot == origin_slot))
 	{
 	    S_StopChannel(cnum);
 	    break;
@@ -421,7 +363,7 @@ void S_UpdateSounds(void* listener_p)
     int		volume;
     int		sep;
     int		pitch;
-    sfxinfo_t*	sfx;
+    int		sfx;
     channel_t*	c;
     
     mobj_t*	listener = (mobj_t*)listener_p;
@@ -429,9 +371,9 @@ void S_UpdateSounds(void* listener_p)
     for (cnum=0 ; cnum<NUM_SFX_CHANNELS ; cnum++)
     {
 	c = &channels[cnum];
-	sfx = c->sfxinfo;
+	sfx = c->lump;
 
-	if (c->sfxinfo)
+	if (c->lump)
 	{
 	    if (I_SoundIsPlaying(cnum))
 	    {
@@ -439,21 +381,6 @@ void S_UpdateSounds(void* listener_p)
 		volume = snd_SfxVolume;
 		pitch = NORM_PITCH;
 		sep = NORM_SEP;
-
-		if (sfx->link)
-		{
-		    pitch = sfx->pitch;
-		    volume += sfx->volume;
-		    if (volume < 1)
-		    {
-			S_StopChannel(cnum);
-			continue;
-		    }
-		    else if (volume > snd_SfxVolume)
-		    {
-			volume = snd_SfxVolume;
-		    }
-		}
 
 		// check non-local sounds for distance clipping
 		//  or modify their params
@@ -587,7 +514,7 @@ void S_StopChannel(int cnum)
     int		i;
     channel_t*	c = &channels[cnum];
 
-    if (c->sfxinfo)
+    if (c->lump)
     {
 	// stop the sound playing
 	if (I_SoundIsPlaying(cnum))
@@ -599,16 +526,12 @@ void S_StopChannel(int cnum)
 	for (i=0 ; i<NUM_SFX_CHANNELS ; i++)
 	{
 	    if (cnum != i
-		&& c->sfxinfo == channels[i].sfxinfo)
+		&& c->lump == channels[i].lump)
 	    {
 		break;
 	    }
 	}
-	
-	// degrade usefulness of sound data
-	c->sfxinfo->usefulness--;
-
-	c->sfxinfo = 0;
+	c->lump = 0;
     }
 
 }
@@ -703,7 +626,7 @@ S_AdjustSoundParams
 int
 S_getChannel
 ( void*		origin,
-  sfxinfo_t*	sfxinfo,
+  int	sfxinfo,
   soundslot_t   origin_slot )
 {
     // channel number to use
@@ -714,7 +637,7 @@ S_getChannel
     // Find an open channel
     for (cnum=0 ; cnum<NUM_SFX_CHANNELS ; cnum++)
     {
-	if (!channels[cnum].sfxinfo)
+	if (!channels[cnum].lump)
 	    break;
 	else if (origin &&  channels[cnum].origin == origin && channels[cnum].slot == origin_slot)
 	{
@@ -723,8 +646,9 @@ S_getChannel
 	}
     }
 
+	// TODO: replace oldest
     // None available
-    if (cnum == NUM_SFX_CHANNELS)
+/*    if (cnum == NUM_SFX_CHANNELS)
     {
 	// Look for lower priority
 	for (cnum=0 ; cnum<NUM_SFX_CHANNELS ; cnum++)
@@ -741,11 +665,11 @@ S_getChannel
 	    S_StopChannel(cnum);
 	}
     }
-
+*/
     c = &channels[cnum];
 
     // channel is decided to be cnum.
-    c->sfxinfo = sfxinfo;
+    c->lump = sfxinfo;
     c->origin = origin;
     c->slot = origin_slot;
     c->silentic = gametic + (TICRATE/2);

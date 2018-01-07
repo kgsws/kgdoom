@@ -7,8 +7,6 @@
 // State.
 #include "doomstat.h"
 #include "r_state.h"
-// Data.
-#include "sounds.h"
 
 #ifdef SERVER
 #include <netinet/in.h>
@@ -193,9 +191,8 @@ void T_MoveFloor(floormove_t* floor)
 		      floor->floordestheight,
 		      floor->crush,0,floor->direction);
     
-    if (!(leveltime&7))
-	S_StartSound((mobj_t *)&floor->sector->soundorg,
-		     sfx_stnmov, SOUND_BODY);
+//    if (!(leveltime&7))
+//	S_StartSound((mobj_t *)&floor->sector->soundorg, sfx_stnmov, SOUND_BODY);
     
     if (res == pastdest)
     {
@@ -225,8 +222,7 @@ void T_MoveFloor(floormove_t* floor)
 	}
 	P_RemoveThinker(&floor->thinker);
 
-	S_StartSound((mobj_t *)&floor->sector->soundorg,
-		     sfx_pstop, SOUND_BODY);
+//	S_StartSound((mobj_t *)&floor->sector->soundorg, sfx_pstop, SOUND_BODY);
     }
 
 }
@@ -258,7 +254,7 @@ EV_DoFloor
 	// new floor thinker
 	rtn = 1;
 	floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
-	P_AddThinker (&floor->thinker);
+	P_AddThinker (&floor->thinker, TT_INVALID);
 	sec->specialdata = floor;
 	floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
 	floor->type = floortype;
@@ -465,7 +461,7 @@ EV_BuildStairs
 	// new floor thinker
 	rtn = 1;
 	floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
-	P_AddThinker (&floor->thinker);
+	P_AddThinker (&floor->thinker, TT_INVALID);
 	sec->specialdata = floor;
 	floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;
 	floor->direction = 1;
@@ -524,7 +520,7 @@ EV_BuildStairs
 		secnum = newsecnum;
 		floor = Z_Malloc (sizeof(*floor), PU_LEVSPEC, 0);
 
-		P_AddThinker (&floor->thinker);
+		P_AddThinker (&floor->thinker, TT_INVALID);
 
 		sec->specialdata = floor;
 		floor->thinker.function.acp1 = (actionf_p1) T_MoveFloor;

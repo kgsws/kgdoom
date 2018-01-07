@@ -9,7 +9,6 @@
 
 
 #define MAXHEALTH		100
-#define VIEWHEIGHT		(41*FRACUNIT)
 
 // mapblocks are used to check movement
 // against lines and things
@@ -56,7 +55,7 @@ extern	thinker_t	thinkercap;
 
 
 void P_InitThinkers (void);
-void P_AddThinker (thinker_t* thinker);
+void P_AddThinker (thinker_t* thinker, luathinker_t type);
 void P_RemoveThinker (thinker_t* thinker);
 
 
@@ -95,12 +94,14 @@ void 	P_RemoveMobj (mobj_t* th, boolean clientside);
 void 	P_RemoveMobj (mobj_t* th);
 #endif
 boolean	P_SetMobjState (mobj_t* mobj, statenum_t state);
+boolean P_SetMobjAnimation(mobj_t *mobj, int anim, int skip);
 void 	P_MobjThinker (mobj_t* mobj);
 
-void	P_SpawnPuff (fixed_t x, fixed_t y, fixed_t z);
-void 	P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, int damage, mobj_t *origin);
-mobj_t* P_SpawnMissile (mobj_t* source, mobj_t* dest, mobjtype_t type, fixed_t zo, angle_t ango);
-void	P_SpawnPlayerMissile (mobj_t* source, mobjtype_t type);
+void	P_SpawnPuff (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin);
+void 	P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin);
+
+// [kg] it's different now
+mobj_t *P_SpawnMissile(mobj_t *source, mobjtype_t type, angle_t ango, fixed_t pio, fixed_t zo, fixed_t xo, fixed_t yo);
 
 void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer);
 
@@ -203,7 +204,8 @@ fixed_t
 P_AimLineAttack
 ( mobj_t*	t1,
   angle_t	angle,
-  fixed_t	distance );
+  fixed_t	distance,
+  mobj_t *target );
 
 void
 P_LineAttack
@@ -211,13 +213,17 @@ P_LineAttack
   angle_t	angle,
   fixed_t	distance,
   fixed_t	slope,
-  int		damage );
+  int		damage,
+  fixed_t	zo,
+  fixed_t	xo );
 
 void
 P_RadiusAttack
 ( mobj_t*	spot,
   mobj_t*	source,
-  int		damage );
+  fixed_t	range,
+  int		damage,
+  boolean	hurtsource );
 
 
 
@@ -254,6 +260,35 @@ P_DamageMobj
 //
 #include "p_spec.h"
 
+//
+// P_ENEMY
+
+boolean P_CheckMeleeRange (mobj_t *actor, mobj_t *target);
+
+//
+// P_MAP
+
+mobjtype_t la_pufftype;
+mobj_t *la_puffmobj;
+
+// [kg] all provided state functions
+void A_SoundSee(mobj_t* actor);
+void A_SoundAttack(mobj_t* actor);
+void A_SoundPain(mobj_t* actor);
+void A_SoundActive(mobj_t* actor);
+void A_SoundDeath(mobj_t* actor);
+void A_SoundXDeath(mobj_t* actor);
+
+void A_Fall(mobj_t *actor);
+void A_FaceTarget(mobj_t *actor);
+void A_Look(mobj_t *actor);
+void A_Chase(mobj_t *actor);
+void A_VileChase(mobj_t *actor);
+
+sector_t*
+getNextSector
+( line_t*	line,
+  sector_t*	sec );
 
 #endif	// __P_LOCAL__
 

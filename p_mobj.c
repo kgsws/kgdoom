@@ -5,7 +5,6 @@
 #include "m_random.h"
 
 #include "p_local.h"
-#include "sounds.h"
 
 #include "st_stuff.h"
 #include "hu_stuff.h"
@@ -13,6 +12,9 @@
 #include "s_sound.h"
 
 #include "doomstat.h"
+
+// [kg] LUA support
+#include "kg_lua.h"
 
 #ifdef SERVER
 #include <netinet/in.h>
@@ -54,18 +56,20 @@ P_SetMobjState
 	    return false;
 	}
 
+	// [kg] animation 'alias'
+	if(state & STATE_ANIMATION)
+		state = L_StateFromAlias(mobj, state);
+
 	st = &states[state];
 	mobj->state = st;
 	mobj->tics = st->tics;
 	mobj->sprite = st->sprite;
 	mobj->frame = st->frame;
 
-	// Modified handling.
-	// Call action functions when the state is set
-	if (st->action.acp1)
-	    st->action.acp1(mobj);
-
-	state = st->nextstate;
+	// [kg] call LUA function
+	L_StateCall(st, mobj);
+	// [kg] state might have changed
+	state = mobj->state->nextstate;
     } while (!mobj->tics);
 				
     return true;
@@ -79,12 +83,15 @@ void P_ExplodeMissile (mobj_t* mo)
 {
     mo->momx = mo->momy = mo->momz = 0;
 
-    P_SetMobjState (mo, mobjinfo[mo->type].deathstate);
+    if(mo->info->deathstate)
+    {
+	P_SetMobjState (mo, mo->info->deathstate);
 
-    mo->tics -= P_Random()&3;
+	mo->tics -= P_Random()&3;
 
-    if (mo->tics < 1)
-	mo->tics = 1;
+	if (mo->tics < 1)
+	    mo->tics = 1;
+    }
 
     mo->flags &= ~MF_MISSILE;
 
@@ -172,7 +179,7 @@ void P_XYMovement (mobj_t* mo)
 	if (!P_TryMove (mo, ptryx, ptryy))
 	{
 	    // blocked move
-	    if (mo->player)
+	    if (mo->flags & MF_SLIDE)
 	    {	// try to slide along it
 		P_SlideMove (mo);
 		// [kg] done moving
@@ -253,8 +260,9 @@ void P_XYMovement (mobj_t* mo)
 	if(!netgame)
 #endif
 	// if in a walking frame, stop moving
-	if ( player&&(unsigned)((player->mo->state - states)- S_PLAY_RUN1) < 4)
-	    P_SetMobjState (player->mo, S_PLAY);
+//	if ( player&&(unsigned)((player->mo->state - states)- S_PLAY_RUN1) < 4)
+//	    P_SetMobjState (player->mo, S_PLAY);
+	// TODO: handle player animation
 	
 	mo->momx = 0;
 	mo->momy = 0;
@@ -283,8 +291,7 @@ void P_ZMovement (mobj_t* mo)
     {
 	mo->player->viewheight -= mo->floorz-mo->z;
 
-	mo->player->deltaviewheight
-	    = (VIEWHEIGHT - mo->player->viewheight)>>3;
+	mo->player->deltaviewheight = (mo->info->viewz - mo->player->viewheight)>>3;
     }
 
     // adjust height
@@ -339,7 +346,7 @@ void P_ZMovement (mobj_t* mo)
 		// after hitting the ground (hard),
 		// and utter appropriate sound.
 		mo->player->deltaviewheight = mo->momz>>3;
-		S_StartSound (mo, sfx_oof, SOUND_BODY);
+//		S_StartSound (mo, sfx_oof, SOUND_BODY);
 	    }
 	    mo->momz = 0;
 	}
@@ -474,6 +481,18 @@ P_NightmareRespawn (mobj_t* mobj)
 #endif
 }
 
+//
+// P_DegenMobjThinkerDegen
+// [kg] remove mobjs a bit later
+//
+void P_DegenMobjThinker (mobj_t* mobj)
+{
+	if(mobj->tics)
+		mobj->tics--;
+	else
+		// free block
+		P_RemoveThinker ((thinker_t*)mobj);
+}
 
 //
 // P_MobjThinker
@@ -618,7 +637,7 @@ P_SpawnMobj
 
     mobj->thinker.function.acp1 = (actionf_p1)P_MobjThinker;
 	
-    P_AddThinker (&mobj->thinker);
+    P_AddThinker (&mobj->thinker, TT_MOBJ);
 
     return mobj;
 }
@@ -661,14 +680,18 @@ void P_RemoveMobj (mobj_t* mobj)
 {
 #endif
 
+    // [kg] cancel type
+    mobj->thinker.lua_type = TT_INVALID;
+
     // unlink from sector and block lists
     P_UnsetThingPosition (mobj);
     
     // stop any playing sound
     S_StopSound (mobj, SOUND_STOP_ALL);
-    
-    // free block
-    P_RemoveThinker ((thinker_t*)mobj);
+
+    // [kg] remove mobj a bit later
+    mobj->tics = TICRATE;
+    mobj->thinker.function.acp1 = (actionf_p1)P_DegenMobjThinker;
 }
 
 //
@@ -736,7 +759,7 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     p->bonuscount = 0;
     p->extralight = 0;
     p->fixedcolormap = 0;
-    p->viewheight = VIEWHEIGHT;
+    p->viewheight = mobj->info->viewz;
 
 #ifndef SERVER
     if(netgame)
@@ -826,21 +849,20 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
 	return;
 	
     // find which type to spawn
-    for (i=0 ; i< NUMMOBJTYPES ; i++)
+    for (i=0 ; i< numobjtypes ; i++)
 	if (mthing->type == mobjinfo[i].doomednum)
 	    break;
-	
-	if (i==NUMMOBJTYPES)
-	{
-//		I_Error ("P_SpawnMapThing: Unknown type %i at (%i, %i)", mthing->type, mthing->x, mthing->y);
-		printf("P_SpawnMapThing: Unknown type %i at (%i, %i)\n", mthing->type, mthing->x, mthing->y);
-		return;
-	}
+	 
+    if (i == numobjtypes)
+    {
+	printf("P_SpawnMapThing: Unknown type %i at (%i, %i)\n", mthing->type, mthing->x, mthing->y);
+	i = MT_UNKNOWN;
+    }
 #ifdef SERVER
     // [kg] spawn network weapons only in deathmatch
     if(netgame && mthing->flags & 16)
     {
-	if(!(i == MT_SKULL || (mobjinfo[i].flags & MF_COUNTKILL)) && !deathmatch)
+	if(!(mobjinfo[i].flags & MF_ISMONSTER) && !deathmatch)
 		// it's not a monster, don't spawn
 		return;
     }
@@ -851,8 +873,7 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
 		
     // don't spawn any monsters if -nomonsters
     if (nomonsters
-	&& ( i == MT_SKULL
-	     || (mobjinfo[i].flags & MF_COUNTKILL)) )
+	&& (mobjinfo[i].flags & MF_ISMONSTER) )
     {
 	return;
     }
@@ -902,16 +923,14 @@ void
 P_SpawnPuff
 ( fixed_t	x,
   fixed_t	y,
-  fixed_t	z )
+  fixed_t	z,
+  mobj_t *origin )
 {
     mobj_t *th;
     sector_t *sec;
-	
-    z += ((P_Random()-P_Random())<<10);
 
-    th = P_SpawnMobj (x,y,z, MT_PUFF);
-    th->momz = FRACUNIT;
-    th->tics -= P_Random()&3;
+    th = P_SpawnMobj (x,y,z, la_pufftype);
+    th->angle = R_PointToAngle2(th->x, th->y, origin->x, origin->y);
 
     sec = th->subsector->sector;
     if(z < sec->floorheight)
@@ -920,21 +939,16 @@ P_SpawnPuff
 	z = sec->ceilingheight - th->info->height;
     th->z = z;
 
-    if (th->tics < 1)
-	th->tics = 1;
+    if(th->info->meleestate && attackrange <= MELEERANGE)
+	P_SetMobjState(th, th->info->meleestate);
+    else
+	P_SetMobjState(th, th->info->spawnstate);
+
+    la_puffmobj = th;
 
 #ifdef SERVER
     // tell clients about this
-    if (attackrange == MELEERANGE)
-    {
-	P_SetMobjState (th, S_PUFF3);
-	SV_SpawnMobj(th, SV_MOBJF_MOMZ | SV_MOBJF_STATE);
-    } else
-	SV_SpawnMobj(th, SV_MOBJF_MOMZ);
-#else
-    // don't make punches spark on the wall
-    if (attackrange == MELEERANGE)
-	P_SetMobjState (th, S_PUFF3);
+    SV_SpawnMobj(th, SV_MOBJF_MOMZ);
 #endif
 }
 
@@ -948,28 +962,23 @@ P_SpawnBlood
 ( fixed_t	x,
   fixed_t	y,
   fixed_t	z,
-  int		damage,
   mobj_t *origin )
 {
     mobj_t*	th;
-	
-    z += ((P_Random()-P_Random())<<10);
-    th = P_SpawnMobj (x,y,z, MT_BLOOD);
-    th->flags |= (origin->flags & MF_BLOODCOLOR) | (origin->flags & MF_SHADOW);
-    th->momz = FRACUNIT*2;
-    th->tics -= P_Random()&3;
 
-    if (th->tics < 1)
-	th->tics = 1;
-		
-    if (damage <= 12 && damage >= 9)
-	P_SetMobjState (th,S_BLOOD2);
-    else if (damage < 9)
-	P_SetMobjState (th,S_BLOOD3);
+    th = P_SpawnMobj (x,y,z, la_pufftype);
+    th->angle = R_PointToAngle2(th->x, th->y, origin->x, origin->y);
+
+    if(th->info->painstate)
+	P_SetMobjState(th, th->info->painstate);
+    else
+	P_SetMobjState(th, th->info->spawnstate);
+
+    la_puffmobj = th;
 
 #ifdef SERVER
     // tell clients about this
-    SV_SpawnMobj(th, SV_MOBJF_MOMZ | SV_MOBJF_FLAGS | SV_MOBJF_STATE);
+    SV_SpawnMobj(th, SV_MOBJF_MOMZ | SV_MOBJF_FLAGS);
 #endif
 }
 
@@ -982,10 +991,6 @@ P_SpawnBlood
 //
 void P_CheckMissileSpawn (mobj_t* th)
 {
-    th->tics -= P_Random()&3;
-    if (th->tics < 1)
-	th->tics = 1;
-    
     // move a little forward so an angle can
     // be computed if it immediately explodes
     th->x += (th->momx>>1);
@@ -999,127 +1004,54 @@ void P_CheckMissileSpawn (mobj_t* th)
 
 //
 // P_SpawnMissile
+// [kg] it's generic now
 //
 mobj_t*
 P_SpawnMissile
-( mobj_t*	source,
-  mobj_t*	dest,
-  mobjtype_t	type,
+( mobj_t *source,
+  mobjtype_t type,
+  angle_t ango,
+  fixed_t slope,
   fixed_t zo,
-  angle_t ango )
+  fixed_t xo,
+  fixed_t yo )
 {
     mobj_t*	th;
-    angle_t	an;
-    int		dist;
 
-    if(!dest)
-        type = MT_SPAWNFIRE;
-
-    th = P_SpawnMobj (source->x,
-		      source->y,
-		      source->z + zo, type);
-    
-    if (th->info->seesound)
-	S_StartSound (th, th->info->seesound, SOUND_BODY);
-
-    th->target = source;	// where it came from
-
-    if(!dest)
-        return th;
-
-    an = R_PointToAngle2 (source->x, source->y, dest->x, dest->y) + ango;	
-
-    // fuzzy player
-    if (dest->flags & MF_SHADOW)
-	an += (P_Random()-P_Random())<<20;	
-
-    th->angle = an;
-    an >>= ANGLETOFINESHIFT;
-    th->momx = FixedMul (th->info->speed, finecosine[an]);
-    th->momy = FixedMul (th->info->speed, finesine[an]);
-
-    dist = P_AproxDistance (dest->x - source->x, dest->y - source->y);
-    dist = dist / th->info->speed;
-
-    if (dist < 1)
-	dist = 1;
-
-    th->momz = (dest->z - source->z) / dist;
-    P_CheckMissileSpawn (th);
-
-#ifdef SERVER
-    // tell clients about this
-    if(th->flags & MF_MISSILE)
-	SV_SpawnMobj(th, SV_MOBJF_AUTO | SV_MOBJF_STATE | SV_MOBJF_TARGET | SV_MOBJF_SOUND_SEE);
-    else
-	SV_SpawnMobj(th, SV_MOBJF_AUTO | SV_MOBJF_STATE | SV_MOBJF_TARGET | SV_MOBJF_SOUND_DEATH);
-#endif
-
-    return th;
-}
-
-
-//
-// P_SpawnPlayerMissile
-// Tries to aim at a nearby monster
-//
-void
-P_SpawnPlayerMissile
-( mobj_t*	source,
-  mobjtype_t	type )
-{
-    mobj_t*	th;
-    angle_t	an;
-    
     fixed_t	x;
     fixed_t	y;
     fixed_t	z;
-    fixed_t	slope;
-    
-    // see which target is to be aimed at
-    an = source->angle;
-
-    if(sv_freeaim)
-	slope = source->pitch;
-    else
-    {
-	slope = P_AimLineAttack (source, an, 16*64*FRACUNIT);
-
-	if (!linetarget)
-	{
-	    an += 1<<26;
-	    slope = P_AimLineAttack (source, an, 16*64*FRACUNIT);
-
-	    if (!linetarget)
-	    {
-		an -= 2<<26;
-		slope = P_AimLineAttack (source, an, 16*64*FRACUNIT);
-	    }
-
-	    if (!linetarget)
-	    {
-		an = source->angle;
-		slope = 0;
-	    }
-	}
-    }
 
     x = source->x;
     y = source->y;
-    z = source->z + 4*8*FRACUNIT;
+    z = source->z + source->info->shootz + zo;
+
+    if(xo)
+    {
+	x += FixedMul(xo, finecosine[(ango+ANG90)>>ANGLETOFINESHIFT]);
+	y += FixedMul(xo, finesine[(ango+ANG90)>>ANGLETOFINESHIFT]);
+    }
+
+    if(yo)
+    {
+	x += FixedMul(yo, finecosine[ango>>ANGLETOFINESHIFT]);
+	y += FixedMul(yo, finesine[ango>>ANGLETOFINESHIFT]);
+    }
 	
     th = P_SpawnMobj (x,y,z, type);
 
     if (th->info->seesound)
 	S_StartSound (th, th->info->seesound, SOUND_BODY);
 
-    th->target = source;
-    th->angle = an;
-    th->momx = FixedMul( th->info->speed,
-			 finecosine[an>>ANGLETOFINESHIFT]);
-    th->momy = FixedMul( th->info->speed,
-			 finesine[an>>ANGLETOFINESHIFT]);
+    th->source = source;
+    th->angle = ango;
     th->momz = FixedMul( th->info->speed, slope);
+    if(slope < 0)
+	slope = -slope;
+    if(slope > FRACUNIT)
+	slope = FRACUNIT;
+    th->momx = FixedMul( FixedMul(th->info->speed, finecosine[ango>>ANGLETOFINESHIFT]), FRACUNIT - slope);
+    th->momy = FixedMul( FixedMul(th->info->speed, finesine[ango>>ANGLETOFINESHIFT]), FRACUNIT - slope);
 
     P_CheckMissileSpawn (th);
 #ifdef SERVER
@@ -1129,5 +1061,6 @@ P_SpawnPlayerMissile
     else
 	SV_SpawnMobj(th, SV_MOBJF_AUTO | SV_MOBJF_STATE | SV_MOBJF_TARGET | SV_MOBJF_SOUND_DEATH);
 #endif
+    return th;
 }
 

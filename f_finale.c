@@ -10,7 +10,6 @@
 
 // Data.
 #include "dstrings.h"
-#include "sounds.h"
 
 #include "doomstat.h"
 #include "r_state.h"
@@ -84,7 +83,7 @@ void F_StartFinale (void)
       case registered:
       case retail:
       {
-	S_ChangeMusic(mus_victor, true);
+//	S_ChangeMusic(mus_victor, true);
 	
 	switch (gameepisode)
 	{
@@ -114,7 +113,7 @@ void F_StartFinale (void)
       // DOOM II and missions packs with E1, M34
       case commercial:
       {
-	  S_ChangeMusic(mus_read_m, true);
+//	  S_ChangeMusic(mus_read_m, true);
 
 	  switch (gamemap)
 	  {
@@ -152,7 +151,7 @@ void F_StartFinale (void)
    
       // Indeterminate.
       default:
-	S_ChangeMusic(mus_read_m, true);
+//	S_ChangeMusic(mus_read_m, true);
 	finaleflat = "F_SKY1"; // Not used anywhere else.
 	finaletext = c1text;  // FIXME - other text, music?
 	break;
@@ -215,8 +214,8 @@ void F_Ticker (void)
     {
 	finalecount = 0;
 	finalestage = 1;
-	if (gameepisode == 3)
-	    S_StartMusic (mus_bunny);
+//	if (gameepisode == 3)
+//	    S_StartMusic (mus_bunny);
     }
 }
 
@@ -310,7 +309,7 @@ typedef struct
 } castinfo_t;
 
 castinfo_t	castorder[] = {
-    {CC_ZOMBIE, MT_POSSESSED},
+/*    {CC_ZOMBIE, MT_POSSESSED},
     {CC_SHOTGUN, MT_SHOTGUY},
     {CC_HEAVY, MT_CHAINGUY},
     {CC_IMP, MT_TROOP},
@@ -327,7 +326,7 @@ castinfo_t	castorder[] = {
     {CC_SPIDER, MT_SPIDER},
     {CC_CYBER, MT_CYBORG},
     {CC_HERO, MT_PLAYER},
-
+*/
     {NULL,0}
 };
 
@@ -354,7 +353,7 @@ void F_StartCast (void)
     castframes = 0;
     castonmelee = 0;
     castattacking = false;
-    S_ChangeMusic(mus_evil, true);
+//    S_ChangeMusic(mus_evil, true);
 }
 
 
@@ -384,8 +383,8 @@ void F_CastTicker (void)
     else
     {
 	// just advance to next state in animation
-	if (caststate == &states[S_PLAY_ATK1])
-	    goto stopattack;	// Oh, gross hack!
+//	if (caststate == &states[S_PLAY_ATK1])
+//	    goto stopattack;	// Oh, gross hack!
 	st = caststate->nextstate;
 	caststate = &states[st];
 	castframes++;
@@ -393,7 +392,7 @@ void F_CastTicker (void)
 	// sound hacks....
 	switch (st)
 	{
-	  case S_PLAY_ATK1:	sfx = sfx_dshtgn; break;
+/*	  case S_PLAY_ATK1:	sfx = sfx_dshtgn; break;
 	  case S_POSS_ATK2:	sfx = sfx_pistol; break;
 	  case S_SPOS_ATK2:	sfx = sfx_shotgn; break;
 	  case S_VILE_ATK2:	sfx = sfx_vilatk; break;
@@ -418,7 +417,7 @@ void F_CastTicker (void)
 	  case S_CYBER_ATK2:
 	  case S_CYBER_ATK4:
 	  case S_CYBER_ATK6:	sfx = sfx_rlaunc; break;
-	  case S_PAIN_ATK3:	sfx = sfx_sklatk; break;
+	  case S_PAIN_ATK3:	sfx = sfx_sklatk; break;*/
 	  default: sfx = 0; break;
 	}
 		
@@ -563,12 +562,12 @@ void F_CastDrawer (void)
     sprframe = &sprdef->spriteframes[ caststate->frame & FF_FRAMEMASK];
     lump = sprframe->lump[0];
     flip = (boolean)sprframe->flip[0];
-			
-    patch = W_CacheLumpNum (lump+firstspritelump);
+/*
+    patch = W_CacheLumpNum (lump+firstspritelump); // TODO: fix this
     if (flip)
 	V_DrawPatchFlipped (160,170,0,patch);
     else
-	V_DrawPatch (160,170,0,patch);
+	V_DrawPatch (160,170,0,patch);*/
 }
 
 
@@ -654,7 +653,7 @@ void F_BunnyScroll (void)
 	stage = 6;
     if (stage > laststage)
     {
-	S_StartSound (NULL, sfx_pistol, 0);
+//	S_StartSound (NULL, sfx_pistol, 0);
 	laststage = stage;
     }
 	

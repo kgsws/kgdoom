@@ -152,9 +152,8 @@ R_InstallSpriteLump
 //  letter/number appended.
 // The rotation character can be 0 to signify no rotations.
 //
-void R_InitSpriteDefs (char** namelist) 
+void R_InitSpriteDefs()
 { 
-    char**	check;
     int		i;
     int		l;
     int		intname;
@@ -163,16 +162,11 @@ void R_InitSpriteDefs (char** namelist)
     int		patched;
     int wnum;
 		
-    // count the number of sprite names
-    check = namelist;
-    while (*check != NULL)
-	check++;
+    numsprites = numsnames;
 
-    numsprites = check-namelist;
+    if(!numsprites)
+	I_Error("R_InitSprites: there are no sprites");
 
-    if (!numsprites)
-	return;
-		
     sprites = Z_Malloc(numsprites * sizeof(spritedef_t), PU_STATIC, NULL);
 
     // scan all the lump names for each of the names,
@@ -180,7 +174,7 @@ void R_InitSpriteDefs (char** namelist)
     // Just compare 4 characters as ints
     for (i=0 ; i<numsprites ; i++)
     {
-	spritename = namelist[i];
+	spritename = sprnames[i].t;
 	memset (sprtemp,-1, sizeof(sprtemp));
 		
 	maxframe = -1;
@@ -193,7 +187,7 @@ void R_InitSpriteDefs (char** namelist)
 	{
 	    patched = (wnum << 24) | l;
 //	    if (*(int *)lumpinfo[l].name == intname)
-	    if(W_LumpCheckSprite(patched, namelist[i]))
+	    if(W_LumpCheckSprite(patched, sprnames[i].t))
 	    {
 		char *name = W_LumpNumName(patched);
 
@@ -226,7 +220,7 @@ void R_InitSpriteDefs (char** namelist)
 	    {
 	      case -1:
 		// no rotations were found for that frame at all
-		printf("R_InitSprites: No patches found for %s frame %c\n", namelist[i], frame+'A');
+		printf("R_InitSprites: No patches found for %.4s frame %c\n", sprnames[i].t, frame+'A');
 		break;
 		
 	      case 0:
@@ -238,8 +232,8 @@ void R_InitSpriteDefs (char** namelist)
 		for (rotation=0 ; rotation<8 ; rotation++)
 		    if (sprtemp[frame].lump[rotation] == -1)
 		    {
-//			I_Error ("R_InitSprites: Sprite %s frame %c is missing rotations", namelist[i], frame+'A');
-			printf("R_InitSprites: Sprite %s frame %c is missing rotation %i\n", namelist[i], frame+'A', rotation);
+//			I_Error ("R_InitSprites: Sprite %s frame %c is missing rotations", sprnames[i], frame+'A');
+			printf("R_InitSprites: Sprite %.4s frame %c is missing rotation %i\n", sprnames[i].t, frame+'A', rotation);
 		    }
 		break;
 	    }
@@ -270,7 +264,7 @@ int		newvissprite;
 // R_InitSprites
 // Called at program start.
 //
-void R_InitSprites (char** namelist)
+void R_InitSprites()
 {
     int		i;
 	
@@ -279,7 +273,7 @@ void R_InitSprites (char** namelist)
 	negonearray[i] = -1;
     }
 	
-    R_InitSpriteDefs (namelist);
+    R_InitSpriteDefs();
 }
 
 
@@ -393,17 +387,6 @@ R_DrawVisSprite
 	// [kg] holey draw
 	colfunc = R_DrawColumnHoley;
     }
-    else if (vis->mobjflags & MF_TRANSLATION)
-    {
-	colfunc = R_DrawTranslatedColumn;
-	dc_translation = translationtables - 256 +
-	    ( (vis->mobjflags & MF_TRANSLATION) >> (MF_TRANSSHIFT-8) );
-    } else if(!(vis->mobjflags & MF_COUNTKILL) && vis->mobjflags & MF_BLOODCOLOR)
-    {
-        colfunc = R_DrawTranslatedColumn;
-	dc_translation = bloodlationtables - 256 +
-	    ( (vis->mobjflags & MF_BLOODCOLOR) >> (MF_BCSHIFT-8) );
-    }
 	
     dc_iscale = abs(vis->xiscale)>>detailshift;
     dc_texturemid = vis->texturemid;
@@ -422,8 +405,8 @@ R_DrawVisSprite
 	texturecolumn = frac>>FRACBITS;
 #ifdef RANGECHECK
 	if (texturecolumn < 0 || texturecolumn >= SHORT(patch->width))
-//	    I_Error ("R_DrawSpriteRange: bad texturecolumn");
-	break;
+	    I_Error ("R_DrawSpriteRange: bad texturecolumn");
+//	break;
 #endif
 	column = (column_t *) ((byte *)patch +
 			       LONG(patch->columnofs[texturecolumn]));
@@ -560,8 +543,6 @@ void R_ProjectSprite (mobj_t* thing)
     // store information in a vissprite
     vis = R_NewVisSprite ();
     vis->mobjflags = thing->flags;
-    if(thing->type == MT_SKULL)
-        vis->mobjflags |= MF_COUNTKILL;
     vis->scale = xscale<<detailshift;
     vis->gx = thing->x;
     vis->gy = thing->y;
