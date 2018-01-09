@@ -134,7 +134,7 @@ int W_GetNumForName (char* name)
     i = W_CheckNumForName (name);
     
     if (i == -1)
-      I_Error ("W_GetNumForName: %s not found!", name);
+      I_Error ("W_GetNumForName: %.8s not found!", name);
       
     return i;
 }
@@ -143,17 +143,22 @@ int W_GetNumForName (char* name)
 // W_GetNumForNameLua
 // [kg] same as W_GetNumForName with "-" for zero
 // used in Lua API
-int	W_GetNumForNameLua (const char* tex)
+int W_GetNumForNameLua (const char* tex, boolean optional)
 {
 	int lump;
 
 	if(tex[0] == '-' && tex[1] == 0)
-		lump = 0;
+		return 0;
 	else
 	{
 		char temp[8];
 		strncpy(temp, tex, sizeof(temp));
-		lump = W_GetNumForName(temp);
+		lump = W_CheckNumForName(temp);
+		if(lump < 0)
+		{
+			printf("Lua: lump %.8s was not found\n", tex);
+			return 0;
+		}
 	}
 
 	return lump;

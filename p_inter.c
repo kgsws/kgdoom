@@ -338,13 +338,14 @@ P_DamageMobj
     // thus kick away unless using the chainsaw.
     if (inflictor
 	&& !(target->flags & MF_NOCLIP)
-	&& damage != INSTANTKILL)
+	&& damage != INSTANTKILL
+	&& target->info->mass)
     {
 	ang = R_PointToAngle2 ( inflictor->x,
 				inflictor->y,
 				target->x,
 				target->y);
-	
+
 	thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
 
 	// make fall forwards sometimes; TODO: what with this?
@@ -442,6 +443,9 @@ P_DamageMobj
 		return;
 	}
     }
+
+    // [kg] set attacker, before entering pain state
+    target->attacker = source;
 
     if ( (P_Random () < target->info->painchance)
 	 && !(target->flags&MF_SKULLFLY) )

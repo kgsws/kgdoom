@@ -17,6 +17,8 @@
 
 #include "doomstat.h"
 
+#include "kg_lua.h"
+
 
 void	P_SpawnMapThing (mapthing_hexen_t*	mthing);
 
@@ -839,6 +841,8 @@ P_SetupLevel
 
     //printf ("free memory: 0x%x\n", Z_FreeMemory());
 
+    // [kg] do Lua stuff now
+    L_SetupMap();
 }
 
 

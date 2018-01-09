@@ -322,9 +322,6 @@ void P_ZMovement (mobj_t* mo)
     {
 	// hit the floor
 
-	// Note (id):
-	//  somebody left this after the setting momz to 0,
-	//  kinda useless there.
 	if (mo->flags & MF_SKULLFLY)
 	{
 	    // the skull slammed into something
@@ -348,7 +345,8 @@ void P_ZMovement (mobj_t* mo)
 		mo->player->deltaviewheight = mo->momz>>3;
 //		S_StartSound (mo, sfx_oof, SOUND_BODY);
 	    }
-	    mo->momz = 0;
+	    if(!(mo->flags & MF_NOGRAVITY)) // [kg] added no gravity check
+		mo->momz = 0;
 	}
 	mo->z = mo->floorz;
 
@@ -377,11 +375,10 @@ void P_ZMovement (mobj_t* mo)
     if (mo->z + mo->height > mo->ceilingz)
     {
 	// hit the ceiling
-	if (mo->momz > 0)
+	if (mo->momz > 0 && !(mo->flags & MF_NOGRAVITY))  // [kg] added no gravity check
 	    mo->momz = 0;
-	{
-	    mo->z = mo->ceilingz - mo->height;
-	}
+
+	mo->z = mo->ceilingz - mo->height;
 
 	if (mo->flags & MF_SKULLFLY)
 	{	// the skull slammed into something
@@ -479,19 +476,6 @@ P_NightmareRespawn (mobj_t* mobj)
 #else
     P_RemoveMobj (mobj);
 #endif
-}
-
-//
-// P_DegenMobjThinkerDegen
-// [kg] remove mobjs a bit later
-//
-void P_DegenMobjThinker (mobj_t* mobj)
-{
-	if(mobj->tics)
-		mobj->tics--;
-	else
-		// free block
-		P_RemoveThinker ((thinker_t*)mobj);
 }
 
 //
@@ -672,26 +656,44 @@ mobj_t *P_MobjByNetId(int netid)
 #ifdef SERVER
 void P_RemoveMobj (mobj_t* mobj, boolean clientside)
 {
-    // remove from clients
-    if(clientside)
-	SV_RemoveMobj(mobj);
+	// remove from clients
+	if(clientside)
+		SV_RemoveMobj(mobj);
 #else
 void P_RemoveMobj (mobj_t* mobj)
 {
 #endif
 
-    // [kg] cancel type
-    mobj->thinker.lua_type = TT_INVALID;
+	// [kg] cancel type
+	mobj->thinker.lua_type = TT_INVALID;
 
-    // unlink from sector and block lists
-    P_UnsetThingPosition (mobj);
-    
-    // stop any playing sound
-    S_StopSound (mobj, SOUND_STOP_ALL);
+	// unlink from sector and block lists
+	P_UnsetThingPosition (mobj);
 
-    // [kg] remove mobj a bit later
-    mobj->tics = TICRATE;
-    mobj->thinker.function.acp1 = (actionf_p1)P_DegenMobjThinker;
+	// stop any playing sound
+	S_StopSound (mobj, SOUND_STOP_ALL);
+
+	// remove all references
+	mobj_t *mo;
+	thinker_t *think;
+
+	for(think = thinkercap.next; think != &thinkercap; think = think->next)
+	{
+		if(think->function.acv != P_MobjThinker)
+			continue;
+		mo = (mobj_t *)think;
+		if(mo->source == mobj)
+			mo->source = NULL;
+		if(mo->target == mobj)
+			mo->target = NULL;
+		if(mo->attacker == mobj)
+			mo->attacker = NULL;
+		if(mo->mobj == mobj)
+			mo->mobj = NULL;
+	}	
+
+	// free block
+	P_RemoveThinker ((thinker_t*)mobj);
 }
 
 //

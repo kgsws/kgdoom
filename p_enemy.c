@@ -143,7 +143,7 @@ P_NoiseAlert
 //
 // P_CheckMeleeRange
 //
-boolean P_CheckMeleeRange (mobj_t *actor, mobj_t *target)
+boolean P_CheckMeleeRange (mobj_t *actor, mobj_t *target, boolean zCheck)
 {
     fixed_t	dist;
 
@@ -155,10 +155,10 @@ boolean P_CheckMeleeRange (mobj_t *actor, mobj_t *target)
     if (dist >= MELEERANGE-20*FRACUNIT+target->radius)
 	return false;
 
-    if(actor->z >= target->z + target->height)
+    if(zCheck && actor->z >= target->z + target->height)
 	return false;
 
-    if(target->z > actor->z + actor->height)
+    if(zCheck && target->z > actor->z + actor->height)
 	return false;
 	
     if (! P_CheckSight (actor, actor->target) )
@@ -673,7 +673,7 @@ void A_Chase (mobj_t*	actor)
     
     // check for melee attack
     if (actor->info->meleestate
-	&& P_CheckMeleeRange (actor, actor->target))
+	&& P_CheckMeleeRange (actor, actor->target, true))
     {
 	P_SetMobjState (actor, actor->info->meleestate);
 #ifdef SERVER

@@ -90,12 +90,14 @@ static int LUA_blockThingsIterator(lua_State *L);
 static int LUA_globalThingsIterator(lua_State *L);
 static int LUA_sectorTagIterator(lua_State *L);
 
+static int LUA_removeMobjFromMobj(lua_State *L);
 static int LUA_flagCheckMobj(lua_State *L);
 static int LUA_teleportMobj(lua_State *L);
 static int LUA_checkMobjPos(lua_State *L);
 static int LUA_spawnMissile(lua_State *L);
 static int LUA_attackAim(lua_State *L);
 static int LUA_meleeRange(lua_State *L);
+static int LUA_mobjDistance(lua_State *L);
 static int LUA_damageFromMobj(lua_State *L);
 static int LUA_lineAttack(lua_State *L);
 static int LUA_thrustFromMobj(lua_State *L);
@@ -106,6 +108,9 @@ static int LUA_soundFromMobj(lua_State *L);
 
 static int LUA_lowFloorFromSector(lua_State *L);
 static int LUA_highFloorFromSector(lua_State *L);
+static int LUA_lowCeilingFromSector(lua_State *L);
+static int LUA_highCeilingFromSector(lua_State *L);
+static int LUA_shortTexFromSector(lua_State *L);
 static int LUA_genericPlaneFromSector(lua_State *L);
 
 static int LUA_animationFromMobj(lua_State *L);
@@ -128,12 +133,14 @@ static int func_set_flags(lua_State *L, void *dst, void *o);
 static int func_get_sector(lua_State *L, void *dst, void *o);
 static int func_get_info(lua_State *L, void *dst, void *o);
 
+static int func_get_removemobj(lua_State *L, void *dst, void *o);
 static int func_get_checkflagmobj(lua_State *L, void *dst, void *o);
 static int func_get_teleportmobj(lua_State *L, void *dst, void *o);
 static int func_get_checkmobjpos(lua_State *L, void *dst, void *o);
 static int func_get_spawnmissile(lua_State *L, void *dst, void *o);
 static int func_get_attackaim(lua_State *L, void *dst, void *o);
 static int func_get_meleerange(lua_State *L, void *dst, void *o);
+static int func_get_distance(lua_State *L, void *dst, void *o);
 static int func_get_damage(lua_State *L, void *dst, void *o);
 static int func_get_lineattack(lua_State *L, void *dst, void *o);
 static int func_get_thrustmobj(lua_State *L, void *dst, void *o);
@@ -146,13 +153,16 @@ static int func_get_mobjsound_pickup(lua_State *L, void *dst, void *o);
 
 static int func_get_lowefloorsector(lua_State *L, void *dst, void *o);
 static int func_get_highfloorsector(lua_State *L, void *dst, void *o);
+static int func_get_loweceilingsector(lua_State *L, void *dst, void *o);
+static int func_get_highceilingsector(lua_State *L, void *dst, void *o);
+static int func_get_shortexfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_genericfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_genericceilingsector(lua_State *L, void *dst, void *o);
 
 static int func_set_sectorheight(lua_State *L, void *dst, void *o);
 static int func_set_flattexture(lua_State *L, void *dst, void *o);
 static int func_get_lumpname(lua_State *L, void *dst, void *o);
-static int func_set_lumpname(lua_State *L, void *dst, void *o);
+static int func_set_lumpname_optional(lua_State *L, void *dst, void *o);
 
 // all exported LUA functions; TODO: split into stages
 static const luafunc_t lua_functions[] =
@@ -249,12 +259,12 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"_crush", offsetof(mobjinfo_t, crushstate), LUA_TTABLE, func_set_states},
 	{"_heal", offsetof(mobjinfo_t, healstate), LUA_TTABLE, func_set_states},
 	// sounds
-	{"seeSound", offsetof(mobjinfo_t, seesound), LUA_TSTRING, func_set_lumpname, func_get_lumpname},
-	{"attackSound", offsetof(mobjinfo_t, attacksound), LUA_TSTRING, func_set_lumpname, func_get_lumpname},
-	{"painSound", offsetof(mobjinfo_t, painsound), LUA_TSTRING, func_set_lumpname, func_get_lumpname},
-	{"activeSound", offsetof(mobjinfo_t, activesound), LUA_TSTRING, func_set_lumpname, func_get_lumpname},
-	{"deathSound", offsetof(mobjinfo_t, deathsound), LUA_TSTRING, func_set_lumpname, func_get_lumpname},
-	{"xdeathSound", offsetof(mobjinfo_t, xdeathsound), LUA_TSTRING, func_set_lumpname, func_get_lumpname},
+	{"seeSound", offsetof(mobjinfo_t, seesound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
+	{"attackSound", offsetof(mobjinfo_t, attacksound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
+	{"painSound", offsetof(mobjinfo_t, painsound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
+	{"activeSound", offsetof(mobjinfo_t, activesound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
+	{"deathSound", offsetof(mobjinfo_t, deathsound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
+	{"xdeathSound", offsetof(mobjinfo_t, xdeathsound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 };
 
 // all mobj values
@@ -275,6 +285,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"movecount", offsetof(mobj_t, movecount), LUA_TNUMBER},
 	{"target", offsetof(mobj_t, target), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
 	{"source", offsetof(mobj_t, source), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
+	{"attacker", offsetof(mobj_t, attacker), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
 	{"mobj", offsetof(mobj_t, mobj), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
 	{"reactiontime", offsetof(mobj_t, reactiontime), LUA_TNUMBER},
 	{"threshold", offsetof(mobj_t, threshold), LUA_TNUMBER},
@@ -288,12 +299,14 @@ static const lua_table_model_t lua_mobj[] =
 	{"sector", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_sector},
 	{"info", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_info},
 	// functions
+	{"Remove", 0, LUA_TFUNCTION, func_set_readonly, func_get_removemobj},
 	{"Flag", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkflagmobj},
 	{"Teleport", 0, LUA_TFUNCTION, func_set_readonly, func_get_teleportmobj},
 	{"CheckPosition", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkmobjpos},
 	{"SpawnMissile", 0, LUA_TFUNCTION, func_set_readonly, func_get_spawnmissile},
 	{"AttackAim", 0, LUA_TFUNCTION, func_set_readonly, func_get_attackaim},
 	{"MeleeRange", 0, LUA_TFUNCTION, func_set_readonly, func_get_meleerange},
+	{"Distance", 0, LUA_TFUNCTION, func_set_readonly, func_get_distance},
 	{"Damage", 0, LUA_TFUNCTION, func_set_readonly, func_get_damage},
 	{"LineAttack", 0, LUA_TFUNCTION, func_set_readonly, func_get_lineattack},
 	{"Thrust", 0, LUA_TFUNCTION, func_set_readonly, func_get_thrustmobj},
@@ -316,8 +329,11 @@ static const lua_table_model_t lua_sector[] =
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
 	// functions
-	{"FindLowFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_lowefloorsector},
-	{"FindHighFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_highfloorsector},
+	{"FindLowestFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_lowefloorsector},
+	{"FindHighestFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_highfloorsector},
+	{"FindLowestCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_loweceilingsector},
+	{"FindHighestCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_highceilingsector},
+	{"GetShortestTexture", 0, LUA_TFUNCTION, func_set_readonly, func_get_shortexfloorsector},
 	{"GenericFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericfloorsector},
 	{"GenericCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericceilingsector},
 };
@@ -759,6 +775,14 @@ static int func_get_info(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return mobj removal function
+static int func_get_removemobj(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_removeMobjFromMobj, 1);
+	return 1;
+}
+
 // return flag check function
 static int func_get_checkflagmobj(lua_State *L, void *dst, void *o)
 {
@@ -804,6 +828,14 @@ static int func_get_meleerange(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_meleeRange, 1);
+	return 1;
+}
+
+// return distance calculation function
+static int func_get_distance(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_mobjDistance, 1);
 	return 1;
 }
 
@@ -882,10 +914,35 @@ static int func_get_lowefloorsector(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return floor search function
 static int func_get_highfloorsector(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_highFloorFromSector, 1);
+	return 1;
+}
+
+// return ceiling search function
+static int func_get_loweceilingsector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_lowCeilingFromSector, 1);
+	return 1;
+}
+
+// return ceiling search function
+static int func_get_highceilingsector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_highCeilingFromSector, 1);
+	return 1;
+}
+
+// return texture height search function
+static int func_get_shortexfloorsector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_shortTexFromSector, 1);
 	return 1;
 }
 
@@ -936,9 +993,9 @@ static int func_set_flattexture(lua_State *L, void *dst, void *o)
 	return 0;
 }
 
-static int func_set_lumpname(lua_State *L, void *dst, void *o)
+static int func_set_lumpname_optional(lua_State *L, void *dst, void *o)
 {
-	*(int*)dst = W_GetNumForNameLua(lua_tostring(L, -1));
+	*(int*)dst = W_GetNumForNameLua(lua_tostring(L, -1), true);
 	return 0;
 }
 
@@ -1120,7 +1177,36 @@ static int LUA_setDoomTeleportType(lua_State *L)
 
 static int LUA_doomRandom(lua_State *L)
 {
-	lua_pushinteger(L, P_Random());
+	int top = lua_gettop(L);
+	int from, to;
+
+	if(!top)
+	{
+		lua_pushinteger(L, P_Random());
+		return 1;
+	}
+
+	luaL_checktype(L, 1, LUA_TNUMBER);
+
+	if(top < 2)
+	{
+		from = 0;
+		to = lua_tointeger(L, 1);
+	} else
+	{
+		luaL_checktype(L, 2, LUA_TNUMBER);
+		from = lua_tointeger(L, 1);
+		to = lua_tointeger(L, 2);
+	}
+
+	if(to < from)
+	{
+		top = to;
+		to = from;
+		from = top;
+	}
+
+	lua_pushinteger(L, from + (rand() % ((to - from)+1)) );
 	return 1;
 }
 
@@ -1156,7 +1242,11 @@ static int LUA_spawnMobj(lua_State *L)
 	else
 		ang = 0;
 
+	// spawn
 	mo = P_SpawnMobj(x, y, z, type);
+
+	// play first action
+	P_SetMobjState(mo, mo->info->spawnstate);
 
 	lua_pushlightuserdata(L, mo);
 
@@ -1453,6 +1543,17 @@ static int LUA_ThinkerIndex(lua_State *L)
 	return 0;
 }
 
+static int LUA_removeMobjFromMobj(lua_State *L)
+{
+	mobj_t *mo;
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	P_RemoveMobj(mo);
+
+	return 0;
+}
+
 static int LUA_flagCheckMobj(lua_State *L)
 {
 	mobj_t *mo;
@@ -1671,20 +1772,62 @@ static int LUA_meleeRange(lua_State *L)
 {
 	mobj_t *source;
 	mobj_t *dest;
+	boolean zCheck;
+	int top = lua_gettop(L);
 
 	source = lua_touserdata(L, lua_upvalueindex(1));
 
-	if(lua_gettop(L) > 0)
+	if(top > 0)
 		// optional target
 		dest = LUA_GetMobjParam(L, 1, false);
 	else
 		// use mobj target
 		dest = source->target;
 
-	if(P_CheckMeleeRange(source, dest))
+	if(top > 1)
+	{
+		luaL_checktype(L, 2, LUA_TBOOLEAN);
+		zCheck = lua_toboolean(L, 2);
+	} else
+		zCheck = true;
+
+	if(P_CheckMeleeRange(source, dest, zCheck))
 		lua_pushboolean(L, true);
 	else
 		lua_pushboolean(L, false);
+
+	return 1;
+}
+
+static int LUA_mobjDistance(lua_State *L)
+{
+	mobj_t *source;
+	mobj_t *dest;
+	boolean zCheck;
+	fixed_t dist;
+	int top = lua_gettop(L);
+
+	source = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(top > 0)
+		// optional target
+		dest = LUA_GetMobjParam(L, 1, false);
+	else
+		// use mobj target
+		dest = source->target;
+
+	if(top > 1)
+	{
+		luaL_checktype(L, 2, LUA_TBOOLEAN);
+		zCheck = lua_toboolean(L, 2);
+	} else
+		zCheck = true;
+
+	dist = P_AproxDistance(dest->x - source->x, dest->y - source->y);
+	if(zCheck)
+		dist = P_AproxDistance(dest->z - source->z, dist);
+
+	lua_pushnumber(L, dist / (lua_Number)FRACUNIT);
 
 	return 1;
 }
@@ -1698,10 +1841,19 @@ static int LUA_damageFromMobj(lua_State *L)
 	int top = lua_gettop(L);
 
 	// damage
-	luaL_checktype(L, 1, LUA_TNUMBER);
-	damage = lua_tointeger(L, 1);
-	if(damage < 0) // Doom random
-		damage = ((P_Random()%(-damage))+1)*3;
+	if(lua_type(L, 1) == LUA_TBOOLEAN)
+	{
+		if(lua_toboolean(L, 1))
+			damage = 1000000;
+		else
+			damage = INSTANTKILL;
+	} else
+	{
+		luaL_checktype(L, 1, LUA_TNUMBER);
+		damage = lua_tointeger(L, 1);
+		if(damage < 0) // Doom random
+			damage = ((P_Random()%(-damage))+1)*3;
+	}
 
 	// optional source
 	if(top > 1)
@@ -1916,8 +2068,10 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 {
 	generic_info_t gen;
 	int top = lua_gettop(L);
+	boolean floor;
 
 	gen.sector = lua_touserdata(L, lua_upvalueindex(1));
+	floor = lua_toboolean(L, lua_upvalueindex(2));
 
 	// stopz; required
 	luaL_checktype(L, 1, LUA_TNUMBER);
@@ -1942,21 +2096,21 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 	if(top > 3)
 	{
 		luaL_checktype(L, 4, LUA_TSTRING);
-		gen.startsound = W_GetNumForNameLua(lua_tostring(L, 4));
+		gen.startsound = W_GetNumForNameLua(lua_tostring(L, 4), true);
 	} else
 		gen.startsound = 0;
 
 	if(top > 4)
 	{
 		luaL_checktype(L, 5, LUA_TSTRING);
-		gen.stopsound = W_GetNumForNameLua(lua_tostring(L, 5));
+		gen.stopsound = W_GetNumForNameLua(lua_tostring(L, 5), true);
 	} else
 		gen.stopsound = 0;
 
 	if(top > 5)
 	{
 		luaL_checktype(L, 6, LUA_TSTRING);
-		gen.movesound = W_GetNumForNameLua(lua_tostring(L, 6));
+		gen.movesound = W_GetNumForNameLua(lua_tostring(L, 6), true);
 	} else
 		gen.movesound = 0;
 
@@ -1968,12 +2122,22 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 		strncpy(temp, lua_tostring(L, 7), sizeof(temp));
 		gen.stoppic = R_FlatNumForName(temp);
 	} else
+	if(floor)
 		gen.stoppic = gen.sector->floorpic;
+	else
+		gen.stoppic = gen.sector->ceilingpic;
 
-	gen.startpic = gen.sector->floorpic;
-	gen.startz = gen.sector->floorheight;
-
-	P_GenericSectorFloor(&gen);
+	if(floor)
+	{
+		gen.startpic = gen.sector->floorpic;
+		gen.startz = gen.sector->floorheight;
+		P_GenericSectorFloor(&gen);
+	} else
+	{
+		gen.startpic = gen.sector->ceilingpic;
+		gen.startz = gen.sector->ceilingheight;
+		P_GenericSectorCeiling(&gen);
+	}
 
 	return 0;
 }
@@ -1985,7 +2149,14 @@ static int LUA_lowFloorFromSector(lua_State *L)
 	fixed_t height;
 
 	sec = lua_touserdata(L, lua_upvalueindex(1));
-	height = sec->floorheight;
+
+	if(!sec->linecount)
+	{
+		lua_pushnumber(L, sec->floorheight / (lua_Number)FRACUNIT);
+		return 1;
+	}
+
+	height = ONCEILINGZ;
 
 	for(i = 0; i < sec->linecount; i++)
 	{
@@ -2021,6 +2192,121 @@ static int LUA_highFloorFromSector(lua_State *L)
 		if(next && next->floorheight > height)
 			height = next->floorheight;
 	}
+
+	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
+
+	return 1;
+}
+
+static int LUA_lowCeilingFromSector(lua_State *L)
+{
+	int i;
+	sector_t *sec, *next;
+	fixed_t height;
+
+	sec = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(!sec->linecount)
+	{
+		lua_pushnumber(L, sec->ceilingheight / (lua_Number)FRACUNIT);
+		return 1;
+	}
+
+	height = ONCEILINGZ;
+
+	for(i = 0; i < sec->linecount; i++)
+	{
+		next = getNextSector(sec->lines[i], sec);
+		if(next && next->ceilingheight < height)
+			height = next->ceilingheight;
+	}
+
+	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
+
+	return 1;
+}
+
+static int LUA_highCeilingFromSector(lua_State *L)
+{
+	int i;
+	sector_t *sec, *next;
+	fixed_t height;
+
+	sec = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(!sec->linecount)
+	{
+		lua_pushnumber(L, sec->ceilingheight / (lua_Number)FRACUNIT);
+		return 1;
+	}
+
+	height = ONFLOORZ;
+
+	for(i = 0; i < sec->linecount; i++)
+	{
+		next = getNextSector(sec->lines[i], sec);
+		if(next && next->ceilingheight > height)
+			height = next->ceilingheight;
+	}
+
+	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
+
+	return 1;
+}
+
+static int LUA_shortTexFromSector(lua_State *L)
+{
+	int i;
+	sector_t *sec, *next;
+	side_t *side;
+	fixed_t height = ONCEILINGZ;
+
+	luaL_checktype(L, 1, LUA_TBOOLEAN);
+
+	sec = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(!sec->linecount)
+	{
+		lua_pushnumber(L, 0);
+		return 1;
+	}
+
+	if(lua_toboolean(L, 1))
+	{
+		for(i = 0; i < sec->linecount; i++)
+		{
+			if(sec->lines[i]->flags & ML_TWOSIDED)
+			{
+				side = &sides[sec->lines[i]->sidenum[0]];
+				if(side->toptexture >= 0)
+					if(textureheight[side->toptexture] < height)
+						height = textureheight[side->toptexture];
+				side = &sides[sec->lines[i]->sidenum[1]];
+				if(side->toptexture >= 0)
+					if(textureheight[side->toptexture] < height)
+						height = textureheight[side->toptexture];
+			}
+		}
+	} else
+	{
+		for(i = 0; i < sec->linecount; i++)
+		{
+			if(sec->lines[i]->flags & ML_TWOSIDED)
+			{
+				side = &sides[sec->lines[i]->sidenum[0]];
+				if(side->bottomtexture >= 0)
+					if(textureheight[side->bottomtexture] < height)
+						height = textureheight[side->bottomtexture];
+				side = &sides[sec->lines[i]->sidenum[1]];
+				if(side->bottomtexture >= 0)
+					if(textureheight[side->bottomtexture] < height)
+						height = textureheight[side->bottomtexture];
+			}
+		}
+	}
+
+	if(height == ONCEILINGZ)
+		height = 0;
 
 	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
 
@@ -2194,6 +2480,10 @@ void L_LoadScript(int lump)
 	if(!luaS_game)
 	{
 		luaS_game = luaL_newstate();
+		// export some Lua libraries
+		luaL_requiref(luaS_game, "table", luaopen_table, true);
+		luaL_requiref(luaS_game, "math", luaopen_math, true);
+		luaL_requiref(luaS_game, "string", luaopen_string, true);
 		// export all functions
 		for(i = 0; i < sizeof(lua_functions) / sizeof(luafunc_t); i++)
 			lua_register(luaS_game, lua_functions[i].name, lua_functions[i].func);
@@ -2251,6 +2541,16 @@ void L_Init()
 
 	// load script from all WADs
 	W_ForEachName("GAMELUA", cb_LuaLoad);
+}
+
+void L_SetupMap()
+{
+	const char *maplump = W_LumpNumName(level_lump);
+
+	lua_pushstring(luaS_game, maplump);
+	lua_setglobal(luaS_game, "levelLump");
+
+	// TODO: start map load scripts
 }
 
 //
