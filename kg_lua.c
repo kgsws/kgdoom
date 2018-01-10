@@ -54,7 +54,7 @@ typedef struct lua_table_model_s
 typedef struct
 {
 	const char *name;
-	uint32_t value;
+	uint64_t value; // flag combinations are used
 } lua_mobjflag_t;
 
 // model for exported state actions
@@ -106,6 +106,8 @@ static int LUA_radiusDamageFromMobj(lua_State *L);
 
 static int LUA_soundFromMobj(lua_State *L);
 
+static int LUA_setPlayerWeapon(lua_State *L);
+
 static int LUA_lowFloorFromSector(lua_State *L);
 static int LUA_highFloorFromSector(lua_State *L);
 static int LUA_lowCeilingFromSector(lua_State *L);
@@ -150,6 +152,8 @@ static int func_get_mobjradiusdmg(lua_State *L, void *dst, void *o);
 static int func_get_mobjsound_body(lua_State *L, void *dst, void *o);
 static int func_get_mobjsound_weapon(lua_State *L, void *dst, void *o);
 static int func_get_mobjsound_pickup(lua_State *L, void *dst, void *o);
+
+static int func_setplayerweapon(lua_State *L, void *dst, void *o);
 
 static int func_get_lowefloorsector(lua_State *L, void *dst, void *o);
 static int func_get_highfloorsector(lua_State *L, void *dst, void *o);
@@ -227,6 +231,12 @@ static const lua_mobjaction_t lua_mobjactions[] =
 	{"SoundActive", A_SoundActive},
 	{"SoundDeath", A_SoundDeath},
 	{"SoundXDeath", A_SoundXDeath},
+
+	{"WeaponRaise", A_WeaponRaise},
+	{"WeaponReady", A_WeaponReady},
+	{"WeaponLower", A_WeaponLower},
+
+	{"NoiseAlert", A_NoiseAlert},
 };
 
 // all mobj type values
@@ -258,6 +268,13 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"_raise", offsetof(mobjinfo_t, raisestate), LUA_TTABLE, func_set_states},
 	{"_crush", offsetof(mobjinfo_t, crushstate), LUA_TTABLE, func_set_states},
 	{"_heal", offsetof(mobjinfo_t, healstate), LUA_TTABLE, func_set_states},
+	{"_wRaise", offsetof(mobjinfo_t, weaponraise), LUA_TTABLE, func_set_states},
+	{"_wReady", offsetof(mobjinfo_t, weaponready), LUA_TTABLE, func_set_states},
+	{"_wLower", offsetof(mobjinfo_t, weaponlower), LUA_TTABLE, func_set_states},
+	{"_wFireMain", offsetof(mobjinfo_t, weaponfiremain), LUA_TTABLE, func_set_states},
+	{"_wFireAlt", offsetof(mobjinfo_t, weaponfirealt), LUA_TTABLE, func_set_states},
+	{"_wFlashMain", offsetof(mobjinfo_t, weaponflashmain), LUA_TTABLE, func_set_states},
+	{"_wFlashAlt", offsetof(mobjinfo_t, weaponflashalt), LUA_TTABLE, func_set_states},
 	// sounds
 	{"seeSound", offsetof(mobjinfo_t, seesound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"attackSound", offsetof(mobjinfo_t, attacksound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
@@ -315,6 +332,14 @@ static const lua_table_model_t lua_mobj[] =
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
+};
+
+// all player values
+static const lua_table_model_t lua_player[] =
+{
+	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
+	// functions
+	{"setWeapon", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_setplayerweapon},
 };
 
 // all sector values
@@ -404,9 +429,9 @@ static int state_getSprite(const char *spr)
 	{
 		int asize = (numsnames + INFO_SPRITE_ALLOC) * sizeof(sprname_t);
 		// realloc buffer
-		sprname_t *temp = Z_Malloc(asize, PU_STATIC, NULL);
-		memcpy(temp, sprnames, numsnames * sizeof(sprname_t));
-		Z_Free(sprnames);
+		sprname_t *temp = realloc(sprnames, asize);
+		if(!temp)
+			I_Error("out of memory\n");
 		sprnames = temp;
 	}
 	sprnames[numsnames].u = *(const uint32_t*)spr;
@@ -498,9 +523,9 @@ finish:
 	{
 		int asize = (numstates + INFO_STATE_ALLOC) * sizeof(state_t);
 		// realloc buffer
-		state_t *temp = Z_Malloc(asize, PU_STATIC, NULL);
-		memcpy(temp, states, numstates * sizeof(state_t));
-		Z_Free(states);
+		state_t *temp = realloc(states, asize);
+		if(!temp)
+			I_Error("out of memory\n");
 		states = temp;
 	}
 	memcpy(states + numstates, &st, sizeof(state_t));
@@ -523,7 +548,7 @@ void L_StateCall(state_t *st, mobj_t *mo)
 		I_Error("L_StateCall: %s", lua_tostring(luaS_game, -1));
 }
 
-statenum_t L_StateFromAlias(mobj_t *mo, statenum_t state)
+statenum_t L_StateFromAlias(mobjinfo_t *info, statenum_t state)
 {
 	int anim;
 	int offs;
@@ -532,7 +557,7 @@ statenum_t L_StateFromAlias(mobj_t *mo, statenum_t state)
 	anim = state & STATE_AMASK;
 	offs = (state & STATE_OMASK) >> STATE_OFFSHIFT;
 	// set this animation
-	return *(&mo->info->spawnstate + anim) + offs;
+	return *(&info->spawnstate + anim) + offs;
 }
 
 //
@@ -739,7 +764,7 @@ static int func_get_mobj(lua_State *L, void *dst, void *o)
 // few flags have to be checked when changed
 static int func_set_flags(lua_State *L, void *dst, void *o)
 {
-	int nf, change;
+	uint64_t nf, change;
 	mobj_t *mo = o;
 
 	nf = lua_tointeger(L, -1);
@@ -903,6 +928,14 @@ static int func_get_mobjsound_pickup(lua_State *L, void *dst, void *o)
 	lua_pushlightuserdata(L, o);
 	lua_pushinteger(L, SOUND_PICKUP);
 	lua_pushcclosure(L, LUA_soundFromMobj, 2);
+	return 1;
+}
+
+// return weapon set function
+static int func_setplayerweapon(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_setPlayerWeapon, 1);
 	return 1;
 }
 
@@ -1149,9 +1182,9 @@ static int LUA_createMobjType(lua_State *L)
 		{
 			int asize = (numobjtypes + INFO_MOBJTYPE_ALLOC) * sizeof(mobjinfo_t);
 			// realloc buffer
-			mobjinfo_t *temp = Z_Malloc(asize, PU_STATIC, NULL);
-			memcpy(temp, mobjinfo, numobjtypes * sizeof(mobjinfo_t));
-			Z_Free(mobjinfo);
+			mobjinfo_t *temp = realloc(mobjinfo, asize);
+			if(!temp)
+				I_Error("out of memory\n");
 			mobjinfo = temp;
 		}
 		temp.dthink.lua_type = TT_MOBJINFO;
@@ -1258,9 +1291,34 @@ static int LUA_blockThingsIterator(lua_State *L)
 	fixed_t x, y, xe, ye, t;
 	int bx, by;
 	int top = lua_gettop(L);
+	int ftype = lua_type(L, 1);
 
+	if(top == 2 || (top == 3 && ftype == LUA_TLIGHTUSERDATA))
+	{
+		// mobj, func, [arg]
+		mobj_t *mo;
+
+		luaL_checktype(L, 2, LUA_TFUNCTION);
+
+		mo = LUA_GetMobjParam(L, 1, false);
+
+		if(top > 2)
+			block_lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		else
+			block_lua_arg = LUA_REFNIL;
+
+		block_lua_func = luaL_ref(L, LUA_REGISTRYINDEX);
+
+		x = mo->x;
+		xe = x + mo->radius;
+		x -= mo->radius;
+		y = mo->y;
+		ye = y + mo->radius;
+		y -= mo->radius;
+	} else
 	if(top == 3 || top == 4)
 	{
+		// x, y, func, [arg]
 		luaL_checktype(L, 1, LUA_TNUMBER);
 		x = (fixed_t)(lua_tonumber(L, 1) * (lua_Number)FRACUNIT);
 		luaL_checktype(L, 2, LUA_TNUMBER);
@@ -1281,6 +1339,7 @@ static int LUA_blockThingsIterator(lua_State *L)
 	} else
 	if(top == 5 || top == 6)
 	{
+		// x1, y1, x2, y2, func, [arg]
 		luaL_checktype(L, 1, LUA_TNUMBER);
 		x = (fixed_t)(lua_tonumber(L, 1) * (lua_Number)FRACUNIT);
 		luaL_checktype(L, 2, LUA_TNUMBER);
@@ -1305,14 +1364,14 @@ static int LUA_blockThingsIterator(lua_State *L)
 	lua_settop(L, 0);
 	luaS_block_iter = L;
 
-	if(x < xe)
+	if(x > xe)
 	{
 		t = x;
 		x = xe;
 		xe = t;
 	}
 
-	if(y < ye)
+	if(y > ye)
 	{
 		t = y;
 		y = ye;
@@ -1511,6 +1570,9 @@ static int LUA_ThinkerIndex(lua_State *L)
 		break;
 		case TT_MOBJINFO:
 			field = LUA_FieldByName(idx, lua_mobjtype, sizeof(lua_mobjtype) / sizeof(lua_table_model_t));
+		break;
+		case TT_PLAYER:
+			field = LUA_FieldByName(idx, lua_player, sizeof(lua_player) / sizeof(lua_table_model_t));
 		break;
 		case TT_SECTOR:
 			field = LUA_FieldByName(idx, lua_sector, sizeof(lua_sector) / sizeof(lua_table_model_t));
@@ -1725,42 +1787,68 @@ static int LUA_attackAim(lua_State *L)
 		// use mobj target
 		dest = source->target;
 
-	if(!dest)
+	if(source->player && !dest)
 	{
-		// nothing to aim at
-		lua_pushinteger(L, source->angle / (lua_Number)(1 << ANGLETOFINESHIFT));
-		lua_pushinteger(L, source->pitch / (lua_Number)FRACUNIT);
-		return 2;
-	}
+		// player aim
+		angle = source->angle;
+		if(sv_freeaim)
+		{
+			slope = source->pitch;
+		} else
+		{
+			slope = P_AimLineAttack (source, angle, 16*64*FRACUNIT, NULL);
 
-	angle = R_PointToAngle2(source->x, source->y, dest->x, dest->y);
-
-	if(hitscan)
+			if (!linetarget)
+			{
+				angle += 1<<26;
+				slope = P_AimLineAttack (source, angle, 16*64*FRACUNIT, NULL);
+				if (!linetarget)
+				{
+					angle -= 2<<26;
+					slope = P_AimLineAttack (source, angle, 16*64*FRACUNIT, NULL);
+				}
+			}
+		}
+	} else
 	{
-		slope = P_AimLineAttack(source, angle, MISSILERANGE, NULL);
-		if(!linetarget)
-			hitscan = false;
+		// other aim
+
+		if(!dest)
+		{
+			// nothing to aim at
+			lua_pushinteger(L, source->angle / (lua_Number)(1 << ANGLETOFINESHIFT));
+			lua_pushinteger(L, source->pitch / (lua_Number)FRACUNIT);
+			return 2;
+		}
+
+		angle = R_PointToAngle2(source->x, source->y, dest->x, dest->y);
+
+		if(hitscan)
+		{
+			slope = P_AimLineAttack(source, angle, MISSILERANGE, NULL);
+			if(!linetarget)
+				hitscan = false;
+		}
+
+		if(!hitscan)
+		{
+			if(dest->z < source->z)
+				z = dest->z + dest->info->height / 4;
+			else
+				z = dest->z;
+
+			slope = P_AproxDistance(dest->x - source->x, dest->y - source->y);
+			slope = P_AproxDistance(slope, z - source->z) / FRACUNIT;
+
+			if(slope < 1)
+				slope = 1;
+
+			slope = (z - source->z) / slope;
+		}
+		// invisiblity random
+		if(!source->player && dest->flags & MF_SHADOW)
+			angle += (P_Random()-P_Random())<<21;
 	}
-
-	if(!hitscan)
-	{
-		if(dest->z < source->z)
-			z = dest->z + dest->info->height / 4;
-		else
-			z = dest->z;
-
-		slope = P_AproxDistance(dest->x - source->x, dest->y - source->y);
-		slope = P_AproxDistance(slope, z - source->z) / FRACUNIT;
-
-		if(slope < 1)
-			slope = 1;
-
-		slope = (z - source->z) / slope;
-	}
-
-	// invisiblity random
-	if(!source->player && dest->flags & MF_SHADOW)
-		angle += (P_Random()-P_Random())<<21;
 
 	lua_pushnumber(L, angle / (lua_Number)(1 << ANGLETOFINESHIFT));
 	lua_pushnumber(L, slope / (lua_Number)FRACUNIT);
@@ -2060,6 +2148,17 @@ static int LUA_soundFromMobj(lua_State *L)
 	chan = lua_tointeger(L, lua_upvalueindex(2));
 
 	S_StartSound(source, lump, chan);
+
+	return 0;
+}
+
+static int LUA_setPlayerWeapon(lua_State *L)
+{
+	player_t *pl;
+
+	pl = lua_touserdata(L, lua_upvalueindex(1));
+	pl->pendingweapon = LUA_GetMobjTypeParam(L, 1);
+	P_BringUpWeapon(pl);
 
 	return 0;
 }
@@ -2519,13 +2618,17 @@ void L_Init()
 	int i;
 
 	// create sprite names
-	sprnames = Z_Malloc(INFO_SPRITE_ALLOC * sizeof(sprname_t), PU_STATIC, NULL);
+	sprnames = malloc(INFO_SPRITE_ALLOC * sizeof(sprname_t));
+	if(!sprnames)
+		I_Error("out of memory\n");
 	// add default names
 	memcpy(sprnames, info_def_sprnames, sizeof(info_def_sprnames));
 	numsnames = NUM_DEF_SPRITES;
 
 	// create mobj states
-	states = Z_Malloc(INFO_STATE_ALLOC * sizeof(state_t), PU_STATIC, NULL);
+	states = malloc(INFO_STATE_ALLOC * sizeof(state_t));
+	if(!states)
+		I_Error("out of memory\n");
 	// add default states
 	memcpy(states, info_def_states, sizeof(info_def_states));
 	numstates = NUM_DEF_STATES;
@@ -2534,7 +2637,9 @@ void L_Init()
 		states[i].func = LUA_REFNIL;
 
 	// create mobj types
-	mobjinfo = Z_Malloc(INFO_MOBJTYPE_ALLOC * sizeof(mobjinfo_t), PU_STATIC, NULL);
+	mobjinfo = malloc(INFO_MOBJTYPE_ALLOC * sizeof(mobjinfo_t));
+	if(!mobjinfo)
+		I_Error("out of memory\n");
 	// add default types
 	memcpy(mobjinfo, info_def_mobjinfo, sizeof(info_def_mobjinfo));
 	numobjtypes = NUM_DEF_MOBJTYPES;
@@ -2542,6 +2647,9 @@ void L_Init()
 	// load script from all WADs
 	W_ForEachName("GAMELUA", cb_LuaLoad);
 }
+
+//
+// game callbacks
 
 void L_SetupMap()
 {
@@ -2551,6 +2659,20 @@ void L_SetupMap()
 	lua_setglobal(luaS_game, "levelLump");
 
 	// TODO: start map load scripts
+	lua_settop(luaS_game, 0);
+}
+
+void L_SpawnPlayer(player_t *pl)
+{
+	lua_getglobal(luaS_game, "playerSpawn");
+	if(lua_type(luaS_game, -1) == LUA_TFUNCTION)
+	{
+		lua_pushlightuserdata(luaS_game, pl);
+		if(lua_pcall(luaS_game, 1, 0, 0))
+			// script error
+			I_Error("L_SpawnPlayer: %s", lua_tostring(luaS_game, -1));
+	}
+	lua_settop(luaS_game, 0);
 }
 
 //
@@ -2592,7 +2714,7 @@ boolean P_SetMobjAnimation(mobj_t *mo, int anim, int skip)
 		state = states[state].nextstate;
 		if(state & STATE_ANIMATION)
 		{
-			state = L_StateFromAlias(mo, state);
+			state = L_StateFromAlias(mo->info, state);
 			return P_SetMobjState(mo, state);
 		}
 	}

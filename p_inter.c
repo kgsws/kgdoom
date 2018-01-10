@@ -26,110 +26,9 @@
 
 #define BONUSADD	6
 
-// a weapon is found with two clip loads,
-// a big item has five clip loads
-int	maxammo[NUMAMMO] = {200, 50, 300, 50}; // [kg] TODO: check if used, remove
-int	clipammo[NUMAMMO] = {10, 4, 20, 1}; // [kg] used only for backpack now
-
-
 //
 // GET STUFF
 //
-
-//
-// P_GiveAmmo
-// Num is the number of clip loads,
-// not the individual count (0= 1/2 clip).
-// Returns false if the ammo can't be picked up at all
-//
-
-boolean
-P_GiveAmmo
-( player_t*	player,
-  ammotype_t	ammo,
-  int		num )
-{
-#ifndef SERVER
-    int		oldammo;
-#endif
-
-    if (ammo > NUMAMMO)
-	I_Error ("P_GiveAmmo: bad type %i", ammo);
-		
-    if ( player->ammo[ammo] == player->maxammo[ammo]  )
-	return false;
-
-    if(!num)
-	num = clipammo[ammo];
-
-    if (gameskill == sk_baby
-	|| gameskill == sk_nightmare)
-    {
-	// give double ammo in trainer mode,
-	// you'll need in nightmare
-	num <<= 1;
-    }
-
-#ifndef SERVER
-    oldammo = player->ammo[ammo];
-#endif
-    player->ammo[ammo] += num;
-
-    if (player->ammo[ammo] > player->maxammo[ammo])
-	player->ammo[ammo] = player->maxammo[ammo];
-
-#ifndef SERVER
-    // If non zero ammo, 
-    // don't change up weapons,
-    // player was lower on purpose.
-    if (oldammo)
-	return true;
-
-    // We were down to zero,
-    // so select a new weapon.
-    // Preferences are not user selectable.
-    switch (ammo)
-    {
-      case am_clip:
-	if (player->readyweapon == wp_fist)
-	{
-	    if (player->weaponowned[wp_chaingun])
-		player->pendingweapon = wp_chaingun;
-	    else
-		player->pendingweapon = wp_pistol;
-	}
-	break;
-	
-      case am_shell:
-	if (player->readyweapon == wp_fist
-	    || player->readyweapon == wp_pistol)
-	{
-	    if (player->weaponowned[wp_shotgun])
-		player->pendingweapon = wp_shotgun;
-	}
-	break;
-	
-      case am_cell:
-	if (player->readyweapon == wp_fist
-	    || player->readyweapon == wp_pistol)
-	{
-	    if (player->weaponowned[wp_plasma])
-		player->pendingweapon = wp_plasma;
-	}
-	break;
-	
-      case am_misl:
-	if (player->readyweapon == wp_fist)
-	{
-	    if (player->weaponowned[wp_missile])
-		player->pendingweapon = wp_missile;
-	}
-      default:
-	break;
-    }
-#endif
-    return true;
-}
 
 //
 // P_GiveArmor
@@ -195,8 +94,8 @@ P_GivePower
 	}
 	player->powers[power] = 1;
 #ifndef SERVER
-	if (player->readyweapon != wp_fist)
-	    player->pendingweapon = wp_fist;
+//	if (player->readyweapon != wp_fist)
+//	    player->pendingweapon = wp_fist;
 #endif
 	return true;
     }
@@ -460,7 +359,7 @@ P_DamageMobj
 /*    if ( (!target->threshold || target->type == MT_VILE)
 	 && source && source != target
 	 && source->type != MT_VILE)*/
-    if ( (!target->threshold) && source && source != target)
+    if ( target->flags & MF_ISMONSTER && (!target->threshold) && source && source != target)
     {
 	// if not intent on another player,
 	// chase after this one

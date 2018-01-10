@@ -6,7 +6,6 @@
 // of other structs: items (internal inventory),
 // animation states (closely tied to the sprites
 // used to represent them, unfortunately).
-#include "d_items.h"
 #include "p_pspr.h"
 
 // In addition, the player is just a special
@@ -76,6 +75,8 @@ typedef enum
 //
 typedef struct player_s
 {
+    degenthinker_t	think;
+
     mobj_t*		mo;
     playerstate_t	playerstate;
     ticcmd_t		cmd;
@@ -105,14 +106,10 @@ typedef struct player_s
     
     // Frags, kills of other players.
     int			frags[MAXPLAYERS];
-    weapontype_t	readyweapon;
     
     // Is wp_nochange if not changing.
+    weapontype_t	readyweapon;
     weapontype_t	pendingweapon;
-
-    boolean		weaponowned[NUMWEAPONS];
-    int			ammo[NUMAMMO];
-    int			maxammo[NUMAMMO];
 
     // True if button down last tic.
     int			attackdown;

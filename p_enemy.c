@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+#include "doomdef.h"
+
 #include "m_random.h"
 #include "i_system.h"
 
@@ -137,8 +139,13 @@ P_NoiseAlert
     P_RecursiveSound (emmiter->subsector->sector, 0);
 }
 
-
-
+// [kg] action code
+void A_NoiseAlert(mobj_t *target)
+{
+    soundtarget = target;
+    validcount++;
+    P_RecursiveSound(target->subsector->sector, 0);
+}
 
 //
 // P_CheckMeleeRange

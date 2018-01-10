@@ -17,7 +17,7 @@ typedef union
 int numsnames;
 extern sprname_t *sprnames;
 
-#define INFO_STATE_ALLOC	128
+#define INFO_STATE_ALLOC	512
 extern int numstates;
 typedef int statenum_t;
 
@@ -37,6 +37,7 @@ typedef struct
 {
 	// [kg] must be first
 	degenthinker_t dthink;
+
 	// [kg] keep same order as in 'lua_mobjtype'
 	int	spawnstate; // must be first
 	int	seestate;
@@ -48,6 +49,14 @@ typedef struct
 	int	raisestate;
 	int	crushstate;
 	int	healstate;
+	int	weaponraise;
+	int	weaponready;
+	int	weaponlower;
+	int	weaponfiremain;
+	int	weaponfirealt;
+	int	weaponflashmain;
+	int	weaponflashalt;
+
 	// [kg] keep same order as in 'lua_mobjtype'
 	int	seesound; // must be first
 	int	attacksound;
@@ -60,13 +69,14 @@ typedef struct
 	int	spawnhealth;
 	int	reactiontime;
 	int	painchance;
-	int	speed; // [kg] also: ammo count; superpower flag; weapon ammo count
+	int	speed;
 	int	radius;
 	int	height;
 	int	mass;
-	int	damage;	// [kg] also: power type; ammo type; weapon type
+	int	damage;
 	int	flags;
-	// [kg] new stuff
+
+	// [kg] some new stuff
 	int species;
 	int viewz;
 	int shootz;

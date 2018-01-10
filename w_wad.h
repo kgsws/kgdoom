@@ -32,7 +32,7 @@ void	W_LoadWad(const char *name);
 int	W_CheckNumForName (char* name);
 int	W_GetNumForName (char* name);
 
-int	W_GetNumForNameLua (const char* name);
+int	W_GetNumForNameLua (const char* tex, boolean optional);
 
 int	W_LumpLength (int lump);
 void    W_ReadLump (int lump, void *dest);

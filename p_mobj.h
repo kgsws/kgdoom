@@ -238,7 +238,7 @@ typedef struct mobj_s
     
     int			tics;	// state tic counter
     state_t*		state;
-    int			flags;
+    uint64_t		flags;
     int			health;
 
     // Movement direction, movement generation (zig-zagging).
@@ -250,6 +250,8 @@ typedef struct mobj_s
     struct mobj_s*	target;
     // originator for missiles
     struct mobj_s*	source;
+    // [kg] attacker; set in DamageMobj
+    struct mobj_s*	attacker;
     // [kg] gerenal purpose mobj
     struct mobj_s*	mobj;
 

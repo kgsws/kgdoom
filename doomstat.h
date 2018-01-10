@@ -169,15 +169,6 @@ extern  mapthing_hexen_t      playerstarts[MAXPLAYERS];
 // Parameters for world map / intermission.
 extern  wbstartstruct_t		wminfo;	
 
-
-// LUT of ammunition limits for each kind.
-// This doubles with BackPack powerup item.
-extern  int		maxammo[NUMAMMO];
-
-
-
-
-
 //-----------------------------------------
 // Internal parameters, used for engine.
 //

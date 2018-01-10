@@ -8,5 +8,8 @@
 
 void L_Init();
 void L_StateCall(state_t *st, mobj_t *mo);
-statenum_t L_StateFromAlias(mobj_t *mo, statenum_t state);
+statenum_t L_StateFromAlias(mobjinfo_t *info, statenum_t state);
+
+void L_SetupMap();
+void L_SpawnPlayer(player_t *pl);
 

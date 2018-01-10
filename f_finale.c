@@ -1,5 +1,6 @@
 #include <ctype.h>
 
+#include "doomdef.h"
 // Functions.
 #include "i_system.h"
 #include "m_swap.h"

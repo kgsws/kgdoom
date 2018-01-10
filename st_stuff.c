@@ -85,17 +85,17 @@ static patch_t*		keys[NUMCARDS];
 static patch_t*		hp_back;
 static patch_t*		armor_back[2];
 static patch_t*		pack_back;
-static patch_t*		ammo_back[NUMAMMO];
+//static patch_t*		ammo_back[NUMAMMO];
 
-static patch_t*		weap_back[NUMWEAPONS];
+static patch_t*		weap_back[MAXWEAPONS];
 static patch_t*		empty_back;
 
 // death timeout
 static int deathtime;
 
 // tables
-static char *const ammo_icon[NUMAMMO] = {"AMMOA0", "SBOXA0", "CELPA0", "BROKA0"};
-static char *const weap_icon[NUMWEAPONS] = {"PUNGC0", "PISGC0", "SHOTA0", "MGUNA0", "LAUNA0", "PLASA0", "BFUGA0", "CSAWA0", "SGN2A0"};
+//static char *const ammo_icon[NUMAMMO] = {"AMMOA0", "SBOXA0", "CELPA0", "BROKA0"};
+static char *const weap_icon[MAXWEAPONS] = {"PUNGC0", "PISGC0", "SHOTA0", "MGUNA0", "LAUNA0", "PLASA0", "BFUGA0", "CSAWA0", "SGN2A0"};
 static const int weap_offs_x[8] = {0  , 200, 300, 200 , 0   , -200, -300, -200};
 static const int weap_offs_y[8] = {200, 150, 0  , -150, -200, -150, 0   , 150};
 
@@ -103,7 +103,6 @@ static const int weap_offs_y[8] = {200, 150, 0  , -150, -200, -150, 0   , 150};
 boolean in_weapon_menu;
 static weapontype_t weapon_change;
 static weapontype_t weapon_select;
-static int weapon_shotgun = wp_shotgun;
 
 // [kg] ctrl
 extern int absmousex;
@@ -286,12 +285,12 @@ ST_Responder (event_t* ev)
 			{
 				GrabMouse(1);
 				in_weapon_menu = false;
-				if(weapon_select < NUMWEAPONS && weapon_select != plr->readyweapon && plr->weaponowned[weapon_select])
-					weapon_change = weapon_select;
+//				if(weapon_select < NUMWEAPONS && weapon_select != plr->readyweapon && plr->weaponowned[weapon_select])
+//					weapon_change = weapon_select;
 				return true;
 			}
 		}
-		// weapon picker
+/*		// weapon picker
 #ifdef LINUX
 		if(ev->type == ev_mouse)
 		{
@@ -355,7 +354,7 @@ ST_Responder (event_t* ev)
 				}
 			} else
 				weapon_select = wp_nochange;
-		}
+		}*/
 	} else
 	if(!(plr->cheats & CF_SPECTATOR))
 	{
@@ -371,11 +370,11 @@ ST_Responder (event_t* ev)
 			in_weapon_menu = true;
 			weapon_change = wp_nochange;
 			weapon_select = wp_nochange;
-			if(weapon_shotgun == wp_shotgun && !plr->weaponowned[wp_shotgun])
+/*			if(weapon_shotgun == wp_shotgun && !plr->weaponowned[wp_shotgun])
 				weapon_shotgun = wp_supershotgun;
 			if(weapon_shotgun == wp_supershotgun && !plr->weaponowned[wp_supershotgun])
 				weapon_shotgun = wp_shotgun;
-			// cancel all game keys
+*/			// cancel all game keys
 			memset(gamekeydown, 0, sizeof(gamekeydown));
 			return true;
 		}
@@ -503,11 +502,10 @@ ST_Responder (event_t* ev)
 	plyr->armorpoints = 200;
 	plyr->armortype = 2;
 	
-	for (i=0;i<NUMWEAPONS;i++)
-	  plyr->weaponowned[i] = true;
+//	plyr->weaponowned = -1;
 	
-	for (i=0;i<NUMAMMO;i++)
-	  plyr->ammo[i] = plyr->maxammo[i];
+//	for (i=0;i<NUMAMMO;i++)
+//	  plyr->ammo[i] = plyr->maxammo[i];
 	
 	plyr->message = STSTR_FAADDED;
       }
@@ -517,11 +515,10 @@ ST_Responder (event_t* ev)
 	plyr->armorpoints = 200;
 	plyr->armortype = 2;
 	
-	for (i=0;i<NUMWEAPONS;i++)
-	  plyr->weaponowned[i] = true;
+//	plyr->weaponowned = -1;
 	
-	for (i=0;i<NUMAMMO;i++)
-	  plyr->ammo[i] = plyr->maxammo[i];
+//	for (i=0;i<NUMAMMO;i++)
+//	  plyr->ammo[i] = plyr->maxammo[i];
 	
 	for (i=0;i<NUMCARDS;i++)
 	  plyr->cards[i] = true;
@@ -590,23 +587,6 @@ ST_Responder (event_t* ev)
       {
 	plyr->message = STSTR_BEHOLD;
       }
-      // 'choppers' invulnerability & chainsaw
-      else if (cht_CheckCheat(&cheat_choppers, ev->data1))
-      {
-	plyr->weaponowned[wp_chainsaw] = true;
-	plyr->powers[pw_invulnerability] = true;
-	plyr->message = STSTR_CHOPPERS;
-      }
-/*      // 'mypos' for player position
-      else if (cht_CheckCheat(&cheat_mypos, ev->data1))
-      {
-	static char	buf[ST_MSGWIDTH];
-	sprintf(buf, "ang=0x%x;x,y=(0x%x,0x%x)",
-		players[consoleplayer].mo->angle,
-		players[consoleplayer].mo->x,
-		players[consoleplayer].mo->y);
-	plyr->message = buf;
-      }*/
     }
     
     // 'clev' change-level cheat
@@ -776,7 +756,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	}
 
 	// ammo
-	temp = am_noammo;
+/*	temp = am_noammo;
 	switch(plyr->readyweapon)
 	{
 		case wp_pistol:
@@ -802,7 +782,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 		V_DrawPatchNew(STBAR_AMMO_X, STBAR_AMMO_Y, ammo_back[temp], v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_NONE, 2);
 		STlib_drawNum(STBAR_AMMO_X, STBAR_AMMO_Y + 8, plyr->ammo[temp], plyr->cheats & CF_INFAMMO ? bloodlationtables + 256 : v_colormap_normal);
 	}
-
+*/
 	// keys
 	x = STBAR_KEY_X;
 	for(temp = 0; temp < NUMCARDS; temp++)
@@ -824,7 +804,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	{
 		cmap = v_colormap_normal + 256 * 24;
 		V_FadeScreen(colormaps, 16);
-		for(x = 0; x < 8; x++)
+/*		for(x = 0; x < 8; x++)
 		{
 			int scale = 2;
 
@@ -860,7 +840,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 				V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x], STBAR_WEAP_Y + weap_offs_y[x], weap_back[x], plyr->weaponowned[x] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, x > 1 ? scale : scale-1);
 			else
 				V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x], STBAR_WEAP_Y + weap_offs_y[x], empty_back, v_colormap_normal, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 3);
-		}
+		}*/
 	}
 }
 
@@ -873,9 +853,6 @@ weapontype_t ST_GetNewWeapon()
 {
 	weapontype_t ret = weapon_change;
 	weapon_change = wp_nochange;
-	// shotguns
-	if(ret == wp_shotgun || ret == wp_supershotgun)
-		weapon_shotgun = ret;
 	return ret;
 }
 
@@ -904,24 +881,24 @@ void ST_loadGraphics(void)
 	armor_back[1] = (patch_t *) W_CacheLumpName("ARM2A0");
 
 	// ammo
-	for(i = 0; i < NUMAMMO; i++)
+/*	for(i = 0; i < NUMAMMO; i++)
 	{
 		// some lumps are not present in shareware
 		int lump = W_CheckNumForName(ammo_icon[i]);
 		if(lump >= 0)
 			ammo_back[i] = W_CacheLumpNum(lump);
 	}
-	pack_back = (patch_t *) W_CacheLumpName("BPAKA0");
+*/	pack_back = (patch_t *) W_CacheLumpName("BPAKA0");
 
 	// weapons
-	for(i = 0; i < NUMWEAPONS; i++)
+/*	for(i = 0; i < MAXWEAPONS; i++)
 	{
 		// some lumps are not present in shareware
 		int lump = W_CheckNumForName(weap_icon[i]);
 		if(lump >= 0)
 			weap_back[i] = W_CacheLumpNum(lump);
 	}
-	empty_back = W_CacheLumpName("STPB3");
+*/	empty_back = W_CacheLumpName("STPB3");
 }
 
 void ST_Stop (void)

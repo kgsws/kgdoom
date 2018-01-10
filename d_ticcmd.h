@@ -16,10 +16,10 @@ typedef struct
 {
 	angle_t	angle;
 	fixed_t	pitch;
+	weapontype_t	weapon; // [kg] weapon change
 	int8_t	forwardmove;	// *2048 for move
 	int8_t	sidemove;	// *2048 for move
 	uint8_t	buttons;
-	uint8_t	weapon;		// [kg] weapon change
 } ticcmd_t;
 
 

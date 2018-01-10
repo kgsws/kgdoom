@@ -309,7 +309,7 @@ int A_PickMegaSphere(player_t *pl, mobj_t *mo)
 }
 
 int A_PickAmmo(player_t *pl, mobj_t *mo)
-{
+{/*
 #ifndef SERVER
 	if(!netgame)
 #endif
@@ -319,12 +319,12 @@ int A_PickAmmo(player_t *pl, mobj_t *mo)
 			count /= 2;
 		if(!P_GiveAmmo(pl, mo->info->damage, count))
 			return SPECIAL_DONTPICKUP;
-	}
+	}*/
 	return SPECIAL_ITEM;
 }
 
 int A_PickBackpack(player_t *pl, mobj_t *mo)
-{
+{/*
 #ifndef SERVER
 	if(!netgame)
 #endif
@@ -338,12 +338,12 @@ int A_PickBackpack(player_t *pl, mobj_t *mo)
 		}
 		for(i = 0; i < NUMAMMO; i++)
 			P_GiveAmmo(pl, i, 0);
-	}
+	}*/
 	return SPECIAL_ITEM;
 }
 
 int A_PickWeapon(player_t *pl, mobj_t *mo)
-{
+{/*
 #ifndef SERVER
 	if(!netgame)
 #endif
@@ -381,7 +381,7 @@ int A_PickWeapon(player_t *pl, mobj_t *mo)
 
 		if(nope)
 			return SPECIAL_DONTPICKUP;
-	}
+	}*/
 	return SPECIAL_WEAPON;
 }
 

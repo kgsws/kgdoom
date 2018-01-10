@@ -261,7 +261,6 @@ void P_DeathThink (player_t* player)
 void P_PlayerThink (player_t* player)
 {
     ticcmd_t*		cmd;
-    weapontype_t	newweapon;
 
     if(!player->mo)
 	// [kg] this will happen in multiplayer
@@ -314,25 +313,12 @@ void P_PlayerThink (player_t* player)
 	P_PlayerInSpecialSector (player);
     
     // Check for weapon change.
-    if (cmd->buttons & BT_CHANGE && cmd->weapon < NUMWEAPONS)
+    if (cmd->buttons & BT_CHANGE)
     {
 	// The actual changing of the weapon is done
 	//  when the weapon psprite can do it
 	//  (read: not in the middle of an attack).
-	newweapon = cmd->weapon;
-
-	if (player->weaponowned[newweapon]
-	    && newweapon != player->readyweapon)
-	{
-	    // Do not go to plasma or BFG in shareware,
-	    //  even if cheated.
-	    if ((newweapon != wp_plasma
-		 && newweapon != wp_bfg)
-		|| (gamemode != shareware) )
-	    {
-		player->pendingweapon = newweapon;
-	    }
-	}
+	player->pendingweapon = cmd->weapon;
     }
     
     // check for use

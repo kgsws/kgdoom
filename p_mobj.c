@@ -58,7 +58,7 @@ P_SetMobjState
 
 	// [kg] animation 'alias'
 	if(state & STATE_ANIMATION)
-		state = L_StateFromAlias(mobj, state);
+		state = L_StateFromAlias(mobj->info, state);
 
 	st = &states[state];
 	mobj->state = st;
@@ -713,6 +713,8 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 
     int			i;
 
+    playerstate_t oldst;
+
     p = &players[mthing->type-1];
 
 #ifdef SERVER
@@ -734,6 +736,7 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     }
 #endif
 
+    oldst = p->playerstate;
     if (p->playerstate == PST_REBORN)
 	G_PlayerReborn (mthing->type-1);
 
@@ -773,6 +776,10 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 	mobj->flags |= MF_NOSECTOR | MF_NOBLOCKMAP;
     }
 #endif
+
+    // call Lua, if spawned
+    if(oldst == PST_REBORN)
+	L_SpawnPlayer(p);
 
     // setup gun psprite
     P_SetupPsprites (p);

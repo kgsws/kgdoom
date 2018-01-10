@@ -285,7 +285,7 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 
     // weapon menu
     i = ST_GetNewWeapon();
-    if(i < NUMWEAPONS)
+    if(i != wp_nochange)
     { 
 	cmd->buttons |= BT_CHANGE;
 	cmd->weapon = i;
@@ -693,6 +693,7 @@ void G_PlayerReborn (int player)
     for (i=0 ; i<NUMAMMO ; i++)
 	p->maxammo[i] = maxammo[i];
 
+    p->think.lua_type = TT_PLAYER;
     p->playerstate = PST_LIVE;
     p->health = MAXHEALTH;
     p->readyweapon = p->pendingweapon = wp_pistol;
@@ -1234,13 +1235,14 @@ void G_ResetPlayer()
 	// [kg] reset saved inventory
 	memset(&prespawn, 0, sizeof(player_t));
 // TODO: somehow handle this in LUA
+	prespawn.think.lua_type = TT_PLAYER;
 	prespawn.health = MAXHEALTH;
 	prespawn.readyweapon = prespawn.pendingweapon = wp_nochange;
 //	prespawn.weaponowned[wp_fist] = true;
 //	prespawn.weaponowned[wp_pistol] = true;
-	prespawn.ammo[am_clip] = 50;
-	for (int i=0 ; i<NUMAMMO ; i++)
-		prespawn.maxammo[i] = maxammo[i];
+//	prespawn.ammo[am_clip] = 50;
+//	for (int i=0 ; i<NUMAMMO ; i++)
+//		prespawn.maxammo[i] = maxammo[i];
 }
 #endif
  

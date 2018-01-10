@@ -182,44 +182,6 @@ typedef enum
     
 } card_t;
 
-
-
-// The defined weapons,
-//  including a marker indicating
-//  user has not changed weapon.
-typedef enum
-{
-    wp_fist,
-    wp_pistol,
-    wp_shotgun,
-    wp_chaingun,
-    wp_missile,
-    wp_plasma,
-    wp_bfg,
-    wp_chainsaw,
-    wp_supershotgun,
-
-    NUMWEAPONS,
-    
-    // No pending weapon change.
-    wp_nochange
-
-} weapontype_t;
-
-
-// Ammunition types defined.
-typedef enum
-{
-    am_clip,	// Pistol / chaingun ammo.
-    am_shell,	// Shotgun / double barreled shotgun.
-    am_cell,	// Plasma rifle, BFG.
-    am_misl,	// Missile launcher.
-    NUMAMMO,
-    am_noammo	// Unlimited for chainsaw / fist.	
-
-} ammotype_t;
-
-
 // Power up artifacts.
 typedef enum
 {
@@ -234,6 +196,10 @@ typedef enum
 } powertype_t;
 
 
+// [kg] new handling for Lua
+typedef uint16_t weapontype_t;
+#define wp_nochange	0
+#define MAXWEAPONS	64 // limited by uint64_t bit field
 
 //
 // Power up durations,

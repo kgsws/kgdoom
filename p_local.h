@@ -244,8 +244,6 @@ extern blocklink_t**	blocklinks;	// for thing chains
 //
 // P_INTER
 //
-extern int		maxammo[NUMAMMO];
-extern int		clipammo[NUMAMMO];
 
 void
 P_DamageMobj
@@ -263,13 +261,15 @@ P_DamageMobj
 //
 // P_ENEMY
 
-boolean P_CheckMeleeRange (mobj_t *actor, mobj_t *target);
+boolean P_CheckMeleeRange (mobj_t *actor, mobj_t *target, boolean zCheck);
 
 //
 // P_MAP
 
 mobjtype_t la_pufftype;
 mobj_t *la_puffmobj;
+
+void P_BringUpWeapon (player_t* player);
 
 // [kg] all provided state functions
 void A_SoundSee(mobj_t* actor);
@@ -284,6 +284,12 @@ void A_FaceTarget(mobj_t *actor);
 void A_Look(mobj_t *actor);
 void A_Chase(mobj_t *actor);
 void A_VileChase(mobj_t *actor);
+
+void A_WeaponRaise(mobj_t *actor);
+void A_WeaponReady(mobj_t *actor);
+void A_WeaponLower(mobj_t *actor);
+
+void A_NoiseAlert(mobj_t *actor);
 
 sector_t*
 getNextSector

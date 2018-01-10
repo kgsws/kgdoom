@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "doomdef.h"
+
 #include "i_system.h"
 #include "i_sound.h"
 #include "s_sound.h"
