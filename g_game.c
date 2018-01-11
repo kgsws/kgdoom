@@ -1236,7 +1236,7 @@ void G_ResetPlayer()
 	memset(&prespawn, 0, sizeof(player_t));
 // TODO: somehow handle this in LUA
 	prespawn.think.lua_type = TT_PLAYER;
-	prespawn.health = MAXHEALTH;
+//	prespawn.health = MAXHEALTH;
 	prespawn.readyweapon = prespawn.pendingweapon = wp_nochange;
 //	prespawn.weaponowned[wp_fist] = true;
 //	prespawn.weaponowned[wp_pistol] = true;

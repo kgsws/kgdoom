@@ -349,7 +349,6 @@ void P_LoadThings (int lump)
 		P_SpawnPlayer(&deathmatchstarts[rand() % count], -1);
 	}
 	players[consoleplayer].mo->health = 0;
-	players[consoleplayer].health = 0;
     }
 #endif
 	

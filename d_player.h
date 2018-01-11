@@ -58,8 +58,6 @@ typedef enum
 	// [kg] auras
 	CF_AURA0 = 32,
 	CF_AURA1 = 64,
-	// [kg] slow motion
-	CF_SLOWMO = 128,
 
 	// spectator mark
 	CF_SPECTATOR = 0x80000000
@@ -91,13 +89,6 @@ typedef struct player_s
     fixed_t         	deltaviewheight;
     // bounded/scaled total momentum.
     fixed_t         	bob;	
-
-    // This is only used between levels,
-    // mo->health is used during levels.
-    int			health;
-    int			armorpoints;
-    // Armor type is 0-2.
-    int			armortype;
 
     // Power ups. invinc and invis are tic counters.
     int			powers[NUMPOWERS];
@@ -134,9 +125,6 @@ typedef struct player_s
     int			damagecount;
     int			bonuscount;
 
-    // Who did damage (NULL for floors/ceilings).
-    mobj_t*		attacker;
-    
     // So gun flashes light up areas.
     int			extralight;
 

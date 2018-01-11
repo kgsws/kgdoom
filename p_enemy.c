@@ -510,7 +510,7 @@ P_LookForPlayers
 	
 	player = &players[actor->lastlook];
 
-	if (player->health <= 0)
+	if (!player->mo || player->mo->health <= 0)
 	    continue;		// dead
 
 	if (!P_CheckSight (actor, player->mo))

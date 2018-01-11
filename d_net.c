@@ -16,6 +16,7 @@
 // [kg] new gameplay stuff
 
 int sv_zcollision;
+int sv_slowmo;
 int sv_freeaim;
 int sv_itemrespawn;	// in ticks
 int sv_weaponrespawn;	// in ticks
@@ -128,10 +129,10 @@ void TryRunTics (void)
 	// run the count ticks
 	for(nowtime = 0; nowtime < newtics; nowtime++)
 	{
-#ifndef SERVER
-		if(!netgame && (in_weapon_menu || players[consoleplayer].cheats & CF_SLOWMO) && (gametime+nowtime) & 1)
+		if(( (!netgame && in_weapon_menu) || sv_slowmo ) && (gametime+nowtime) & 1)
 			// half speed
 			continue;
+#ifndef SERVER
 		I_StartTic ();
 		D_ProcessEvents ();
 		G_BuildTiccmd(&players[consoleplayer].cmd);

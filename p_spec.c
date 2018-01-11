@@ -1061,7 +1061,7 @@ void P_PlayerInSpecialSector (player_t* player)
 	if (!(leveltime&0x1f))
 	    P_DamageMobj (player->mo, NULL, NULL, 20);
 
-	if (player->health <= 10)
+	if (player->mo->health <= 10)
 	    G_ExitLevel();
 	break;
 			

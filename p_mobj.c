@@ -45,7 +45,7 @@ P_SetMobjState
 
     do
     {
-	if (state == S_NULL)
+	if (state == S_NULL || state == STATE_NULL_NEXT)
 	{
 	    mobj->state = (state_t *) S_NULL;
 #ifdef SERVER
@@ -515,10 +515,7 @@ void P_MobjThinker (mobj_t* mobj)
 
 	// [kg] new cheat
 	if(mobj->player && mobj->player->cheats & CF_INFHEALTH && mobj->health < 100)
-	{
 		mobj->health++;
-		mobj->player->health = mobj->health;
-	}
 
     // cycle through states,
     // calling action functions at transitions
@@ -751,7 +748,6 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 		
     mobj->angle	= ANG45 * (mthing->angle/45);
     mobj->player = p;
-    mobj->health = p->health;
 #ifdef SERVER
     mobj->reactiontime = 2;
 #endif
@@ -1054,13 +1050,9 @@ P_SpawnMissile
 
     th->source = source;
     th->angle = ango;
-    th->momz = FixedMul( th->info->speed, slope);
-    if(slope < 0)
-	slope = -slope;
-    if(slope > FRACUNIT)
-	slope = FRACUNIT;
-    th->momx = FixedMul( FixedMul(th->info->speed, finecosine[ango>>ANGLETOFINESHIFT]), FRACUNIT - slope);
-    th->momy = FixedMul( FixedMul(th->info->speed, finesine[ango>>ANGLETOFINESHIFT]), FRACUNIT - slope);
+    th->momz = FixedMul(th->info->speed, slope);
+    th->momx = FixedMul(th->info->speed, finecosine[ango>>ANGLETOFINESHIFT]);
+    th->momy = FixedMul(th->info->speed, finesine[ango>>ANGLETOFINESHIFT]);
 
     P_CheckMissileSpawn (th);
 #ifdef SERVER

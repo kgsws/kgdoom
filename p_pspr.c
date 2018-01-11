@@ -48,7 +48,7 @@ P_SetPsprite
 	
     do
     {
-	if (!stnum)
+	if(!stnum || stnum == STATE_NULL_NEXT)
 	{
 	    // object removed itself
 	    psp->state = NULL;
@@ -235,19 +235,78 @@ boolean P_CheckAmmo (player_t* player)
 //
 // P_FireWeapon.
 //
-void P_FireWeapon (player_t* player)
+void P_FireWeapon(player_t* player, int offs)
 {
-    statenum_t	newstate;
+	statenum_t	newstate;
 
-    if(player->health <= 0)
-	return;
+	if(player->mo->health <= 0)
+		return;
 
-//    P_SetMobjState (player->mo, S_PLAY_ATK1);
-    newstate = mobjinfo[player->readyweapon].weaponfiremain;
-    if(!newstate)
-	return;
+	//    P_SetMobjState (player->mo, S_PLAY_ATK1); // TODO
 
-    P_SetPsprite (player, ps_weapon, newstate);
+	newstate = mobjinfo[player->readyweapon].weaponfiremain;
+	if(!newstate)
+		return;
+
+	// skip 'offs' states
+	while(offs--)
+	{
+		if(states[newstate].nextstate == STATE_NULL_NEXT)
+			newstate++;
+		else
+			newstate = states[newstate].nextstate;
+		if(newstate & STATE_ANIMATION || !newstate)
+			// nope
+			return;
+	}
+
+	P_SetPsprite (player, ps_weapon, newstate);
+}
+
+//
+// [kg] 
+void P_WeaponRefire(player_t *player, int offset)
+{
+	// check for fire
+	//  (if a weaponchange is pending, let it go through instead)
+	if ( (player->cmd.buttons & BT_ATTACK) // TODO: alt attack check
+		&& player->pendingweapon == wp_nochange
+		&& player->mo->health)
+	{
+		player->refire++;
+		P_FireWeapon(player, offset);
+	} else
+		player->refire = 0;
+}
+
+//
+// [kg]
+void P_WeaponFlash(player_t *player, int offs)
+{
+	statenum_t	newstate;
+
+	if(player->mo->health <= 0)
+		return;
+
+	//    P_SetMobjState (player->mo, S_PLAY_ATK2); // TODO
+
+	newstate = mobjinfo[player->readyweapon].weaponflashmain;
+	if(!newstate)
+		return;
+
+	// skip 'offs' states
+	while(offs--)
+	{
+		if(states[newstate].nextstate == STATE_NULL_NEXT)
+			newstate++;
+		else
+			newstate = states[newstate].nextstate;
+		if(newstate & STATE_ANIMATION || !newstate)
+			// nope
+			return;
+	}
+
+	P_SetPsprite (player, ps_flash, newstate);
 }
 
 //
@@ -256,16 +315,15 @@ void P_FireWeapon (player_t* player)
 //
 void P_DropWeapon (player_t* player)
 {
-/*    P_SetPsprite (player,
-		  ps_weapon,
-		  weaponinfo[player->readyweapon].downstate);*/
+	P_SetPsprite(player, ps_weapon, mobjinfo[player->readyweapon].weaponlower);
+	P_SetPsprite(player, ps_flash, S_NULL);
 }
 
 //
 // [kg] to avoid bad frames on network games
 void P_SetAttack(player_t *player)
 {
-	if(player->health <= 0)
+	if(player->mo->health <= 0)
 		return;
 //	P_SetMobjState (player->mo, S_PLAY_ATK2);
 }
@@ -287,7 +345,7 @@ void A_WeaponReady(mobj_t *mo)
     if(!player)
 	return;
 
-    if(player->health > 0)
+    if(player->mo->health > 0)
     {
 	// get out of attack state // TODO: handle player animation
 /*	if(player->mo->state == &states[S_PLAY_ATK1] || player->mo->state == &states[S_PLAY_ATK2])
@@ -303,7 +361,7 @@ void A_WeaponReady(mobj_t *mo)
     }
 
     //  if player is dead, put the weapon away
-    if(!player->health)
+    if(!player->mo->health)
     {
 	P_SetPsprite(player, ps_weapon, S_NULL);
 	P_SetPsprite(player, ps_flash, S_NULL);
@@ -325,12 +383,12 @@ void A_WeaponReady(mobj_t *mo)
     //  the missile launcher and bfg do not auto fire
     if (!(player->cheats & CF_SPECTATOR) && player->cmd.buttons & BT_ATTACK)
     {
-	if ( !player->attackdown
-/*	     || (player->readyweapon != wp_missile
-		 && player->readyweapon != wp_bfg) */)
+/*	if ( !player->attackdown
+	     || (player->readyweapon != wp_missile
+		 && player->readyweapon != wp_bfg) )*/
 	{
 	    player->attackdown = true;
-	    P_FireWeapon (player);		
+	    P_FireWeapon(player, 0);
 	    return;
 	}
     }
@@ -351,25 +409,14 @@ void A_WeaponReady(mobj_t *mo)
 // The player can re-fire the weapon
 // without lowering it entirely.
 //
-void A_ReFire
-( player_t*	player,
-  pspdef_t*	psp )
+void A_WeaponRefire(mobj_t *mo)
 {
-    
-    // check for fire
-    //  (if a weaponchange is pending, let it go through instead)
-    if ( (player->cmd.buttons & BT_ATTACK) 
-	 && player->pendingweapon == wp_nochange
-	 && player->health)
-    {
-	player->refire++;
-	P_FireWeapon (player);
-    }
-    else
-    {
-	player->refire = 0;
-	P_CheckAmmo (player);
-    }
+	player_t *player = mo->player;
+
+	if(!player)
+		return;
+
+	P_WeaponRefire(player, 0);
 }
 
 
@@ -416,7 +463,7 @@ void A_WeaponLower(mobj_t *mo)
     
     // The old weapon has been lowered off the screen,
     // so change the weapon and start raising it
-    if (!player->health)
+    if (!player->mo->health)
     {
 	// Player is dead, so keep the weapon off screen.
 	P_SetPsprite (player,  ps_weapon, S_NULL);
@@ -458,14 +505,10 @@ A_WeaponRaise(mobj_t *mo)
 // A_GunFlash
 //
 void
-A_GunFlash
-( player_t*	player,
-  pspdef_t*	psp ) 
+A_WeaponFlash(mobj_t *mo)
 {
-    if(player->health <= 0)
-	return;
-//    P_SetMobjState (player->mo, S_PLAY_ATK2);
-//    P_SetPsprite (player,ps_flash,weaponinfo[player->readyweapon].flashstate);
+	if(mo->player)
+		P_WeaponFlash(mo->player, 0);
 }
 
 

@@ -19,7 +19,7 @@ extern sprname_t *sprnames;
 
 #define INFO_STATE_ALLOC	512
 extern int numstates;
-typedef int statenum_t;
+typedef uint32_t statenum_t;
 
 typedef struct
 {

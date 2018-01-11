@@ -466,8 +466,8 @@ ST_Responder (event_t* ev)
 	// [kg] slow motion
 	if(cht_CheckCheat(&cheat_slowmo, ev->data1))
 	{
-		plyr->cheats ^= CF_SLOWMO;
-		if(plyr->cheats & CF_SLOWMO)
+		sv_slowmo = !sv_slowmo;
+		if(sv_slowmo)
 			plyr->message = "Slow motion";
 		else 
 			plyr->message = "Normal speed";
@@ -489,8 +489,6 @@ ST_Responder (event_t* ev)
 	{
 	  if (plyr->mo)
 	    plyr->mo->health = 100;
-	  
-	  plyr->health = 100;
 	  plyr->message = STSTR_DQDON;
 	}
 	else 
@@ -499,8 +497,8 @@ ST_Responder (event_t* ev)
       // 'fa' cheat for killer fucking arsenal
       else if (cht_CheckCheat(&cheat_ammonokey, ev->data1))
       {
-	plyr->armorpoints = 200;
-	plyr->armortype = 2;
+	plyr->mo->armorpoints = 200;
+	plyr->mo->armortype = 2;
 	
 //	plyr->weaponowned = -1;
 	
@@ -512,8 +510,8 @@ ST_Responder (event_t* ev)
       // 'kfa' cheat for key full ammo
       else if (cht_CheckCheat(&cheat_ammo, ev->data1))
       {
-	plyr->armorpoints = 200;
-	plyr->armortype = 2;
+	plyr->mo->armorpoints = 200;
+	plyr->mo->armortype = 2;
 	
 //	plyr->weaponowned = -1;
 	
@@ -716,6 +714,9 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	//
 	// new status bar
 
+	if(!plyr->mo)
+		return;
+
 	if(plyr->cheats & CF_SPECTATOR)
 		return;
 
@@ -745,14 +746,14 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 		cmap = bloodlationtables + 256;
 	else
 		cmap = v_colormap_normal;
-	STlib_drawNum(STBAR_HEALTH_X, STBAR_HEALTH_Y + 8, plyr->health < 0 ? 0 : plyr->health, cmap);
+	STlib_drawNum(STBAR_HEALTH_X, STBAR_HEALTH_Y + 8, plyr->mo->health < 0 ? 0 : plyr->mo->health, cmap);
 
 	// armor
-	if(plyr->armorpoints)
+	if(plyr->mo->armorpoints)
 	{
-		if(plyr->armortype)
-			V_DrawPatchNew(STBAR_ARMOR_X, STBAR_ARMOR_Y, armor_back[plyr->armortype-1], v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_NONE, 2);
-		STlib_drawNum(STBAR_ARMOR_X, STBAR_ARMOR_Y + 8, plyr->armorpoints, v_colormap_normal);
+		if(plyr->mo->armortype)
+			V_DrawPatchNew(STBAR_ARMOR_X, STBAR_ARMOR_Y, armor_back[plyr->mo->armortype-1], v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_NONE, 2);
+		STlib_drawNum(STBAR_ARMOR_X, STBAR_ARMOR_Y + 8, plyr->mo->armorpoints, v_colormap_normal);
 	}
 
 	// ammo

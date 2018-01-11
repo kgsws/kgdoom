@@ -1,6 +1,7 @@
 // LUA game scripting
 // by kgsws
 
+#define STATE_NULL_NEXT	0xFFFFFFFF
 #define STATE_ANIMATION	0x80000000
 #define STATE_AMASK	0x0000FFFF
 #define STATE_OMASK	0x7FFF0000

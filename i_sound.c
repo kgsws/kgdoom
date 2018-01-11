@@ -357,7 +357,7 @@ void SND_Mix(void *unused, int16_t *mixbuffer, int samples)
     leftend = mixbuffer + samples*2;
 
     // [kg] normal or half speed
-    if(!netgame && (in_weapon_menu || players[consoleplayer].cheats & CF_SLOWMO))
+    if(in_weapon_menu || sv_slowmo)
 	step = 1; // half
     else
 	step = 0; // normal

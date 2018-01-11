@@ -241,6 +241,10 @@ typedef struct mobj_s
     uint64_t		flags;
     int			health;
 
+    // [kg] moved here from player
+    int			armorpoints;
+    int			armortype;
+
     // Movement direction, movement generation (zig-zagging).
     int			movedir;	// 0-7
     int			movecount;	// when 0, select a new dir

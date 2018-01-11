@@ -92,6 +92,7 @@ static int LUA_sectorTagIterator(lua_State *L);
 
 static int LUA_removeMobjFromMobj(lua_State *L);
 static int LUA_flagCheckMobj(lua_State *L);
+static int LUA_faceFromMobj(lua_State *L);
 static int LUA_teleportMobj(lua_State *L);
 static int LUA_checkMobjPos(lua_State *L);
 static int LUA_spawnMissile(lua_State *L);
@@ -107,6 +108,8 @@ static int LUA_radiusDamageFromMobj(lua_State *L);
 static int LUA_soundFromMobj(lua_State *L);
 
 static int LUA_setPlayerWeapon(lua_State *L);
+static int LUA_playerRefireWeapon(lua_State *L);
+static int LUA_playerFlashWeapon(lua_State *L);
 
 static int LUA_lowFloorFromSector(lua_State *L);
 static int LUA_highFloorFromSector(lua_State *L);
@@ -124,19 +127,19 @@ static int func_set_short(lua_State *L, void *dst, void *o);
 static int func_get_short(lua_State *L, void *dst, void *o);
 
 static int func_set_readonly(lua_State *L, void *dst, void *o);
-static int func_set_mobjhealth(lua_State *L, void *dst, void *o);
 static int func_set_mobjangle(lua_State *L, void *dst, void *o);
 static int func_get_mobjangle(lua_State *L, void *dst, void *o);
 static int func_set_mobjpitch(lua_State *L, void *dst, void *o);
 static int func_set_radius(lua_State *L, void *dst, void *o);
 static int func_set_mobj(lua_State *L, void *dst, void *o);
-static int func_get_mobj(lua_State *L, void *dst, void *o);
+static int func_get_ptr(lua_State *L, void *dst, void *o);
 static int func_set_flags(lua_State *L, void *dst, void *o);
 static int func_get_sector(lua_State *L, void *dst, void *o);
 static int func_get_info(lua_State *L, void *dst, void *o);
 
 static int func_get_removemobj(lua_State *L, void *dst, void *o);
 static int func_get_checkflagmobj(lua_State *L, void *dst, void *o);
+static int func_get_facemobj(lua_State *L, void *dst, void *o);
 static int func_get_teleportmobj(lua_State *L, void *dst, void *o);
 static int func_get_checkmobjpos(lua_State *L, void *dst, void *o);
 static int func_get_spawnmissile(lua_State *L, void *dst, void *o);
@@ -154,6 +157,8 @@ static int func_get_mobjsound_weapon(lua_State *L, void *dst, void *o);
 static int func_get_mobjsound_pickup(lua_State *L, void *dst, void *o);
 
 static int func_setplayerweapon(lua_State *L, void *dst, void *o);
+static int func_playerrefire(lua_State *L, void *dst, void *o);
+static int func_playerwflash(lua_State *L, void *dst, void *o);
 
 static int func_get_lowefloorsector(lua_State *L, void *dst, void *o);
 static int func_get_highfloorsector(lua_State *L, void *dst, void *o);
@@ -235,6 +240,8 @@ static const lua_mobjaction_t lua_mobjactions[] =
 	{"WeaponRaise", A_WeaponRaise},
 	{"WeaponReady", A_WeaponReady},
 	{"WeaponLower", A_WeaponLower},
+	{"WeaponFlash", A_WeaponFlash},
+	{"WeaponRefire", A_WeaponRefire},
 
 	{"NoiseAlert", A_NoiseAlert},
 };
@@ -287,7 +294,9 @@ static const lua_table_model_t lua_mobjtype[] =
 // all mobj values
 static const lua_table_model_t lua_mobj[] =
 {
-	{"health", offsetof(mobj_t, health), LUA_TNUMBER, func_set_mobjhealth},
+	{"health", offsetof(mobj_t, health), LUA_TNUMBER},
+	{"armor", offsetof(mobj_t, armorpoints), LUA_TNUMBER},
+	{"armortype", offsetof(mobj_t, armortype), LUA_TNUMBER},
 	{"angle", offsetof(mobj_t, angle), LUA_TNUMBER, func_set_mobjangle, func_get_mobjangle},
 	{"pitch", offsetof(mobj_t, pitch), LUA_TNUMBER, func_set_mobjpitch, func_get_fixedt},
 	{"floorz", offsetof(mobj_t, floorz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
@@ -300,13 +309,14 @@ static const lua_table_model_t lua_mobj[] =
 	{"flags", offsetof(mobj_t, flags), LUA_TNUMBER, func_set_flags},
 	{"movedir", offsetof(mobj_t, movedir), LUA_TNUMBER},
 	{"movecount", offsetof(mobj_t, movecount), LUA_TNUMBER},
-	{"target", offsetof(mobj_t, target), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
-	{"source", offsetof(mobj_t, source), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
-	{"attacker", offsetof(mobj_t, attacker), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
-	{"mobj", offsetof(mobj_t, mobj), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
+	{"target", offsetof(mobj_t, target), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
+	{"source", offsetof(mobj_t, source), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
+	{"attacker", offsetof(mobj_t, attacker), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
+	{"mobj", offsetof(mobj_t, mobj), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
 	{"reactiontime", offsetof(mobj_t, reactiontime), LUA_TNUMBER},
 	{"threshold", offsetof(mobj_t, threshold), LUA_TNUMBER},
 	{"tics", offsetof(mobj_t, tics), LUA_TNUMBER},
+	{"player", offsetof(mobj_t, player), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	// read only
 	{"x", offsetof(mobj_t, x), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
 	{"y", offsetof(mobj_t, y), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
@@ -318,6 +328,7 @@ static const lua_table_model_t lua_mobj[] =
 	// functions
 	{"Remove", 0, LUA_TFUNCTION, func_set_readonly, func_get_removemobj},
 	{"Flag", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkflagmobj},
+	{"Face", 0, LUA_TFUNCTION, func_set_readonly, func_get_facemobj},
 	{"Teleport", 0, LUA_TFUNCTION, func_set_readonly, func_get_teleportmobj},
 	{"CheckPosition", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkmobjpos},
 	{"SpawnMissile", 0, LUA_TFUNCTION, func_set_readonly, func_get_spawnmissile},
@@ -337,9 +348,12 @@ static const lua_table_model_t lua_mobj[] =
 // all player values
 static const lua_table_model_t lua_player[] =
 {
-	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_mobj},
+	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
+	{"refire", offsetof(player_t, refire), LUA_TNUMBER},
 	// functions
-	{"setWeapon", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_setplayerweapon},
+	{"setWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},
+	{"WeaponRefire", 0, LUA_TFUNCTION, func_set_readonly, func_playerrefire},
+	{"WeaponFlash", 0, LUA_TFUNCTION, func_set_readonly, func_playerwflash},
 };
 
 // all sector values
@@ -516,6 +530,10 @@ static int state_add(lua_State *L)
 	//
 	// done
 finish:
+	// check previous frame for special S_NULL
+	if(numstates > state_state && states[numstates-1].nextstate == S_NULL)
+		states[numstates-1].nextstate = STATE_NULL_NEXT;
+
 	// set next frame
 	st.nextstate = numstates + 1;
 	// add new state
@@ -531,7 +549,7 @@ finish:
 	memcpy(states + numstates, &st, sizeof(state_t));
 	numstates++;
 
-	return 0;
+	return 1; // state was added
 }
 
 void L_StateCall(state_t *st, mobj_t *mo)
@@ -599,14 +617,15 @@ static int func_set_states(lua_State *L, void *dst, void *o)
 	state_state = numstates;
 	len = lua_rawlen(L, -1);
 
-	for(i = 1; i <= len && !finished; i++)
+	for(i = 1; i <= len; i++)
 	{
 		lua_pushinteger(L, i);
 		lua_gettable(L, -2);
 		switch(lua_type(L, -1))
 		{
 			case LUA_TTABLE:
-				state_add(L);
+				if(state_add(L))
+					finished = 0;
 			break;
 			case LUA_TSTRING:
 				jump = lua_tostring(L, -1);
@@ -659,6 +678,12 @@ static int func_set_states(lua_State *L, void *dst, void *o)
 					states[numstates-1].nextstate = state_state;
 					break;
 				}
+				if(!strcmp(jump, "stop") && state_state != numstates)
+				{
+					finished = 1;
+					states[numstates-1].nextstate = S_NULL;
+					break;
+				}
 				luaL_error(L, "invalid type for state");
 			break;
 			default:
@@ -672,7 +697,7 @@ static int func_set_states(lua_State *L, void *dst, void *o)
 		return 0;
 
 	if(!finished)
-		states[numstates-1].nextstate = 0;
+		states[numstates-1].nextstate = S_NULL;
 
 	*(int*)dst = state_state;
 
@@ -686,17 +711,6 @@ static int func_set_states(lua_State *L, void *dst, void *o)
 static int func_set_readonly(lua_State *L, void *dst, void *o)
 {
 	return luaL_error(L, "tried to modify read-only value");
-}
-
-// health has to be synchronized with player
-static int func_set_mobjhealth(lua_State *L, void *dst, void *o)
-{
-	mobj_t *mo = o;
-
-	*(int*)dst = lua_tointeger(L, -1);
-	if(mo->player)
-		mo->player->health = mo->health;
-	return 0;
 }
 
 // special decimal handling for angles
@@ -752,7 +766,8 @@ static int func_set_mobj(lua_State *L, void *dst, void *o)
 	return 0;
 }
 
-static int func_get_mobj(lua_State *L, void *dst, void *o)
+// get special type (mobj, player, sector ...)
+static int func_get_ptr(lua_State *L, void *dst, void *o)
 {
 	if(*(void**)dst)
 		lua_pushlightuserdata(L, *(void**)dst);
@@ -813,6 +828,14 @@ static int func_get_checkflagmobj(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_flagCheckMobj, 1);
+	return 1;
+}
+
+// return looking function
+static int func_get_facemobj(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_faceFromMobj, 1);
 	return 1;
 }
 
@@ -936,6 +959,22 @@ static int func_setplayerweapon(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_setPlayerWeapon, 1);
+	return 1;
+}
+
+// return player refire function
+static int func_playerrefire(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_playerRefireWeapon, 1);
+	return 1;
+}
+
+// return weapon flash function
+static int func_playerwflash(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_playerFlashWeapon, 1);
 	return 1;
 }
 
@@ -1631,6 +1670,46 @@ static int LUA_flagCheckMobj(lua_State *L)
 	return 1;
 }
 
+static int LUA_faceFromMobj(lua_State *L)
+{
+	mobj_t *mo, *dest;
+	fixed_t x, y, z, slope;
+	int top = lua_gettop(L);
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(top > 1)
+	{
+		luaL_checktype(L, 1, LUA_TNUMBER);
+		luaL_checktype(L, 2, LUA_TNUMBER);
+
+		x = (fixed_t)(lua_tonumber(L, 1) * (lua_Number)FRACUNIT);
+		y = (fixed_t)(lua_tonumber(L, 2) * (lua_Number)FRACUNIT);
+
+		mo->angle = R_PointToAngle2(mo->x, mo->y, x, y);
+
+		if(top > 2)
+		{
+			z = (fixed_t)(lua_tonumber(L, 3) * (lua_Number)FRACUNIT);
+
+			slope = P_AproxDistance(x - mo->x, y - mo->y);
+			slope = P_AproxDistance(slope, z - mo->z) / FRACUNIT;
+
+			if(slope < 1)
+				slope = 1;
+
+			mo->pitch = (z - mo->z) / slope;
+		}
+	} else
+	{
+		dest = LUA_GetMobjParam(L, 1, true);
+		mo->angle = R_PointToAngle2(mo->x, mo->y, dest->x, dest->y);
+		mo->pitch = P_AimLineAttack(mo, mo->angle, MISSILERANGE, dest);
+	}
+
+	return 0;
+}
+
 static int LUA_teleportMobj(lua_State *L)
 {
 	mobj_t *mo;
@@ -1761,7 +1840,6 @@ static int LUA_spawnMissile(lua_State *L)
 
 static int LUA_attackAim(lua_State *L)
 {
-	// this will need better math
 	mobj_t *source;
 	mobj_t *dest;
 	angle_t angle;
@@ -1782,7 +1860,7 @@ static int LUA_attackAim(lua_State *L)
 	if(top > 1)
 	{
 		// optional target
-		dest = LUA_GetMobjParam(L, 2, false);
+		dest = LUA_GetMobjParam(L, 2, true);
 	} else
 		// use mobj target
 		dest = source->target;
@@ -1809,44 +1887,41 @@ static int LUA_attackAim(lua_State *L)
 				}
 			}
 		}
+		angle = source->angle;
 	} else
 	{
 		// other aim
 
 		if(!dest)
 		{
-			// nothing to aim at
-			lua_pushinteger(L, source->angle / (lua_Number)(1 << ANGLETOFINESHIFT));
-			lua_pushinteger(L, source->pitch / (lua_Number)FRACUNIT);
-			return 2;
-		}
-
-		angle = R_PointToAngle2(source->x, source->y, dest->x, dest->y);
+			// find first target
+			angle = source->angle;
+			slope = P_AimLineAttack(source, angle, MISSILERANGE, NULL);
+			if(!linetarget)
+				slope = 0;
+			hitscan = 0;
+		} else
+			angle = R_PointToAngle2(source->x, source->y, dest->x, dest->y);
 
 		if(hitscan)
 		{
-			slope = P_AimLineAttack(source, angle, MISSILERANGE, NULL);
+			slope = P_AimLineAttack(source, angle, MISSILERANGE, dest);
 			if(!linetarget)
 				hitscan = false;
 		}
 
-		if(!hitscan)
+		if(!hitscan && dest)
 		{
-			if(dest->z < source->z)
-				z = dest->z + dest->info->height / 4;
-			else
-				z = dest->z;
-
 			slope = P_AproxDistance(dest->x - source->x, dest->y - source->y);
-			slope = P_AproxDistance(slope, z - source->z) / FRACUNIT;
+			slope /= FRACUNIT;
 
 			if(slope < 1)
 				slope = 1;
 
-			slope = (z - source->z) / slope;
+			slope = (dest->z - source->z) / slope;
 		}
 		// invisiblity random
-		if(!source->player && dest->flags & MF_SHADOW)
+		if(!source->player && dest && dest->flags & MF_SHADOW)
 			angle += (P_Random()-P_Random())<<21;
 	}
 
@@ -1971,6 +2046,7 @@ static int LUA_lineAttack(lua_State *L)
 	fixed_t x = 0;
 	fixed_t z = 0;
 	fixed_t s = 0;
+	fixed_t r = MISSILERANGE;
 	int top = lua_gettop(L);
 
 	// type, must be present
@@ -2004,17 +2080,24 @@ static int LUA_lineAttack(lua_State *L)
 	}
 
 	// x offset
-	if(top > 4)
+	if(top > 5)
 	{
-		luaL_checktype(L, 5, LUA_TNUMBER);
-		x = (fixed_t)(lua_tonumber(L, 5) * (lua_Number)FRACUNIT);
+		luaL_checktype(L, 6, LUA_TNUMBER);
+		x = (fixed_t)(lua_tonumber(L, 6) * (lua_Number)FRACUNIT);
+	}
+
+	// range
+	if(top > 6)
+	{
+		luaL_checktype(L, 7, LUA_TNUMBER);
+		r = (fixed_t)(lua_tonumber(L, 7) * (lua_Number)FRACUNIT);
 	}
 
 	// spawn
 	mo = lua_touserdata(L, lua_upvalueindex(1));
 
 	la_pufftype = type;
-	P_LineAttack(mo, a, MISSILERANGE, s, damage, z, x);
+	P_LineAttack(mo, a, r, s, damage, z, x);
 
 	if(la_puffmobj)
 		lua_pushlightuserdata(L, la_puffmobj);
@@ -2159,6 +2242,46 @@ static int LUA_setPlayerWeapon(lua_State *L)
 	pl = lua_touserdata(L, lua_upvalueindex(1));
 	pl->pendingweapon = LUA_GetMobjTypeParam(L, 1);
 	P_BringUpWeapon(pl);
+
+	return 0;
+}
+
+static int LUA_playerRefireWeapon(lua_State *L)
+{
+	player_t *player;
+	int offset = 0;
+
+	player = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(lua_gettop(L) && lua_type(L, 1) != LUA_TNIL)
+	{
+		luaL_checktype(L, 1, LUA_TNUMBER);
+		offset = lua_tonumber(L, 1);
+		if(offset < 0)
+			offset = 0;
+	}
+
+	P_WeaponRefire(player, offset);
+
+	return 0;
+}
+
+static int LUA_playerFlashWeapon(lua_State *L)
+{
+	player_t *player;
+	int offset = 0;
+
+	player = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(lua_gettop(L) && lua_type(L, 1) != LUA_TNIL)
+	{
+		luaL_checktype(L, 1, LUA_TNUMBER);
+		offset = lua_tonumber(L, 1);
+		if(offset < 0)
+			offset = 0;
+	}
+
+	P_WeaponFlash(player, offset);
 
 	return 0;
 }
@@ -2697,28 +2820,22 @@ boolean P_SetMobjAnimation(mobj_t *mo, int anim, int skip)
 	while(1)
 	{
 		if(state == S_NULL)
-		{
-			mo->state = NULL;
-#ifdef SERVER
-			P_RemoveMobj(mo, false);
-#else
-			P_RemoveMobj(mo);
-#endif
-			return false;
-		}
+			// nope
+			return true;
 
 		if(!skip)
 			return P_SetMobjState(mo, state);
 		skip--;
 
-		state = states[state].nextstate;
+		if(states[state].nextstate == STATE_NULL_NEXT)
+			state++;
+		else
+			state = states[state].nextstate;
 		if(state & STATE_ANIMATION)
-		{
-			state = L_StateFromAlias(mo->info, state);
-			return P_SetMobjState(mo, state);
-		}
+			// nope
+			return true;
 	}
-	return true;
+	return P_SetMobjState(mo, state);
 }
 
 boolean PIT_LuaCheckThing(mobj_t *thing)

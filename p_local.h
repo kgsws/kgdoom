@@ -269,7 +269,10 @@ boolean P_CheckMeleeRange (mobj_t *actor, mobj_t *target, boolean zCheck);
 mobjtype_t la_pufftype;
 mobj_t *la_puffmobj;
 
-void P_BringUpWeapon (player_t* player);
+// [kg] weapons
+void P_BringUpWeapon(player_t* player);
+void P_WeaponRefire(player_t *player, int offset);
+void P_WeaponFlash(player_t *player, int offset);
 
 // [kg] all provided state functions
 void A_SoundSee(mobj_t* actor);
@@ -288,6 +291,8 @@ void A_VileChase(mobj_t *actor);
 void A_WeaponRaise(mobj_t *actor);
 void A_WeaponReady(mobj_t *actor);
 void A_WeaponLower(mobj_t *actor);
+void A_WeaponFlash(mobj_t *mo);
+void A_WeaponRefire(mobj_t *mo);
 
 void A_NoiseAlert(mobj_t *actor);
 

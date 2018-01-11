@@ -136,7 +136,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 	sound = special->info->activesound;
 	pl = toucher->player;
 
-	if(!pl || pl->health <= 0)
+	if(!pl || pl->mo->health <= 0)
 		// only alive players can do this
 		return;
 
@@ -192,10 +192,9 @@ int A_PickHealthBonus(player_t *pl, mobj_t *mo)
 	if(!netgame)
 #endif
 	{
-		pl->health++;
-		if(pl->health > 200)
-			pl->health = 200;
-		pl->mo->health = pl->health;
+		pl->mo->health++;
+		if(pl->mo->health > 200)
+			pl->mo->health = 200;
 	}
 	return SPECIAL_ITEM;
 }
@@ -206,11 +205,11 @@ int A_PickArmorBonus(player_t *pl, mobj_t *mo)
 	if(!netgame)
 #endif
 	{
-		pl->armorpoints++;
-		if(pl->armorpoints > 200)
-			pl->armorpoints = 200;
-		if(!pl->armortype)
-			pl->armortype = 1;
+		pl->mo->armorpoints++;
+		if(pl->mo->armorpoints > 200)
+			pl->mo->armorpoints = 200;
+		if(!pl->mo->armortype)
+			pl->mo->armortype = 1;
 	}
 	return SPECIAL_ITEM;
 }
@@ -235,29 +234,27 @@ int A_PickHealth10(player_t *pl, mobj_t *mo)
 	if(!netgame)
 #endif
 	{
-		if(pl->health >= MAXHEALTH)
+		if(pl->mo->health >= MAXHEALTH)
 			return SPECIAL_DONTPICKUP;
-		pl->health += 10;
-		if(pl->health > MAXHEALTH)
-			pl->health = MAXHEALTH;
-		pl->mo->health = pl->health;
+		pl->mo->health += 10;
+		if(pl->mo->health > MAXHEALTH)
+			pl->mo->health = MAXHEALTH;
 	}
 	return SPECIAL_ITEM;
 }
 
 int A_PickHealth25(player_t *pl, mobj_t *mo)
 {
-	int oldhp = pl->health;
+	int oldhp = pl->mo->health;
 #ifndef SERVER
 	if(!netgame)
 #endif
 	{
-		if(pl->health >= MAXHEALTH)
+		if(pl->mo->health >= MAXHEALTH)
 			return SPECIAL_DONTPICKUP;
-		pl->health += 25;
-		if(pl->health > MAXHEALTH)
-			pl->health = MAXHEALTH;
-		pl->mo->health = pl->health;
+		pl->mo->health += 25;
+		if(pl->mo->health > MAXHEALTH)
+			pl->mo->health = MAXHEALTH;
 	}
 	if(oldhp < 25)
 		pl->message = GOTMEDINEED;
@@ -272,10 +269,9 @@ int A_PickSoulSphere(player_t *pl, mobj_t *mo)
 	if(!netgame)
 #endif
 	{
-		pl->health += 100;
-		if(pl->health > 200)
-			pl->health = 200;
-		pl->mo->health = pl->health;
+		pl->mo->health += 100;
+		if(pl->mo->health > 200)
+			pl->mo->health = 200;
 	}
 	return SPECIAL_POWER;
 }
@@ -301,8 +297,7 @@ int A_PickMegaSphere(player_t *pl, mobj_t *mo)
 	if(!netgame)
 #endif
 	{
-		pl->health = 200;
-		pl->mo->health = pl->health;
+		pl->mo->health = 200;
 		P_GiveArmor(pl,2);
 	}
 	return SPECIAL_POWER;

@@ -43,11 +43,11 @@ P_GiveArmor
     int		hits;
 	
     hits = armortype*100;
-    if (player->armorpoints >= hits)
+    if (player->mo->armorpoints >= hits)
 	return false;	// don't pick up
 		
-    player->armortype = armortype;
-    player->armorpoints = hits;
+    player->mo->armortype = armortype;
+    player->mo->armorpoints = hits;
 	
     return true;
 }
@@ -87,11 +87,8 @@ P_GivePower
     
     if (power == pw_strength)
     {
-	if(player->health < 100)
-	{
-		player->health = 100;
+	if(player->mo->health < 100)
 		player->mo->health = 100;
-	}
 	player->powers[power] = 1;
 #ifndef SERVER
 //	if (player->readyweapon != wp_fist)
@@ -267,6 +264,26 @@ P_DamageMobj
 
     if(damage == INSTANTKILL)
 	damage = target->health + (target->info->spawnhealth - 1);
+    else
+    {
+	// [kg] armor for every mobj
+	if(target->armortype)
+	{
+	    if (target->armortype == 1)
+		saved = damage/3;
+	    else
+		saved = damage/2;
+	    
+	    if (target->armorpoints <= saved)
+	    {
+		// armor is used up
+		saved = target->armorpoints;
+		target->armortype = 0;
+	    }
+	    target->armorpoints -= saved;
+	    damage -= saved;
+	}
+    }
 
     // player specific
     if (player)
@@ -288,27 +305,6 @@ P_DamageMobj
 	    return;
 	}
 	
-	if (player->armortype)
-	{
-	    if (player->armortype == 1)
-		saved = damage/3;
-	    else
-		saved = damage/2;
-	    
-	    if (player->armorpoints <= saved)
-	    {
-		// armor is used up
-		saved = player->armorpoints;
-		player->armortype = 0;
-	    }
-	    player->armorpoints -= saved;
-	    damage -= saved;
-	}
-	player->health = player->mo->health - damage; 	// mirror mobj health here for Dave
-	if (player->health < 0)
-	    player->health = 0;
-	
-	player->attacker = source;
 	player->damagecount += damage;	// add damage after armor / invuln
 
 	if (player->damagecount > 100)
@@ -332,7 +328,6 @@ P_DamageMobj
 	if(player && player->cheats & CF_INFHEALTH)
 	{
 		target->health = 1;
-		player->health = 1;
 	} else
 	{
 		P_KillMobj (source, target);

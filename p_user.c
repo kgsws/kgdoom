@@ -221,7 +221,7 @@ void P_DeathThink (player_t* player)
 #ifndef SERVER
     }
 #endif
-	
+/*
     if (player->attacker && player->attacker != player->mo)
     {
 	angle = R_PointToAngle2 (player->mo->x,
@@ -245,9 +245,9 @@ void P_DeathThink (player_t* player)
 	else
 	    player->mo->angle -= ANG5;
     }
-    else if (player->damagecount)
+    else*/ if (player->damagecount)
 	player->damagecount--;
-	
+
 
     if (player->cmd.buttons & BT_USE)
 	player->playerstate = PST_REBORN;
