@@ -773,9 +773,14 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     }
 #endif
 
-    // call Lua, if spawned
+    // [kg] call Lua, if spawned
     if(oldst == PST_REBORN)
 	L_SpawnPlayer(p);
+    // [kg] give original inventory
+    {
+	p->mo->inventory = p->inventory;
+	p->inventory = NULL;
+    }
 
     // setup gun psprite
     P_SetupPsprites (p);

@@ -23,24 +23,7 @@ void    P_SpawnSpecials (void);
 void    P_UpdateSpecials (void);
 
 // when needed
-boolean
-P_UseSpecialLine
-( mobj_t*	thing,
-  line_t*	line,
-  int		side );
-
-void
-P_ShootSpecialLine
-( mobj_t*	thing,
-  line_t*	line );
-
-void
-P_CrossSpecialLine
-( int		linenum,
-  int		side,
-  mobj_t*	thing );
-
-void    P_PlayerInSpecialSector (player_t* player);
+boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act);
 
 int
 twoSided
@@ -211,7 +194,7 @@ typedef struct
     int		btexture;
     int		btimer;
     mobj_t*	soundorg;
-
+    int		sound;
 } button_t;
 
 
@@ -231,7 +214,9 @@ extern button_t	buttonlist[MAXBUTTONS];
 void
 P_ChangeSwitchTexture
 ( line_t*	line,
-  int		useAgain );
+  int 		sound0,
+  int 		sound1,
+  int btntime );
 
 void P_InitSwitchList(void);
 

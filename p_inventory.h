@@ -16,6 +16,7 @@ typedef struct inventory_s
 
 // free memory
 void P_RemoveInventory(mobj_t *mo);
+void P_DestroyInventory(inventory_t *inv);
 // give or take inventory
 int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count);
 // set custom maximum

@@ -44,6 +44,8 @@ fixed_t		tmdropoffz;
 // keep track of the line that lowers the ceiling,
 // so missiles don't explode against sky hack walls
 line_t*		ceilingline;
+// [kg] for bump special
+line_t*		floorline;
 
 // keep track of special lines as they are hit,
 // but don't process them until the move is proven valid
@@ -123,6 +125,7 @@ P_TeleportMove
 
     newsubsec = R_PointInSubsector (x,y);
     ceilingline = NULL;
+    floorline = NULL;
     
     // The base floor/ceiling is from the subsector
     // that contains the point.
@@ -164,7 +167,6 @@ P_TeleportMove
 // MOVEMENT ITERATOR FUNCTIONS
 //
 
-
 //
 // PIT_CheckLine
 // Adjusts tmfloorz and tmceilingz as lines are contacted
@@ -192,15 +194,15 @@ boolean PIT_CheckLine (line_t* ld)
     // could be crossed in either order.
     
     if (!ld->backsector)
-	return false;		// one sided line
-		
+	goto nocross;		// one sided line
+
     if (!(tmthing->flags & MF_MISSILE) )
     {
 	if ( ld->flags & ML_BLOCKING )
-	    return false;	// explicitly blocking everything
+	    goto nocross;	// explicitly blocking everything
 
 	if ( !tmthing->player && ld->flags & ML_BLOCKMONSTERS )
-	    return false;	// block monsters only
+	    goto nocross;	// block monsters only
     }
 
     // set openrange, opentop, openbottom
@@ -214,19 +216,27 @@ boolean PIT_CheckLine (line_t* ld)
     }
 
     if (openbottom > tmfloorz)
+    {
 	tmfloorz = openbottom;	
+	floorline = ld;
+    }
 
     if (lowfloor < tmdropoffz)
 	tmdropoffz = lowfloor;
-		
-    // if contacted a special line, add it to the list
-    if (ld->special && numspechit < MAXSPECIALCROSS)
+
+    // if contacted a special line, add it to the list; [kg] fix the overflow
+    if(ld->special && numspechit < MAXSPECIALCROSS)
     {
 	spechit[numspechit] = ld;
 	numspechit++;
     }
 
     return true;
+
+nocross:
+    floorline = ld;
+
+    return false;
 }
 
 //
@@ -467,26 +477,26 @@ P_TryMove
 
     floatok = false;
     if (!P_CheckPosition (thing, x, y))
-	return false;		// solid wall or thing
+	goto nocross;		// solid wall or thing
     
     if ( !(thing->flags & MF_NOCLIP) )
     {
 	if (tmceilingz - tmfloorz < thing->height)
-	    return false;	// doesn't fit
+	    goto nocross;	// doesn't fit
 
 	floatok = true;
 	
 	if ( !(thing->flags&MF_TELEPORT) 
 	     &&tmceilingz - thing->z < thing->height)
-	    return false;	// mobj must lower itself to fit
+	    goto nocross;	// mobj must lower itself to fit
 
 	if ( !(thing->flags&MF_TELEPORT)
 	     && tmfloorz - thing->z > 24*FRACUNIT )
-	    return false;	// too big a step up
+	    goto nocross;	// too big a step up
 
 	if ( !(thing->flags&(MF_DROPOFF|MF_FLOAT))
 	     && tmfloorz - tmdropoffz > 24*FRACUNIT )
-	    return false;	// don't stand over a dropoff
+	    goto nocross;	// don't stand over a dropoff
     }
     
     // the move is ok,
@@ -517,12 +527,24 @@ P_TryMove
 	    if (side != oldside)
 	    {
 		if (ld->special)
-		    P_CrossSpecialLine (ld-lines, oldside, thing);
+		    P_ExtraLineSpecial(thing, ld, oldside, EXTRA_CROSS);
 	    }
 	}
     }
 
     return true;
+
+nocross:
+    // [kg] bump special for player
+    if(tmthing->player)
+    {
+	if(floorline && floorline->special)
+		P_ExtraLineSpecial(tmthing, floorline, P_PointOnLineSide(tmthing->x, tmthing->y, floorline), EXTRA_BUMP);
+	if(ceilingline && ceilingline != floorline && ceilingline->special)
+		P_ExtraLineSpecial(tmthing, ceilingline, P_PointOnLineSide(tmthing->x, tmthing->y, ceilingline), EXTRA_BUMP);
+    }
+
+    return false;
 }
 
 
@@ -946,7 +968,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	li = in->d.line;
 	
 	if (li->special)
-	    P_ShootSpecialLine (shootthing, li);
+	    P_ExtraLineSpecial(shootthing, li, P_PointOnLineSide(shootthing->x, shootthing->y, li), EXTRA_HITSCAN);
 
 	if ( !(li->flags & ML_TWOSIDED) )
 	    goto hitline;
@@ -1186,8 +1208,6 @@ mobj_t*		usething;
 
 boolean	PTR_UseTraverse (intercept_t* in)
 {
-    int		side;
-	
     if (!in->d.line->special)
     {
 	P_LineOpening (in->d.line);
@@ -1201,16 +1221,11 @@ boolean	PTR_UseTraverse (intercept_t* in)
 	// not a special line, but keep checking
 	return true ;		
     }
-	
-    side = 0;
-    if (P_PointOnLineSide (usething->x, usething->y, in->d.line) == 1)
-	side = 1;
-    
-    //	return false;		// don't use back side
+
 #ifndef SERVER
     if(!netgame)
 #endif
-    P_UseSpecialLine (usething, in->d.line, side);
+    P_ExtraLineSpecial(usething, in->d.line, P_PointOnLineSide(usething->x, usething->y, in->d.line), EXTRA_USE);
 
     // can't use for than one special line in a row
     return false;

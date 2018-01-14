@@ -37,6 +37,7 @@ typedef enum
 	TT_MOBJINFO, // degen
 	TT_PLAYER, // degen
 	TT_SECTOR, // degen?
+	TT_LINE, // degen
 } luathinker_t;
 
 

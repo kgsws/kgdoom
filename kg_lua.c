@@ -81,6 +81,9 @@ typedef struct
 static lua_State *luaS_game;
 static boolean lua_setup;
 
+static int linespec_table[256];
+int linedef_side;
+
 static int block_lua_func;
 static int block_lua_arg;
 static int block_lua_x0;
@@ -91,6 +94,8 @@ boolean PIT_LuaCheckThing(mobj_t* thing);
 
 //
 // tables
+
+int LUA_GetMobjTypeParam(lua_State *L, int idx);
 
 static int LUA_ThinkerIndex(lua_State *L);
 
@@ -139,6 +144,8 @@ static int LUA_highCeilingFromSector(lua_State *L);
 static int LUA_shortTexFromSector(lua_State *L);
 static int LUA_genericPlaneFromSector(lua_State *L);
 
+static int LUA_doSwitchTextureLine(lua_State *L);
+
 static int LUA_animationFromMobj(lua_State *L);
 
 static int func_set_states(lua_State *L, void *dst, void *o);
@@ -146,6 +153,8 @@ static int func_set_fixedt(lua_State *L, void *dst, void *o);
 static int func_get_fixedt(lua_State *L, void *dst, void *o);
 static int func_set_short(lua_State *L, void *dst, void *o);
 static int func_get_short(lua_State *L, void *dst, void *o);
+static int func_set_byte(lua_State *L, void *dst, void *o);
+static int func_get_byte(lua_State *L, void *dst, void *o);
 
 static int func_set_lua_registry(lua_State *L, void *dst, void *o);
 static int func_get_lua_registry(lua_State *L, void *dst, void *o);
@@ -153,13 +162,13 @@ static int func_get_lua_registry(lua_State *L, void *dst, void *o);
 static int func_set_readonly(lua_State *L, void *dst, void *o);
 static int func_set_mobjangle(lua_State *L, void *dst, void *o);
 static int func_get_mobjangle(lua_State *L, void *dst, void *o);
+static int func_set_mobjtype(lua_State *L, void *dst, void *o);
 static int func_set_mobjpitch(lua_State *L, void *dst, void *o);
 static int func_set_radius(lua_State *L, void *dst, void *o);
 static int func_set_mobj(lua_State *L, void *dst, void *o);
 static int func_get_ptr(lua_State *L, void *dst, void *o);
 static int func_set_flags(lua_State *L, void *dst, void *o);
 static int func_get_sector(lua_State *L, void *dst, void *o);
-static int func_get_info(lua_State *L, void *dst, void *o);
 
 static int func_get_removemobj(lua_State *L, void *dst, void *o);
 static int func_get_checkflagmobj(lua_State *L, void *dst, void *o);
@@ -201,8 +210,17 @@ static int func_get_genericceilingsector(lua_State *L, void *dst, void *o);
 
 static int func_set_sectorheight(lua_State *L, void *dst, void *o);
 static int func_set_flattexture(lua_State *L, void *dst, void *o);
+
 static int func_get_lumpname(lua_State *L, void *dst, void *o);
 static int func_set_lumpname_optional(lua_State *L, void *dst, void *o);
+
+static int func_set_sideset(lua_State *L, void *dst, void *o);
+static int func_get_sideset(lua_State *L, void *dst, void *o);
+
+static int func_set_walltexture(lua_State *L, void *dst, void *o);
+static int func_get_walltexture(lua_State *L, void *dst, void *o);
+
+static int func_get_doswitchline(lua_State *L, void *dst, void *o);
 
 // all exported LUA functions; TODO: split into stages
 static const luafunc_t lua_functions[] =
@@ -328,10 +346,10 @@ static const lua_table_model_t lua_mobjtype[] =
 // all mobj values
 static const lua_table_model_t lua_mobj[] =
 {
+	{"angle", offsetof(mobj_t, angle), LUA_TNUMBER, func_set_mobjangle, func_get_mobjangle},
 	{"health", offsetof(mobj_t, health), LUA_TNUMBER},
 	{"armor", offsetof(mobj_t, armorpoints), LUA_TNUMBER},
-	{"armortype", offsetof(mobj_t, armortype), LUA_TNUMBER},
-	{"angle", offsetof(mobj_t, angle), LUA_TNUMBER, func_set_mobjangle, func_get_mobjangle},
+	{"armortype", offsetof(mobj_t, armortype), LUA_TLIGHTUSERDATA, func_set_mobjtype, func_get_ptr},
 	{"pitch", offsetof(mobj_t, pitch), LUA_TNUMBER, func_set_mobjpitch, func_get_fixedt},
 	{"floorz", offsetof(mobj_t, floorz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"ceilingz", offsetof(mobj_t, ceilingz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
@@ -350,15 +368,14 @@ static const lua_table_model_t lua_mobj[] =
 	{"reactiontime", offsetof(mobj_t, reactiontime), LUA_TNUMBER},
 	{"threshold", offsetof(mobj_t, threshold), LUA_TNUMBER},
 	{"tics", offsetof(mobj_t, tics), LUA_TNUMBER},
-	{"player", offsetof(mobj_t, player), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	// read only
 	{"x", offsetof(mobj_t, x), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
 	{"y", offsetof(mobj_t, y), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
 	{"z", offsetof(mobj_t, z), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
 	// special stuff
-	// TODO: player
+	{"player", offsetof(mobj_t, player), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	{"sector", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_sector},
-	{"info", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_info},
+	{"info", offsetof(mobj_t, info), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	// functions
 	{"Remove", 0, LUA_TFUNCTION, func_set_readonly, func_get_removemobj},
 	{"Flag", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkflagmobj},
@@ -405,7 +422,7 @@ static const lua_table_model_t lua_sector[] =
 	{"ceilingheight", offsetof(sector_t, ceilingheight), LUA_TNUMBER, func_set_sectorheight, func_get_fixedt},
 	{"floorpic", offsetof(sector_t, floorpic), LUA_TSTRING, func_set_flattexture, func_get_lumpname},
 	{"ceilingpic", offsetof(sector_t, ceilingpic), LUA_TSTRING, func_set_flattexture, func_get_lumpname},
-	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_short, func_get_short},
+	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
 	// functions
@@ -416,6 +433,35 @@ static const lua_table_model_t lua_sector[] =
 	{"GetShortestTexture", 0, LUA_TFUNCTION, func_set_readonly, func_get_shortexfloorsector},
 	{"GenericFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericfloorsector},
 	{"GenericCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericceilingsector},
+	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
+	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
+	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
+};
+
+// all line values
+static const lua_table_model_t lua_linedef[] =
+{
+	// soundorg?
+	{"midtexture", offsetof(side_t, midtexture), LUA_TSTRING, func_set_walltexture, func_get_walltexture},
+	{"toptexture", offsetof(side_t, toptexture), LUA_TSTRING, func_set_walltexture, func_get_walltexture},
+	{"bottexture", offsetof(side_t, bottomtexture), LUA_TSTRING, func_set_walltexture, func_get_walltexture},
+	{"special", offsetof(line_t, special), LUA_TNUMBER, func_set_byte, func_get_byte},
+	{"arg0", offsetof(line_t, arg)+0, LUA_TNUMBER, func_set_byte, func_get_byte},
+	{"arg1", offsetof(line_t, arg)+1, LUA_TNUMBER, func_set_byte, func_get_byte},
+	{"arg2", offsetof(line_t, arg)+2, LUA_TNUMBER, func_set_byte, func_get_byte},
+	{"arg3", offsetof(line_t, arg)+3, LUA_TNUMBER, func_set_byte, func_get_byte},
+	{"arg4", offsetof(line_t, arg)+4, LUA_TNUMBER, func_set_byte, func_get_byte},
+	{"tag", offsetof(line_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
+	// sectors
+	{"frontsector", offsetof(line_t, frontsector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	{"backsector", offsetof(line_t, backsector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	// functions
+	{"DoButton", 0, LUA_TFUNCTION, func_set_readonly, func_get_doswitchline},
+	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
+	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
+	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
+	// extra
+	{"side", 0, LUA_TBOOLEAN, func_set_sideset, func_get_sideset},
 };
 
 // all pickup options
@@ -429,6 +475,15 @@ lua_intvalue_t lua_pickups[] =
 	{"power", SPECIAL_POWER},
 	{"superPower", SPECIAL_SUPERPOWER},
 	{"remove", SPECIAL_REMOVE},
+};
+
+// all line special options
+lua_intvalue_t lua_linespec[] =
+{
+	{"use", EXTRA_USE},
+	{"cross", EXTRA_CROSS},
+	{"hit", EXTRA_HITSCAN},
+	{"bump", EXTRA_BUMP},
 };
 
 //
@@ -662,6 +717,18 @@ static int func_get_short(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+static int func_set_byte(lua_State *L, void *dst, void *o)
+{
+	*(uint8_t*)dst = lua_tointeger(L, -1);
+	return 0;
+}
+
+static int func_get_byte(lua_State *L, void *dst, void *o)
+{
+	lua_pushinteger(L, *(uint8_t*)dst);
+	return 1;
+}
+
 static int func_set_lua_registry(lua_State *L, void *dst, void *o)
 {
 	int ref = *(int*)dst;
@@ -800,6 +867,24 @@ static int func_get_mobjangle(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// assigning mobj info
+static int func_set_mobjtype(lua_State *L, void *dst, void *o)
+{
+	mobjinfo_t *type;
+
+	if(lua_type(L, -1) == LUA_TNIL)
+		type = NULL;
+	else
+	{
+		LUA_GetMobjTypeParam(L, -1);
+		type = lua_touserdata(L, -1);
+	}
+
+	*(void**)dst = type;
+
+	return 0;
+}
+
 // pitch values have to be in certain range and in fixed_t format
 static int func_set_mobjpitch(lua_State *L, void *dst, void *o)
 {
@@ -878,14 +963,6 @@ static int func_get_sector(lua_State *L, void *dst, void *o)
 		lua_pushlightuserdata(L, mo->subsector->sector);
 	else
 		lua_pushnil(L);
-	return 1;
-}
-
-// return mobj info from mobj
-static int func_get_info(lua_State *L, void *dst, void *o)
-{
-	mobj_t *mo = o;
-	lua_pushlightuserdata(L, mo->info);
 	return 1;
 }
 
@@ -1185,6 +1262,85 @@ static int func_set_flattexture(lua_State *L, void *dst, void *o)
 	*(int*)dst = lump;
 
 	return 0;
+}
+
+// set working side
+static int func_set_sideset(lua_State *L, void *dst, void *o)
+{
+	luaL_checktype(L, -1, LUA_TBOOLEAN);
+	linedef_side = !lua_toboolean(L, -1);
+	return 0;
+}
+
+// set working side
+static int func_get_sideset(lua_State *L, void *dst, void *o)
+{
+	lua_pushboolean(L, !linedef_side);
+	return 1;
+}
+
+// change wall texture
+static int func_set_walltexture(lua_State *L, void *dst, void *o)
+{
+	const char *tex;
+	char temp[8];
+	short *texture;
+	side_t *side;
+	line_t *line = o;
+	int sidenum = line->sidenum[linedef_side];
+
+	if(sidenum < 0)
+		return 0;
+
+	side = &sides[sidenum];
+
+	// move offset into sidedef
+	texture = (short*)((uint8_t*)side + (dst - o));
+
+	tex = lua_tostring(L, -1);
+	strncpy(temp, tex, sizeof(temp));
+	*texture = R_TextureNumForName(temp);
+
+	return 0;
+}
+
+// get wall texture
+static int func_get_walltexture(lua_State *L, void *dst, void *o)
+{
+	short *texture;
+	side_t *side;
+	line_t *line = o;
+	int sidenum = line->sidenum[linedef_side];
+
+	if(sidenum < 0)
+	{
+		lua_pushnil(L);
+		return 1;
+	}
+
+	side = &sides[sidenum];
+
+	// move offset into sidedef
+	texture = (short*)((uint8_t*)side + (dst - o));
+
+	if(*texture)
+	{
+		char tex[9];
+		memcpy(tex, textures[*texture]->name, 8);
+		tex[8] = 0;
+		lua_pushstring(L, tex);
+	} else
+		lua_pushstring(L, "-");
+
+	return 1;
+}
+
+// return switch function
+static int func_get_doswitchline(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_doSwitchTextureLine, 1);
+	return 1;
 }
 
 static int func_set_lumpname_optional(lua_State *L, void *dst, void *o)
@@ -1736,6 +1892,9 @@ static int LUA_ThinkerIndex(lua_State *L)
 		break;
 		case TT_SECTOR:
 			field = LUA_FieldByName(idx, lua_sector, sizeof(lua_sector) / sizeof(lua_table_model_t));
+		break;
+		case TT_LINE:
+			field = LUA_FieldByName(idx, lua_linedef, sizeof(lua_linedef) / sizeof(lua_table_model_t));
 		break;
 		default:
 			return luaL_error(L, "unknown thinker type");
@@ -2351,6 +2510,7 @@ static int LUA_soundFromMobj(lua_State *L)
 	int lump;
 	int chan, idx;
 	mobj_t *source;
+	line_t *line;
 	int top = lua_gettop(L);
 
 	// at least one sound
@@ -2376,6 +2536,15 @@ static int LUA_soundFromMobj(lua_State *L)
 	}
 
 	source = lua_touserdata(L, lua_upvalueindex(1));
+	if(source->thinker.lua_type == TT_LINE)
+	{
+		// sound from line
+		line = (line_t*)source;
+		source = (mobj_t*)(linedef_side ? line->backsector : line->frontsector);
+		if(!source)
+			return 0;
+	}
+
 	chan = lua_tointeger(L, lua_upvalueindex(2));
 
 	S_StartSound(source, lump, chan);
@@ -2516,10 +2685,19 @@ static int LUA_setPlayerMessage(lua_State *L)
 static int LUA_setPlayerWeapon(lua_State *L)
 {
 	player_t *pl;
+	boolean forced = false;
 
 	pl = lua_touserdata(L, lua_upvalueindex(1));
 	pl->pendingweapon = LUA_GetMobjTypeParam(L, 1);
-	P_BringUpWeapon(pl);
+
+	if(lua_gettop(L) > 1)
+	{
+		luaL_checktype(L, 2, LUA_TBOOLEAN);
+		forced = lua_toboolean(L, 2);
+	}
+
+	if(forced)
+		P_BringUpWeapon(pl);
 
 	return 0;
 }
@@ -2638,6 +2816,67 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 		gen.startz = gen.sector->ceilingheight;
 		P_GenericSectorCeiling(&gen);
 	}
+
+	return 0;
+}
+
+static int LUA_doSwitchTextureLine(lua_State *L)
+{
+	line_t *line;
+	int sound0 = 0;
+	int sound1 = 0;
+	int btntime = BUTTONTIME;
+	int top = lua_gettop(L);
+
+	// optional press sound
+	if(top > 0)
+	{
+		const char *tex;
+
+		luaL_checktype(L, 1, LUA_TSTRING);
+		tex = lua_tostring(L, 1);
+
+		if(tex[0] == '-' && tex[1] == 0)
+		{
+			// support for 'no sound'
+		} else
+		{
+			char temp[8];
+			strncpy(temp, tex, sizeof(temp));
+			sound0 = W_GetNumForName(temp);
+		}
+	}
+
+	// optional release sound
+	if(top > 1)
+	{
+		const char *tex;
+
+		luaL_checktype(L, 2, LUA_TSTRING);
+		tex = lua_tostring(L, 2);
+
+		if(tex[0] == '-' && tex[1] == 0)
+		{
+			// support for 'no sound'
+		} else
+		{
+			char temp[8];
+			strncpy(temp, tex, sizeof(temp));
+			sound1 = W_GetNumForName(temp);
+		}
+	}
+
+	// optional timer
+	if(top > 2)
+	{
+		luaL_checktype(L, 3, LUA_TNUMBER);
+		btntime = lua_tonumber(L, 3);
+		if(btntime <= 0)
+			btntime = BUTTONTIME;
+	}
+
+	line = lua_touserdata(L, lua_upvalueindex(1));
+	P_ChangeSwitchTexture(line, sound0, sound1, btntime);
 
 	return 0;
 }
@@ -2872,8 +3111,8 @@ static int LUA_SinIndex(lua_State *L)
 {
 	angle_t ang;
 
-	luaL_checktype(L, -1, LUA_TNUMBER);
-	ang = (int)lua_tonumber(L, -1) & FINEMASK;
+	luaL_checktype(L, 2, LUA_TNUMBER);
+	ang = (int)lua_tonumber(L, 2) & FINEMASK;
 	lua_pushnumber(L, finesine[ang] / (lua_Number)FRACUNIT);
 	return 1;
 }
@@ -2882,9 +3121,38 @@ static int LUA_CosIndex(lua_State *L)
 {
 	angle_t ang;
 
-	luaL_checktype(L, -1, LUA_TNUMBER);
-	ang = (int)lua_tonumber(L, -1) & FINEMASK;
+	luaL_checktype(L, 2, LUA_TNUMBER);
+	ang = (int)lua_tonumber(L, 2) & FINEMASK;
 	lua_pushnumber(L, finecosine[ang] / (lua_Number)FRACUNIT);
+	return 1;
+}
+
+static int LUA_LineSpecIndex(lua_State *L)
+{
+	int spec;
+
+	luaL_checktype(L, 2, LUA_TNUMBER);
+	spec = lua_tointeger(L, 2);
+
+	if(spec < 0 || spec > 255)
+		return luaL_error(L, "invalid index");
+
+	if(lua_gettop(L) > 2)
+	{
+		// set func
+		luaL_checktype(L, 3, LUA_TFUNCTION);
+
+		if(linespec_table[spec] != LUA_REFNIL)
+			luaL_unref(L, LUA_REGISTRYINDEX, linespec_table[spec]);
+
+		linespec_table[spec] = luaL_ref(L, LUA_REGISTRYINDEX);
+
+		return 0;
+	}
+
+	// get func
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, linespec_table[spec]);
+
 	return 1;
 }
 
@@ -2985,6 +3253,24 @@ void L_ExportIntegers(lua_State *L, const char *tablename, lua_intvalue_t *table
 	lua_setglobal(L, tablename);
 }
 
+void L_ExportLineSpecTable(lua_State *L)
+{
+	// variable 'linefunc'
+	lua_createtable(L, 0, 0);
+	// metatable
+	lua_createtable(L, 0, 2);
+	// newindex
+	lua_pushcfunction(L, LUA_LineSpecIndex);
+	lua_setfield(L, -2, "__newindex");
+	// index
+	lua_pushcfunction(L, LUA_LineSpecIndex);
+	lua_setfield(L, -2, "__index");
+	// add metatable
+	lua_setmetatable(L, -2);
+	// finish
+	lua_setglobal(L, "linefunc");
+}
+
 void L_ExportFunctions(lua_State *L, int mask)
 {
 	int i;
@@ -3024,8 +3310,12 @@ void L_LoadScript(int lump)
 		// export Doom sin / cos tables
 		L_ExportSinTable(luaS_game);
 		L_ExportCosTable(luaS_game);
+		// export line special table
+		L_ExportLineSpecTable(luaS_game);
 		// export pickup returns
 		L_ExportIntegers(luaS_game, "pickup", lua_pickups, sizeof(lua_pickups) / sizeof(lua_intvalue_t));
+		// export line special activation type
+		L_ExportIntegers(luaS_game, "special", lua_linespec, sizeof(lua_linespec) / sizeof(lua_intvalue_t));
 	}
 	// setup script name
 	scriptdata = W_CacheLumpNum(lump);
@@ -3069,6 +3359,10 @@ void L_Init()
 	int i;
 
 	lua_setup = 1;
+
+	// clear line functions
+	for(i = 0; i < 256; i++)
+		linespec_table[i] = LUA_REFNIL;
 
 	// create sprite names
 	sprnames = malloc(INFO_SPRITE_ALLOC * sizeof(sprname_t));
@@ -3212,6 +3506,100 @@ boolean P_SetMobjAnimation(mobj_t *mo, int anim, int skip)
 			return true;
 	}
 	return P_SetMobjState(mo, state);
+}
+
+boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)
+{
+	int spec = line->special;
+	boolean ret = false;
+	boolean reuse = false;
+
+	// NULL check
+	if(linespec_table[spec] == LUA_REFNIL)
+		spec = 0;
+
+	// again
+	if(linespec_table[spec] == LUA_REFNIL)
+		return false;
+
+	// HEXEN mode activation check
+	if(isHexen)
+	{
+		switch(act)
+		{
+			case EXTRA_USE:
+				switch(line->flags & ELF_ACT_TYPE_MASK)
+				{
+					case ELF_ACT_PLAYER:
+					case ELF_ACT_PLAYER_:
+						if(!mobj->player && !(line->flags & ELF_ANY_ACT))
+							return false;
+					break;
+					default:
+					return false;
+				}
+			break;
+			case EXTRA_CROSS:
+				switch(line->flags & ELF_ACT_TYPE_MASK)
+				{
+					case ELF_CROSS_PLAYER:
+						if(mobj->flags & MF_MISSILE)
+							return false;
+						if(!mobj->player && !(line->flags & ELF_ANY_ACT))
+							return false;
+					break;
+					case ELF_CROSS_MONSTER:
+						if(mobj->flags & MF_MISSILE)
+							return false;
+						if(mobj->player && !(line->flags & ELF_ANY_ACT))
+							return false;
+					break;
+					case ELF_CROSS_PROJECTILE:
+						if(!(mobj->flags & MF_MISSILE))
+							return false;
+					break;
+					default:
+					return false;
+				}
+			break;
+			case EXTRA_HITSCAN:
+				switch(line->flags & ELF_ACT_TYPE_MASK)
+				{
+					case ELF_HIT_PROJECTILE:
+						if(!mobj->player && !(line->flags & ELF_ANY_ACT))
+							return false;
+					break;
+					default:
+					return false;
+				}
+			break;
+		}
+	}
+
+	// preset side
+	linedef_side = side;
+
+	// function to call
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, linespec_table[spec]);
+	// mobj to pass
+	lua_pushlightuserdata(luaS_game, mobj);
+	// line to pass
+	lua_pushlightuserdata(luaS_game, line);
+	// side to pass
+	lua_pushinteger(luaS_game, side);
+	// activation to pass
+	lua_pushinteger(luaS_game, act);
+	// do the call
+	if(lua_pcall(luaS_game, 4, 1, 0))
+		// script error
+		I_Error("P_ExtraLineSpecial: %s", lua_tostring(luaS_game, -1));
+
+	if(lua_type(luaS_game, -1) == LUA_TBOOLEAN)
+		ret = lua_toboolean(luaS_game, -1);
+
+	lua_settop(luaS_game, 0);
+
+	return ret;
 }
 
 boolean PIT_LuaCheckThing(mobj_t *thing)

@@ -243,7 +243,7 @@ typedef struct mobj_s
 
     // [kg] moved here from player
     int			armorpoints;
-    int			armortype;
+    mobjinfo_t*		armortype;
 
     // Movement direction, movement generation (zig-zagging).
     int			movedir;	// 0-7

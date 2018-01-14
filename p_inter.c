@@ -31,28 +31,6 @@
 //
 
 //
-// P_GiveArmor
-// Returns false if the armor is worse
-// than the current armor.
-//
-boolean
-P_GiveArmor
-( player_t*	player,
-  int		armortype )
-{
-    int		hits;
-	
-    hits = armortype*100;
-    if (player->mo->armorpoints >= hits)
-	return false;	// don't pick up
-		
-    player->mo->armortype = armortype;
-    player->mo->armorpoints = hits;
-	
-    return true;
-}
-
-//
 // P_GivePower
 //
 boolean
@@ -195,7 +173,6 @@ P_DamageMobj
   int 		damage )
 {
     unsigned	ang;
-    int		saved;
     player_t*	player;
     fixed_t	thrust;
     int		temp;
@@ -267,18 +244,16 @@ P_DamageMobj
     else
     {
 	// [kg] armor for every mobj
-	if(target->armortype)
+	if(target->armortype && target->armortype->damage)
 	{
-	    if (target->armortype == 1)
-		saved = damage/3;
-	    else
-		saved = damage/2;
-	    
+	    int	saved;
+
+	    saved = (damage * target->armortype->damage) / 100;
 	    if (target->armorpoints <= saved)
 	    {
 		// armor is used up
 		saved = target->armorpoints;
-		target->armortype = 0;
+		target->armortype = NULL;
 	    }
 	    target->armorpoints -= saved;
 	    damage -= saved;

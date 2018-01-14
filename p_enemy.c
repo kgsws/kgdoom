@@ -299,7 +299,7 @@ boolean P_Move (mobj_t*	actor)
 	    // if the special is not a door
 	    // that can be opened,
 	    // return false
-	    if (P_UseSpecialLine (actor, ld,0))
+	    if(P_ExtraLineSpecial(actor, ld, !P_PointOnLineSide(tryx, tryy, ld), EXTRA_USE))
 		good = true;
 	}
 	return good;

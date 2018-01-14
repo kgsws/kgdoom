@@ -32,6 +32,8 @@
 
 #include "s_sound.h"
 
+#include "p_inventory.h"
+
 // Data.
 #include "dstrings.h"
 
@@ -652,8 +654,11 @@ void G_PlayerFinishLevel (int player)
     p->fixedcolormap = 0;		// cancel ir gogles 
     p->damagecount = 0;			// no palette changes 
     p->bonuscount = 0;
+    p->inventory = NULL;
 #ifndef SERVER
     memcpy(&prespawn, p, sizeof(player_t));
+    p->inventory = p->mo->inventory; // back up inventory for map load
+    p->mo->inventory = NULL; // avoid inventory deletion on map load
 #endif
 } 
  
@@ -1233,16 +1238,11 @@ int     d_map;
 void G_ResetPlayer()
 {
 	// [kg] reset saved inventory
+	if(prespawn.inventory)
+		P_DestroyInventory(prespawn.inventory);
 	memset(&prespawn, 0, sizeof(player_t));
-// TODO: somehow handle this in LUA
 	prespawn.think.lua_type = TT_PLAYER;
-//	prespawn.health = MAXHEALTH;
 	prespawn.readyweapon = prespawn.pendingweapon = wp_nochange;
-//	prespawn.weaponowned[wp_fist] = true;
-//	prespawn.weaponowned[wp_pistol] = true;
-//	prespawn.ammo[am_clip] = 50;
-//	for (int i=0 ; i<NUMAMMO ; i++)
-//		prespawn.maxammo[i] = maxammo[i];
 }
 #endif
  

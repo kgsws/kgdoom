@@ -433,6 +433,7 @@ void P_LoadLineDefs (int lump)
     ld = lines;
     for (i=0 ; i<numlines ; i++, mld++, ld++)
     {
+	ld->think.lua_type = TT_LINE;
 	ld->flags = SHORT(mld->flags) & 0x01FF;
 	ld->special = SHORT(mld->special);
 	ld->tag = SHORT(mld->tag);
@@ -511,6 +512,7 @@ void P_LoadLineDefs_H(int lump)
 	ld = lines;
 	for (i=0 ; i<numlines ; i++, mld++, ld++)
 	{
+		ld->think.lua_type = TT_LINE;
 		ld->flags = SHORT(mld->flags);
 		ld->special = mld->special;
 		memcpy(ld->arg, mld->arg, 5);

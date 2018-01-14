@@ -83,7 +83,6 @@ static patch_t*		keys[NUMCARDS];
 
 // backgrounds
 static patch_t*		hp_back;
-static patch_t*		armor_back[2];
 static patch_t*		pack_back;
 //static patch_t*		ammo_back[NUMAMMO];
 
@@ -498,7 +497,7 @@ ST_Responder (event_t* ev)
       else if (cht_CheckCheat(&cheat_ammonokey, ev->data1))
       {
 	plyr->mo->armorpoints = 200;
-	plyr->mo->armortype = 2;
+//	plyr->mo->armortype = 2;
 	
 //	plyr->weaponowned = -1;
 	
@@ -511,7 +510,7 @@ ST_Responder (event_t* ev)
       else if (cht_CheckCheat(&cheat_ammo, ev->data1))
       {
 	plyr->mo->armorpoints = 200;
-	plyr->mo->armortype = 2;
+//	plyr->mo->armortype = 2;
 	
 //	plyr->weaponowned = -1;
 	
@@ -752,7 +751,13 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	if(plyr->mo->armorpoints)
 	{
 		if(plyr->mo->armortype)
-			V_DrawPatchNew(STBAR_ARMOR_X, STBAR_ARMOR_Y, armor_back[plyr->mo->armortype-1], v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_NONE, 2);
+		{
+			int lump;
+
+			lump = R_GetStateLump(plyr->mo->armortype->spawnstate);
+			if(lump)
+				V_DrawPatchNew(STBAR_ARMOR_X, STBAR_ARMOR_Y, (patch_t*)W_CacheLumpNum(lump), v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_NONE, 2);
+		}
 		STlib_drawNum(STBAR_ARMOR_X, STBAR_ARMOR_Y + 8, plyr->mo->armorpoints, v_colormap_normal);
 	}
 
@@ -876,10 +881,6 @@ void ST_loadGraphics(void)
 
 	// health
 	hp_back = (patch_t *) W_CacheLumpName("MEDIA0");
-
-	// armor
-	armor_back[0] = (patch_t *) W_CacheLumpName("ARM1A0");
-	armor_back[1] = (patch_t *) W_CacheLumpName("ARM2A0");
 
 	// ammo
 /*	for(i = 0; i < NUMAMMO; i++)

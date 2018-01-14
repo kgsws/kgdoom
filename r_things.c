@@ -1000,3 +1000,17 @@ void R_DrawMasked (void)
 
 #endif
 
+// [kg] get simple sprite lump
+int R_GetStateLump(statenum_t snum)
+{
+	state_t *state;
+	spritedef_t *sprdef;
+	spriteframe_t *sprframe;
+
+	state = &states[snum];
+	sprdef = &sprites[state->sprite];
+	sprframe = &sprdef->spriteframes[state->frame & FF_FRAMEMASK];
+
+	return sprframe->lump[0];
+}
+

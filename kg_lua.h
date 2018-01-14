@@ -7,6 +7,8 @@
 #define STATE_OMASK	0x7FFF0000
 #define STATE_OFFSHIFT	16
 
+extern int linedef_side;
+
 void L_Init();
 void L_StateCall(state_t *st, mobj_t *mo);
 statenum_t L_StateFromAlias(mobjinfo_t *info, statenum_t state);

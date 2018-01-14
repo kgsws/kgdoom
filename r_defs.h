@@ -157,6 +157,9 @@ typedef enum
 
 typedef struct line_s
 {
+    // [kg] for Lua access
+    degenthinker_t think;
+
     // Vertices, from v1 to v2.
     vertex_t*	v1;
     vertex_t*	v2;
@@ -167,9 +170,9 @@ typedef struct line_s
 
     // Animation related.
     short	flags;
-    short	special;
     short	tag;
-    uint8_t arg[5];
+    uint8_t	special;
+    uint8_t	arg[5];
 
     // Visual appearance: SideDefs.
     //  sidenum[1] will be -1 if one sided

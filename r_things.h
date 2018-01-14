@@ -46,6 +46,7 @@ R_ClipVisSprite
   int			xl,
   int			xh );
 
+int R_GetStateLump(statenum_t snum);
 
 #endif
 

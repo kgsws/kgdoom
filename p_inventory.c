@@ -14,16 +14,18 @@ static inventory_t *ret_inv;
 
 void P_RemoveInventory(mobj_t *mo)
 {
-	inventory_t *inv = mo->inventory;
+	P_DestroyInventory(mo->inventory);
+	mo->inventory = NULL;
+}
 
+void P_DestroyInventory(inventory_t *inv)
+{
 	while(inv)
 	{
 		inventory_t *cur = inv;
 		inv = inv->next;
 		Z_Free(cur);
 	}
-
-	mo->inventory = NULL;
 }
 
 int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)

@@ -136,5 +136,6 @@ extern const sprname_t info_def_sprnames[NUM_DEF_SPRITES];
 extern const state_t info_def_states[NUM_DEF_STATES];
 extern const mobjinfo_t info_def_mobjinfo[NUM_DEF_MOBJTYPES];
 
+
 #endif
 
