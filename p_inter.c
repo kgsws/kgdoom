@@ -320,6 +320,9 @@ P_DamageMobj
     if(player && (player->cheats & CF_AURAMASK) == CF_REVENGEAURA && source && !source->player)
 	P_DamageMobj(source, player->mo, player->mo, INSTANTKILL);
 
+    // [kg] set attacker, before entering pain or death state
+    target->attacker = source;
+
     // do the damage	
     target->health -= damage;	
     if (target->health <= 0)
@@ -337,9 +340,6 @@ P_DamageMobj
 		return;
 	}
     }
-
-    // [kg] set attacker, before entering pain state
-    target->attacker = source;
 
     if ( (P_Random () < target->info->painchance)
 	 && !(target->flags&MF_SKULLFLY) )

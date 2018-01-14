@@ -275,7 +275,10 @@ typedef struct mobj_s
     int			lastlook;	
 
     // For nightmare respawn.
-    mapthing_hexen_t		spawnpoint;	
+    mapthing_hexen_t		spawnpoint;
+
+    // [kg] inventory
+    struct inventory_s *inventory;
 
     // [kg] network ID
     int netid;

@@ -19,6 +19,7 @@ int sv_zcollision;
 int sv_slowmo;
 int sv_freeaim;
 int sv_itemrespawn;	// in ticks
+int sv_ammorespawn;	// in ticks
 int sv_weaponrespawn;	// in ticks
 int sw_powerrespawn;	// in ticks
 int sv_superrespawn;	// in ticks

@@ -14,6 +14,7 @@ extern int sv_zcollision;
 extern int sv_slowmo;
 extern int sv_freeaim;
 extern int sv_itemrespawn;
+extern int sv_ammorespawn;
 extern int sv_weaponrespawn;
 extern int sw_powerrespawn;
 extern int sv_superrespawn;

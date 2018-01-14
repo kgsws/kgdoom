@@ -76,17 +76,20 @@ typedef struct
 	int	damage;
 	int	flags;
 
+	// [kg] inventory stuff
+	int maxcount;
+
 	// [kg] some new stuff
 	int species;
 	int viewz;
 	int shootz;
 	int bobz;
 
-	actionf_t action;
-	const void *arg;
+	// [kg] some Lua stuff
+	int lua_action;
+	int lua_arg;
 } mobjinfo_t;
 
-#define INFO_MOBJTYPE_ALLOC	128
 extern int numobjtypes;
 extern mobjinfo_t *mobjinfo;
 

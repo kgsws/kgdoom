@@ -15,6 +15,8 @@
 
 #include "m_random.h"
 
+#include "p_inventory.h"
+
 #ifdef LINUX
 #include <lua5.3/lua.h>
 #include <lua5.3/lauxlib.h>
@@ -33,11 +35,16 @@
 #include "sv_cmds.h"
 #endif
 
+// function export masks
+#define LUA_EXPORT_SETUP	1
+#define LUA_EXPORT_LEVEL	1
+
 // used to export C functions
 typedef struct
 {
 	char *name;
 	int (*func)(lua_State *L);
+	int mask;
 } luafunc_t;
 
 // used to make 'model' of a C structure
@@ -64,9 +71,16 @@ typedef struct
 	void (*func)(mobj_t*);
 } lua_mobjaction_t;
 
-static lua_State *luaS_game;
+// model for exported integers
+typedef struct
+{
+	const char *name;
+	int value;
+} lua_intvalue_t;
 
-static lua_State *luaS_block_iter;
+static lua_State *luaS_game;
+static boolean lua_setup;
+
 static int block_lua_func;
 static int block_lua_arg;
 static int block_lua_x0;
@@ -97,6 +111,7 @@ static int LUA_teleportMobj(lua_State *L);
 static int LUA_checkMobjPos(lua_State *L);
 static int LUA_spawnMissile(lua_State *L);
 static int LUA_attackAim(lua_State *L);
+static int LUA_lineTarget(lua_State *L);
 static int LUA_meleeRange(lua_State *L);
 static int LUA_mobjDistance(lua_State *L);
 static int LUA_damageFromMobj(lua_State *L);
@@ -107,6 +122,12 @@ static int LUA_radiusDamageFromMobj(lua_State *L);
 
 static int LUA_soundFromMobj(lua_State *L);
 
+static int LUA_mobjInventoryGive(lua_State *L);
+static int LUA_mobjInventoryTake(lua_State *L);
+static int LUA_mobjInventoryCheck(lua_State *L);
+static int LUA_mobjInventorySetMax(lua_State *L);
+
+static int LUA_setPlayerMessage(lua_State *L);
 static int LUA_setPlayerWeapon(lua_State *L);
 static int LUA_playerRefireWeapon(lua_State *L);
 static int LUA_playerFlashWeapon(lua_State *L);
@@ -126,6 +147,9 @@ static int func_get_fixedt(lua_State *L, void *dst, void *o);
 static int func_set_short(lua_State *L, void *dst, void *o);
 static int func_get_short(lua_State *L, void *dst, void *o);
 
+static int func_set_lua_registry(lua_State *L, void *dst, void *o);
+static int func_get_lua_registry(lua_State *L, void *dst, void *o);
+
 static int func_set_readonly(lua_State *L, void *dst, void *o);
 static int func_set_mobjangle(lua_State *L, void *dst, void *o);
 static int func_get_mobjangle(lua_State *L, void *dst, void *o);
@@ -144,6 +168,7 @@ static int func_get_teleportmobj(lua_State *L, void *dst, void *o);
 static int func_get_checkmobjpos(lua_State *L, void *dst, void *o);
 static int func_get_spawnmissile(lua_State *L, void *dst, void *o);
 static int func_get_attackaim(lua_State *L, void *dst, void *o);
+static int func_get_linetarget(lua_State *L, void *dst, void *o);
 static int func_get_meleerange(lua_State *L, void *dst, void *o);
 static int func_get_distance(lua_State *L, void *dst, void *o);
 static int func_get_damage(lua_State *L, void *dst, void *o);
@@ -156,6 +181,12 @@ static int func_get_mobjsound_body(lua_State *L, void *dst, void *o);
 static int func_get_mobjsound_weapon(lua_State *L, void *dst, void *o);
 static int func_get_mobjsound_pickup(lua_State *L, void *dst, void *o);
 
+static int func_get_mobj_invgive(lua_State *L, void *dst, void *o);
+static int func_get_mobj_invtake(lua_State *L, void *dst, void *o);
+static int func_get_mobj_invcheck(lua_State *L, void *dst, void *o);
+static int func_get_mobj_invsetmax(lua_State *L, void *dst, void *o);
+
+static int func_setplayermessage(lua_State *L, void *dst, void *o);
 static int func_setplayerweapon(lua_State *L, void *dst, void *o);
 static int func_playerrefire(lua_State *L, void *dst, void *o);
 static int func_playerwflash(lua_State *L, void *dst, void *o);
@@ -176,17 +207,17 @@ static int func_set_lumpname_optional(lua_State *L, void *dst, void *o);
 // all exported LUA functions; TODO: split into stages
 static const luafunc_t lua_functions[] =
 {
-	{"print", LUA_print},
+	{"print", LUA_print, LUA_EXPORT_SETUP | LUA_EXPORT_LEVEL},
 	// loading stage
-	{"createMobjType", LUA_createMobjType},
-	{"setPlayerType", LUA_setPlayerType},
-	{"setDoomTeleportType", LUA_setDoomTeleportType},
-	{"doomRandom", LUA_doomRandom},
+	{"createMobjType", LUA_createMobjType, LUA_EXPORT_SETUP},
+	{"setPlayerType", LUA_setPlayerType, LUA_EXPORT_SETUP},
+	{"setDoomTeleportType", LUA_setDoomTeleportType, LUA_EXPORT_SETUP},
 	// map stage
-	{"spawnMobj", LUA_spawnMobj},
-	{"blockThingsIterator", LUA_blockThingsIterator},
-	{"globalThingsIterator", LUA_globalThingsIterator},
-	{"sectorTagIterator", LUA_sectorTagIterator},
+	{"doomRandom", LUA_doomRandom, LUA_EXPORT_SETUP | LUA_EXPORT_LEVEL},
+	{"spawnMobj", LUA_spawnMobj, LUA_EXPORT_LEVEL},
+	{"blockThingsIterator", LUA_blockThingsIterator, LUA_EXPORT_LEVEL},
+	{"globalThingsIterator", LUA_globalThingsIterator, LUA_EXPORT_LEVEL},
+	{"sectorTagIterator", LUA_sectorTagIterator, LUA_EXPORT_LEVEL},
 };
 
 // all mobj flags
@@ -263,7 +294,10 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"shootz", offsetof(mobjinfo_t, shootz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"bobz", offsetof(mobjinfo_t, bobz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"species", offsetof(mobjinfo_t, species), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
 	{"flags", offsetof(mobjinfo_t, flags), LUA_TNUMBER},
+	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_registry, func_get_lua_registry},
+	{"arg", offsetof(mobjinfo_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
 	// states; keep same order as in 'mobjinfo_t'
 	{"_spawn", offsetof(mobjinfo_t, spawnstate), LUA_TTABLE, func_set_states},
 	{"_see", offsetof(mobjinfo_t, seestate), LUA_TTABLE, func_set_states},
@@ -333,6 +367,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"CheckPosition", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkmobjpos},
 	{"SpawnMissile", 0, LUA_TFUNCTION, func_set_readonly, func_get_spawnmissile},
 	{"AttackAim", 0, LUA_TFUNCTION, func_set_readonly, func_get_attackaim},
+	{"LineTarget", 0, LUA_TFUNCTION, func_set_readonly, func_get_linetarget},
 	{"MeleeRange", 0, LUA_TFUNCTION, func_set_readonly, func_get_meleerange},
 	{"Distance", 0, LUA_TFUNCTION, func_set_readonly, func_get_distance},
 	{"Damage", 0, LUA_TFUNCTION, func_set_readonly, func_get_damage},
@@ -343,6 +378,11 @@ static const lua_table_model_t lua_mobj[] =
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
+	// inventory functions
+	{"InventoryGive", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_invgive},
+	{"InventoryTake", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_invtake},
+	{"InventoryCheck", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_invcheck},
+	{"InventorySetMax", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_invsetmax},
 };
 
 // all player values
@@ -351,7 +391,8 @@ static const lua_table_model_t lua_player[] =
 	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
 	{"refire", offsetof(player_t, refire), LUA_TNUMBER},
 	// functions
-	{"setWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},
+	{"Message", 0, LUA_TFUNCTION, func_set_readonly, func_setplayermessage},
+	{"SetWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},
 	{"WeaponRefire", 0, LUA_TFUNCTION, func_set_readonly, func_playerrefire},
 	{"WeaponFlash", 0, LUA_TFUNCTION, func_set_readonly, func_playerwflash},
 };
@@ -375,6 +416,19 @@ static const lua_table_model_t lua_sector[] =
 	{"GetShortestTexture", 0, LUA_TFUNCTION, func_set_readonly, func_get_shortexfloorsector},
 	{"GenericFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericfloorsector},
 	{"GenericCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericceilingsector},
+};
+
+// all pickup options
+lua_intvalue_t lua_pickups[] =
+{
+	{"doNotPickup", SPECIAL_DONTPICKUP},
+	{"item", SPECIAL_ITEM},
+	{"ammo", SPECIAL_AMMO},
+	{"weapon", SPECIAL_WEAPON},
+	{"key", SPECIAL_KEY},
+	{"power", SPECIAL_POWER},
+	{"superPower", SPECIAL_SUPERPOWER},
+	{"remove", SPECIAL_REMOVE},
 };
 
 //
@@ -441,7 +495,7 @@ static int state_getSprite(const char *spr)
 	// add this name
 	if((numsnames+1) / INFO_SPRITE_ALLOC > numsnames / INFO_SPRITE_ALLOC)
 	{
-		int asize = (numsnames + INFO_SPRITE_ALLOC) * sizeof(sprname_t);
+		int asize = (1 + numsnames + INFO_SPRITE_ALLOC) * sizeof(sprname_t);
 		// realloc buffer
 		sprname_t *temp = realloc(sprnames, asize);
 		if(!temp)
@@ -539,7 +593,7 @@ finish:
 	// add new state
 	if((numstates+1) / INFO_STATE_ALLOC > numstates / INFO_STATE_ALLOC)
 	{
-		int asize = (numstates + INFO_STATE_ALLOC) * sizeof(state_t);
+		int asize = (1 + numstates + INFO_STATE_ALLOC) * sizeof(state_t);
 		// realloc buffer
 		state_t *temp = realloc(states, asize);
 		if(!temp)
@@ -605,6 +659,26 @@ static int func_set_short(lua_State *L, void *dst, void *o)
 static int func_get_short(lua_State *L, void *dst, void *o)
 {
 	lua_pushinteger(L, *(short*)dst);
+	return 1;
+}
+
+static int func_set_lua_registry(lua_State *L, void *dst, void *o)
+{
+	int ref = *(int*)dst;
+
+	if(ref != LUA_REFNIL)
+		luaL_unref(L, LUA_REGISTRYINDEX, ref);
+
+	ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	*(int*)dst = ref;
+	lua_pushnil(L);
+
+	return 0;
+}
+
+static int func_get_lua_registry(lua_State *L, void *dst, void *o)
+{
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, *(int*)dst);
 	return 1;
 }
 
@@ -871,6 +945,14 @@ static int func_get_attackaim(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return linetarget function
+static int func_get_linetarget(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_lineTarget, 1);
+	return 1;
+}
+
 // return melee range check function
 static int func_get_meleerange(lua_State *L, void *dst, void *o)
 {
@@ -951,6 +1033,46 @@ static int func_get_mobjsound_pickup(lua_State *L, void *dst, void *o)
 	lua_pushlightuserdata(L, o);
 	lua_pushinteger(L, SOUND_PICKUP);
 	lua_pushcclosure(L, LUA_soundFromMobj, 2);
+	return 1;
+}
+
+// return inventory give function
+static int func_get_mobj_invgive(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_mobjInventoryGive, 1);
+	return 1;
+}
+
+// return inventory take function
+static int func_get_mobj_invtake(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_mobjInventoryTake, 1);
+	return 1;
+}
+
+// return inventory check function
+static int func_get_mobj_invcheck(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_mobjInventoryCheck, 1);
+	return 1;
+}
+
+// return inventory maximum set function
+static int func_get_mobj_invsetmax(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_mobjInventorySetMax, 1);
+	return 1;
+}
+
+// return message set function
+static int func_setplayermessage(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_setPlayerMessage, 1);
 	return 1;
 }
 
@@ -1118,7 +1240,7 @@ int LUA_StructFromTable(lua_State *L, const lua_table_model_t *model, int models
 			// only string can be a key
 			for(i = 0; i < modelsize; i++)
 			{
-				if(type == model[i].ltype && !strcmp(key, model[i].name))
+				if((type == model[i].ltype || model[i].ltype == LUA_TNIL) && !strcmp(key, model[i].name))
 				{
 					if(model[i].set)
 						model[i].set(L, ((void*)dst) + model[i].offset, dst);
@@ -1206,6 +1328,9 @@ static int LUA_print(lua_State *L)
 
 static int LUA_createMobjType(lua_State *L)
 {
+	if(!lua_setup)
+		return luaL_error(L, "createMobjType: you are too late now ...");
+
 	if(lua_gettop(L) == 1 && lua_type(L, -1) == LUA_TTABLE)
 	{
 		int i, j;
@@ -1214,24 +1339,21 @@ static int LUA_createMobjType(lua_State *L)
 
 		// set type defaults
 		memset(&temp, 0, sizeof(mobjinfo_t));
+		temp.lua_action = LUA_REFNIL;
+		temp.lua_arg = LUA_REFNIL;
+		// get states
 		state_mobjt = numstates;
 		LUA_StructFromTable(L, lua_mobjtype, sizeof(lua_mobjtype)/sizeof(lua_table_model_t), &temp);
+		// get memory
+		Z_Enlarge(mobjinfo, sizeof(mobjinfo_t));
 		// finish mobj type
-		if((numobjtypes+1) / INFO_MOBJTYPE_ALLOC > numobjtypes / INFO_MOBJTYPE_ALLOC)
-		{
-			int asize = (numobjtypes + INFO_MOBJTYPE_ALLOC) * sizeof(mobjinfo_t);
-			// realloc buffer
-			mobjinfo_t *temp = realloc(mobjinfo, asize);
-			if(!temp)
-				I_Error("out of memory\n");
-			mobjinfo = temp;
-		}
 		temp.dthink.lua_type = TT_MOBJINFO;
 		memcpy(mobjinfo + numobjtypes, &temp, sizeof(mobjinfo_t));
 		lua_pushlightuserdata(L, mobjinfo + numobjtypes);
 		numobjtypes++;
 	} else
 		return luaL_error(L, "createMobjType: single table required");
+
 	return 1;
 }
 
@@ -1401,7 +1523,6 @@ static int LUA_blockThingsIterator(lua_State *L)
 		return luaL_error(L, "blockThingsIterator: incorrect number of arguments");
 
 	lua_settop(L, 0);
-	luaS_block_iter = L;
 
 	if(x > xe)
 	{
@@ -1634,7 +1755,7 @@ static int LUA_ThinkerIndex(lua_State *L)
 	}
 
 	// newindex
-	if(field->ltype != LUA_TLIGHTUSERDATA)
+	if(field->ltype != LUA_TLIGHTUSERDATA && field->ltype != LUA_TNIL)
 		luaL_checktype(L, -1, field->ltype);
 
 	if(field->set)
@@ -1926,6 +2047,33 @@ static int LUA_attackAim(lua_State *L)
 	}
 
 	lua_pushnumber(L, angle / (lua_Number)(1 << ANGLETOFINESHIFT));
+	lua_pushnumber(L, slope / (lua_Number)FRACUNIT);
+
+	return 2;
+}
+
+static int LUA_lineTarget(lua_State *L)
+{
+	mobj_t *mo;
+	angle_t angle;
+	fixed_t slope;
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	// optional angle
+	if(lua_gettop(L))
+	{
+		luaL_checktype(L, 1, LUA_TNUMBER);
+		angle = lua_tonumber(L, 1) * (lua_Number)(1 << ANGLETOFINESHIFT);
+	} else
+		angle = mo->angle;
+
+	slope = P_AimLineAttack(mo, angle, MISSILERANGE, NULL);
+
+	if(linetarget)
+		lua_pushlightuserdata(L, linetarget);
+	else
+		lua_pushnil(L);
 	lua_pushnumber(L, slope / (lua_Number)FRACUNIT);
 
 	return 2;
@@ -2231,6 +2379,136 @@ static int LUA_soundFromMobj(lua_State *L)
 	chan = lua_tointeger(L, lua_upvalueindex(2));
 
 	S_StartSound(source, lump, chan);
+
+	return 0;
+}
+
+static int LUA_mobjInventoryGive(lua_State *L)
+{
+	mobj_t *mo;
+	mobjinfo_t *type;
+	int num;
+
+	// amount; optional
+	if(lua_gettop(L) > 1)
+	{
+		luaL_checktype(L, 2, LUA_TNUMBER);
+		num = lua_tointeger(L, 2);
+	} else
+		num = 1;
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	// type; required
+	LUA_GetMobjTypeParam(L, 1);
+	type = lua_touserdata(L, 1);
+
+	if(num >= 0) // allow to give 0 for depletable items
+		num = P_GiveInventory(mo, type, num);
+	else
+		num = 0;
+
+	lua_pushinteger(L, num);
+
+	return 1;
+}
+
+static int LUA_mobjInventoryTake(lua_State *L)
+{
+	mobj_t *mo;
+	mobjinfo_t *type;
+	int num;
+
+	// amount; optional
+	if(lua_gettop(L) > 1)
+	{
+		luaL_checktype(L, 2, LUA_TNUMBER);
+		num = lua_tointeger(L, 2);
+	} else
+		num = 1;
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	// type; required
+	LUA_GetMobjTypeParam(L, 1);
+	type = lua_touserdata(L, 1);
+
+	if(num > 0)
+		num = P_GiveInventory(mo, type, -num);
+	else
+		num = 0;
+
+	lua_pushinteger(L, num);
+
+	return 1;
+}
+
+static int LUA_mobjInventoryCheck(lua_State *L)
+{
+	mobj_t *mo;
+	mobjinfo_t *type;
+	int num, max;
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	// type; required
+	LUA_GetMobjTypeParam(L, 1);
+	type = lua_touserdata(L, 1);
+
+	num = P_CheckInventory(mo, type, &max);
+
+	if(max < 0)
+		max = -max;
+
+	// return count and maxcount
+	lua_pushinteger(L, num);
+	lua_pushinteger(L, max);
+
+	return 2;
+}
+
+static int LUA_mobjInventorySetMax(lua_State *L)
+{
+	mobj_t *mo;
+	mobjinfo_t *type;
+	int num;
+
+	// max amount; required
+	luaL_checktype(L, 2, LUA_TNUMBER);
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	// type; required
+	LUA_GetMobjTypeParam(L, 1);
+	type = lua_touserdata(L, 1);
+
+	num = lua_tointeger(L, 2);
+	num = P_MaxInventory(mo, type, num);
+
+	lua_pushinteger(L, num);
+
+	return 1;
+}
+
+static int LUA_setPlayerMessage(lua_State *L)
+{
+	static char msg[64];
+	const char *text;
+	player_t *pl;
+
+	pl = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(pl != &players[displayplayer])
+		return 0;
+
+	luaL_checktype(L, 1, LUA_TSTRING);
+
+	text = lua_tostring(L, 1);
+
+	strncpy(msg, text, sizeof(msg)-1);
+	msg[sizeof(msg)-1] = 0;
+
+	pl->message = msg;
 
 	return 0;
 }
@@ -2694,9 +2972,38 @@ void L_ExportCosTable(lua_State *L)
 	lua_setglobal(L, "finecosine");
 }
 
-void L_LoadScript(int lump)
+void L_ExportIntegers(lua_State *L, const char *tablename, lua_intvalue_t *table, int count)
 {
 	int i;
+
+	lua_createtable(L, 0, count); // table
+	for(i = 0; i < count; i++)
+	{
+		lua_pushinteger(L, table[i].value);
+		lua_setfield(L, -2, table[i].name);
+	}
+	lua_setglobal(L, tablename);
+}
+
+void L_ExportFunctions(lua_State *L, int mask)
+{
+	int i;
+	for(i = 0; i < sizeof(lua_functions) / sizeof(luafunc_t); i++)
+	{
+		if(lua_functions[i].mask & mask)
+			lua_register(L, lua_functions[i].name, lua_functions[i].func);
+		else
+		{
+			lua_pushnil(L);
+			lua_setglobal(L, lua_functions[i].name);
+		}
+	}
+}
+
+void L_LoadScript(int lump)
+{
+	char scriptname[32];
+	char *scriptdata;
 
 	// new lua state
 	if(!luaS_game)
@@ -2707,8 +3014,7 @@ void L_LoadScript(int lump)
 		luaL_requiref(luaS_game, "math", luaopen_math, true);
 		luaL_requiref(luaS_game, "string", luaopen_string, true);
 		// export all functions
-		for(i = 0; i < sizeof(lua_functions) / sizeof(luafunc_t); i++)
-			lua_register(luaS_game, lua_functions[i].name, lua_functions[i].func);
+		L_ExportFunctions(luaS_game, LUA_EXPORT_SETUP);
 		// export all mobj flags
 		L_ExportFlags(luaS_game);
 		// export all state functions
@@ -2718,9 +3024,30 @@ void L_LoadScript(int lump)
 		// export Doom sin / cos tables
 		L_ExportSinTable(luaS_game);
 		L_ExportCosTable(luaS_game);
+		// export pickup returns
+		L_ExportIntegers(luaS_game, "pickup", lua_pickups, sizeof(lua_pickups) / sizeof(lua_intvalue_t));
 	}
+	// setup script name
+	scriptdata = W_CacheLumpNum(lump);
+	if(scriptdata[0] == '-' && scriptdata[1] == '-' && scriptdata[2] == '-')
+	{
+		// get name from first comment line
+		char *dst = scriptname;
+		char *src = scriptdata + 3;
+		int i;
+
+		for(i = 0; i < sizeof(scriptname) - 1; i++, dst++, src++)
+		{
+			if(*src == '\n' || *src == '\r')
+				break;
+			*dst = *src;
+		}
+		*dst = 0;
+	} else
+		// generate name; GAMELUA:wadnum:lumpnum
+		sprintf(scriptname, "%.8s:%i:%i", W_LumpNumName(lump), lump >> 24, lump & 0xFFFFFF);
 	// load lua script
-	luaL_loadbuffer(luaS_game, W_CacheLumpNum(lump), W_LumpLength(lump), W_LumpNumName(lump));
+	luaL_loadbuffer(luaS_game, scriptdata, W_LumpLength(lump), scriptname);
 	// call (initialize) script
 	if(lua_pcall(luaS_game, 0, 0, 0))
 	{
@@ -2732,13 +3059,16 @@ void L_LoadScript(int lump)
 
 static boolean cb_LuaLoad(int lump)
 {
-	L_LoadScript(lump);
+	if(W_LumpLength(lump) > 3)
+		L_LoadScript(lump);
 	return false;
 }
 
 void L_Init()
 {
 	int i;
+
+	lua_setup = 1;
 
 	// create sprite names
 	sprnames = malloc(INFO_SPRITE_ALLOC * sizeof(sprname_t));
@@ -2759,16 +3089,22 @@ void L_Init()
 	for(i = 0; i < NUM_DEF_STATES; i++)
 		states[i].func = LUA_REFNIL;
 
-	// create mobj types
-	mobjinfo = malloc(INFO_MOBJTYPE_ALLOC * sizeof(mobjinfo_t));
-	if(!mobjinfo)
-		I_Error("out of memory\n");
+	// create mobj types; use zone memory - for enlarge
+	mobjinfo = Z_Malloc(NUM_DEF_MOBJTYPES * sizeof(mobjinfo_t), PU_STATIC, NULL);
 	// add default types
 	memcpy(mobjinfo, info_def_mobjinfo, sizeof(info_def_mobjinfo));
 	numobjtypes = NUM_DEF_MOBJTYPES;
 
 	// load script from all WADs
 	W_ForEachName("GAMELUA", cb_LuaLoad);
+
+	lua_setup = 0;
+
+	// export level functions
+	L_ExportFunctions(luaS_game, LUA_EXPORT_LEVEL);
+
+	// just to be safe
+	Z_CheckHeap();
 }
 
 //
@@ -2796,6 +3132,46 @@ void L_SpawnPlayer(player_t *pl)
 			I_Error("L_SpawnPlayer: %s", lua_tostring(luaS_game, -1));
 	}
 	lua_settop(luaS_game, 0);
+//	P_DumpInventory(pl->mo);
+}
+
+int L_TouchSpecial(mobj_t *special, mobj_t *toucher)
+{
+	int top;
+	int ret = SPECIAL_REMOVE;
+
+	if(special->info->lua_action == LUA_REFNIL)
+		return SPECIAL_REMOVE | SPECIAL_NOFLASH_FLAG;
+
+	// function to call
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, special->info->lua_action);
+	// toucher mobj to pass
+	lua_pushlightuserdata(luaS_game, toucher);
+	// special mobj to pass
+	lua_pushlightuserdata(luaS_game, special);
+	// parameter to pass
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, special->info->lua_arg);
+	// do the call
+	if(lua_pcall(luaS_game, 3, 2, 0))
+		// script error
+		I_Error("L_TouchSpecial: %s", lua_tostring(luaS_game, -1));
+
+	top = lua_gettop(luaS_game);
+
+	if(top > 0)
+	{
+		if(lua_type(luaS_game, 1) == LUA_TNUMBER)
+			ret = lua_tointeger(luaS_game, 1);
+		if(top > 1)
+		{
+			if(lua_type(luaS_game, 2) == LUA_TBOOLEAN && lua_toboolean(luaS_game, 2))
+				ret |= SPECIAL_NOFLASH_FLAG;
+		}
+	}
+
+	lua_settop(luaS_game, 0);
+
+	return ret;
 }
 
 //
@@ -2857,30 +3233,30 @@ boolean PIT_LuaCheckThing(mobj_t *thing)
 		return true;
 
 	// function to call
-	lua_rawgeti(luaS_block_iter, LUA_REGISTRYINDEX, block_lua_func);
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, block_lua_func);
 	// mobj to pass
-	lua_pushlightuserdata(luaS_block_iter, thing);
+	lua_pushlightuserdata(luaS_game, thing);
 	// parameter to pass
-	lua_rawgeti(luaS_block_iter, LUA_REGISTRYINDEX, block_lua_arg);
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, block_lua_arg);
 	// do the call
-	if(lua_pcall(luaS_block_iter, 2, LUA_MULTRET, 0))
+	if(lua_pcall(luaS_game, 2, LUA_MULTRET, 0))
 		// script error
-		return luaL_error(luaS_block_iter, "ThingsIterator: %s", lua_tostring(luaS_block_iter, -1));
+		return luaL_error(luaS_game, "ThingsIterator: %s", lua_tostring(luaS_game, -1));
 
-	if(lua_gettop(luaS_block_iter) == 0)
+	if(lua_gettop(luaS_game) == 0)
 		// no return means continue
 		return true;
 
 	// first return has to be continue flag
-	luaL_checktype(luaS_block_iter, 1, LUA_TBOOLEAN);
-	ret = lua_toboolean(luaS_block_iter, 1);
+	luaL_checktype(luaS_game, 1, LUA_TBOOLEAN);
+	ret = lua_toboolean(luaS_game, 1);
 
 	if(ret)
 		// iteration will continue, discard all returns
-		lua_settop(luaS_block_iter, 0);
+		lua_settop(luaS_game, 0);
 	else
 		// remove only this flag, rest will get returned
-		lua_remove(luaS_block_iter, 1);
+		lua_remove(luaS_game, 1);
 
 	return ret;
 }

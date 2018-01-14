@@ -649,6 +649,8 @@ S_getChannel
     }
 
 	// TODO: replace oldest
+	if(cnum == NUM_SFX_CHANNELS)
+		return -1;
     // None available
 /*    if (cnum == NUM_SFX_CHANNELS)
     {

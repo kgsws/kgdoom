@@ -13,4 +13,5 @@ statenum_t L_StateFromAlias(mobjinfo_t *info, statenum_t state);
 
 void L_SetupMap();
 void L_SpawnPlayer(player_t *pl);
+int L_TouchSpecial(mobj_t *special, mobj_t *toucher);
 

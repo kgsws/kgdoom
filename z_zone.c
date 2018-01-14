@@ -477,7 +477,7 @@ int Z_FreeMemory (void)
 }
 
 //
-// calloc replacement
+// [kg] calloc replacement
 
 void* Z_Calloc(int size, int count)
 {
@@ -487,5 +487,42 @@ void* Z_Calloc(int size, int count)
 	ret = Z_Malloc(size, PU_STATIC, NULL);
 	memset(ret, 0, size);
 	return ret;
+}
+
+//
+// [kg] enlarge block
+// limited use, there mus be free space after this block
+
+void Z_Enlarge(void *ptr, int size)
+{
+	memblock_t *block;
+	memblock_t *other;
+
+	block = (memblock_t *) ( (byte *)ptr - sizeof(memblock_t));
+
+	if(block->id != ZONEID)
+		I_Error("Z_Enlarge: enlarge a pointer without ZONEID");
+
+	if(block->next->user || block->next->size <= size)
+		I_Error("Z_Enlarge: no free space to enlarge");
+
+	// add size to this block
+	block->size += size;
+
+	// find out next block location
+	other = (memblock_t *) ((byte *)block + block->size );
+
+	// check top
+	if(block->next == mainzone->rover)
+		// next block was top; move top
+		mainzone->rover = other;
+
+	// copy next block info to new location
+	memcpy(other, block->next, sizeof(memblock_t));
+
+	// fix block links
+	block->next = other;
+	other->prev = block;
+	other->size -= size;
 }
 

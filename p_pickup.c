@@ -7,22 +7,13 @@
 #include "p_pickup.h"
 
 #include "s_sound.h"
+#include "kg_lua.h"
 
 #ifdef SERVER
 #include <netinet/in.h>
 #include "network.h"
 #include "sv_cmds.h"
 #endif
-
-#include "dstrings.h"
-
-// pickup types; returned by pickup function
-#define SPECIAL_DONTPICKUP	-1
-#define SPECIAL_ITEM	0
-#define SPECIAL_WEAPON	1
-#define SPECIAL_KEY	2
-#define SPECIAL_POWER	3
-#define SPECIAL_SUPERPOWER	4
 
 // [kg] decide to remove or hide item
 void P_RemoveSpecial(mobj_t* th, int rt)
@@ -43,6 +34,9 @@ void P_RemoveSpecial(mobj_t* th, int rt)
 	{
 		case SPECIAL_ITEM:
 			respawntime = sv_itemrespawn;
+		break;
+		case SPECIAL_AMMO:
+			respawntime = sv_ammorespawn;
 		break;
 		case SPECIAL_WEAPON:
 			respawntime = sv_weaponrespawn;
@@ -119,8 +113,12 @@ void A_RespawnSpecial(mobj_t* th)
 // [kg] new touch handler
 void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 {
-	int sound, type;
+	int sound, type, flash;
 	player_t *pl;
+
+	if(toucher->health <= 0)
+		// you are dead
+		return;
 
 	if(toucher->z > special->z + special->info->height)
 		// out of reach
@@ -130,254 +128,20 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 		// out of reach
 		return;
 
-	if(!special->info->action.acp2i)
-		return;
-
 	sound = special->info->activesound;
 	pl = toucher->player;
 
-	if(!pl || pl->mo->health <= 0)
-		// only alive players can do this
-		return;
-
-	type = special->info->action.acp2i(pl, special);
+	flash = L_TouchSpecial(special, toucher);
+	type = flash & 0xFF;
 	if(type == SPECIAL_DONTPICKUP)
 		return;
 	if(special->flags & MF_COUNTITEM)
 		pl->itemcount++;
 	P_RemoveSpecial(special, type);
-#ifdef SERVER
-	// tell client about it
-	SV_PlayerPickup(pl, special);
-	SV_PlayerInventory(pl);
-#else
-	if(special->info->arg)
-		pl->message = (char *)special->info->arg;
-	pl->bonuscount += BONUSADD;
+
+	if(pl && !(flash & SPECIAL_NOFLASH_FLAG))
+		pl->bonuscount += BONUSADD;
 	if(pl == &players[consoleplayer] && sound)
 		S_StartSound(toucher, sound, SOUND_PICKUP);
-#endif		
 }
-
-//
-// item pickup functions
-
-int A_PickGreenArmor(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		if(!P_GiveArmor(pl, 1))
-			return SPECIAL_DONTPICKUP;
-	}
-	return SPECIAL_ITEM;
-}
-
-int A_PickBlueArmor(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		if(!P_GiveArmor(pl, 2))
-			return SPECIAL_DONTPICKUP;
-	}
-	return SPECIAL_ITEM;
-}
-
-int A_PickHealthBonus(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		pl->mo->health++;
-		if(pl->mo->health > 200)
-			pl->mo->health = 200;
-	}
-	return SPECIAL_ITEM;
-}
-
-int A_PickArmorBonus(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		pl->mo->armorpoints++;
-		if(pl->mo->armorpoints > 200)
-			pl->mo->armorpoints = 200;
-		if(!pl->mo->armortype)
-			pl->mo->armortype = 1;
-	}
-	return SPECIAL_ITEM;
-}
-
-int A_PickKey(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		int key = mo->info->damage;
-		if(pl->cards[key])
-			return SPECIAL_DONTPICKUP;
-		pl->cards[key] = true;
-	}
-	return SPECIAL_KEY;
-}
-
-int A_PickHealth10(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		if(pl->mo->health >= MAXHEALTH)
-			return SPECIAL_DONTPICKUP;
-		pl->mo->health += 10;
-		if(pl->mo->health > MAXHEALTH)
-			pl->mo->health = MAXHEALTH;
-	}
-	return SPECIAL_ITEM;
-}
-
-int A_PickHealth25(player_t *pl, mobj_t *mo)
-{
-	int oldhp = pl->mo->health;
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		if(pl->mo->health >= MAXHEALTH)
-			return SPECIAL_DONTPICKUP;
-		pl->mo->health += 25;
-		if(pl->mo->health > MAXHEALTH)
-			pl->mo->health = MAXHEALTH;
-	}
-	if(oldhp < 25)
-		pl->message = GOTMEDINEED;
-	else
-		pl->message = GOTMEDIKIT;
-	return SPECIAL_ITEM;
-}
-
-int A_PickSoulSphere(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		pl->mo->health += 100;
-		if(pl->mo->health > 200)
-			pl->mo->health = 200;
-	}
-	return SPECIAL_POWER;
-}
-
-int A_PickPower(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		if(!P_GivePower(pl, mo->info->damage))
-			return SPECIAL_DONTPICKUP;
-	}
-	if(mo->info->speed)
-		return SPECIAL_SUPERPOWER;
-	else
-		return SPECIAL_POWER;
-}
-
-int A_PickMegaSphere(player_t *pl, mobj_t *mo)
-{
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		pl->mo->health = 200;
-		P_GiveArmor(pl,2);
-	}
-	return SPECIAL_POWER;
-}
-
-int A_PickAmmo(player_t *pl, mobj_t *mo)
-{/*
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		int count = mo->info->speed;
-		if(mo->flags & MF_DROPPED)
-			count /= 2;
-		if(!P_GiveAmmo(pl, mo->info->damage, count))
-			return SPECIAL_DONTPICKUP;
-	}*/
-	return SPECIAL_ITEM;
-}
-
-int A_PickBackpack(player_t *pl, mobj_t *mo)
-{/*
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		int i;
-		if(!pl->backpack)
-		{
-			for(i = 0; i < NUMAMMO; i++)
-				pl->maxammo[i] *= 2;
-			pl->backpack = true;
-		}
-		for(i = 0; i < NUMAMMO; i++)
-			P_GiveAmmo(pl, i, 0);
-	}*/
-	return SPECIAL_ITEM;
-}
-
-int A_PickWeapon(player_t *pl, mobj_t *mo)
-{/*
-#ifndef SERVER
-	if(!netgame)
-#endif
-	{
-		int weapon = mo->info->damage;
-		int ammo = weaponinfo[weapon].ammo;
-		boolean nope = true;
-
-		if(!(mo->flags & MF_DROPPED) && sv_weaponrespawn < 0 && pl->weaponowned[weapon])
-			// weird deathmatch type; pickup only once
-			return SPECIAL_DONTPICKUP;
-
-		if(!pl->weaponowned[weapon])
-			nope = false;
-
-		if(ammo < NUMAMMO)
-		{
-			int count = mo->info->speed;
-
-			if(mo->flags & MF_DROPPED)
-				count /= 2;
-			else
-			if(sv_weaponrespawn < 0)
-				count = (count / 2) * 5;
-
-			if(P_GiveAmmo(pl, ammo, count))
-				nope = false;
-		}
-
-#ifndef SERVER
-		if(!pl->weaponowned[weapon])
-			pl->pendingweapon = weapon;
-#endif
-		pl->weaponowned[weapon] = true;
-
-		if(nope)
-			return SPECIAL_DONTPICKUP;
-	}*/
-	return SPECIAL_WEAPON;
-}
-
 

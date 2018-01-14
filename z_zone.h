@@ -36,7 +36,9 @@ void    Z_CheckHeap (void);
 void    Z_ChangeTag2 (void *ptr, int tag);
 int     Z_FreeMemory (void);
 
+// [kg]
 void* Z_Calloc(int size, int count);
+void Z_Enlarge(void *ptr, int size);
 
 typedef struct memblock_s
 {

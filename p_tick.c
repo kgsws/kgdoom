@@ -3,6 +3,8 @@
 
 #include "doomstat.h"
 
+#include "p_inventory.h"
+
 #ifdef SERVER
 #include "sv_cmds.h"
 #else
@@ -87,6 +89,9 @@ void P_RunThinkers (void)
     {
 	if ( currentthinker->function.acv == (actionf_v)(-1) )
 	{
+	    // [kg] MOBJ free check
+	    if(currentthinker->lua_type == TT_MOBJ)
+		P_RemoveInventory((mobj_t*)currentthinker);
 	    // time to remove it
 	    currentthinker->next->prev = currentthinker->prev;
 	    currentthinker->prev->next = currentthinker->next;
