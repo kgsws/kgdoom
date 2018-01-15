@@ -11,6 +11,8 @@
 
 #include "p_pspr.h"
 
+#include "p_generic.h"
+
 // [kg] weapon change
 #include "st_stuff.h"
 

@@ -5,6 +5,7 @@
 #include "m_random.h"
 
 #include "p_local.h"
+#include "p_generic.h"
 
 #include "st_stuff.h"
 #include "hu_stuff.h"

@@ -44,6 +44,7 @@
 
 #include "d_main.h"
 
+#include "p_generic.h"
 #include "kg_lua.h"
 
 //

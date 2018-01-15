@@ -17,6 +17,7 @@
 
 #include "doomstat.h"
 
+#include "p_generic.h"
 #include "p_inventory.h"
 #include "kg_lua.h"
 

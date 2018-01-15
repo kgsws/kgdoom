@@ -196,7 +196,7 @@ void	P_SlideMove (mobj_t* mo);
 boolean P_CheckSight (mobj_t* t1, mobj_t* t2);
 void 	P_UseLines (player_t* player);
 
-boolean P_ChangeSector (sector_t* sector, boolean crunch);
+boolean P_ChangeSector(sector_t *sector, int lua_func, int lua_arg);
 
 extern mobj_t*	linetarget;	// who got hit (or NULL)
 

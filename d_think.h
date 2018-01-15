@@ -6,7 +6,17 @@
 #pragma interface
 #endif
 
-
+//
+// [kg] notes for Lua support
+//
+// Since all LightUserData share same metatable,
+// every exported type has to have special header
+// to identify type for Lua access.
+// I used existing 'thinker' for this.
+// Degen thinker only contains lua_type.
+// Thinker or degen thinker has to be first in
+// every exported type.
+// This way it is possible to use any poninter as LightUserData.
 
 //
 // Experimental stuff.
@@ -38,6 +48,8 @@ typedef enum
 	TT_PLAYER, // degen
 	TT_SECTOR, // degen?
 	TT_LINE, // degen
+	TT_GENPLANE,
+	TT_SECCALL,
 } luathinker_t;
 
 

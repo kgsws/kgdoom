@@ -7,6 +7,7 @@
 #include "p_pickup.h"
 
 #include "s_sound.h"
+#include "p_generic.h"
 #include "kg_lua.h"
 
 #ifdef SERVER

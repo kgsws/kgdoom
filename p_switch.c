@@ -14,6 +14,7 @@
 
 #include "z_zone.h"
 
+#include "p_generic.h"
 #include "kg_lua.h"
 
 #ifdef SERVER

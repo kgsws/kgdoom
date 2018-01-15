@@ -17,6 +17,9 @@
 
 #include "p_pickup.h"
 
+#include "p_generic.h"
+#include "kg_lua.h"
+
 #ifdef SERVER
 #include <netinet/in.h>
 #include "network.h"
@@ -1375,9 +1378,12 @@ P_RadiusAttack
 //  the way it was and call P_ChangeSector again
 //  to undo the changes.
 //
-boolean		crushchange;
 boolean		nofit;
-
+// [kg] Lua callback
+static boolean docallback;
+static sector_t *cs_sector;
+static int	cs_lua_func;
+static int	cs_lua_arg;
 
 //
 // PIT_ChangeSector
@@ -1391,7 +1397,7 @@ boolean PIT_ChangeSector (mobj_t*	thing)
 	// keep checking
 	return true;
     }
-    
+
     // crunch bodies to giblets
     if (thing->health <= 0)
     {
@@ -1439,18 +1445,11 @@ boolean PIT_ChangeSector (mobj_t*	thing)
     
     nofit = true;
 
-    if (crushchange && !(leveltime&3) )
+    // [kg] Lua callback
+    if(docallback)
     {
-	P_DamageMobj(thing,NULL,NULL,10);
-	// TODO: crush blood?
-/*
-	// spray blood in a random direction
-	mo = P_SpawnMobj (thing->x,
-			  thing->y,
-			  thing->z + thing->height/2, MT_BLOOD);
-	
-	mo->momx = (P_Random() - P_Random ())<<12;
-	mo->momy = (P_Random() - P_Random ())<<12;*/
+	if(L_CrushThing(thing, cs_sector, cs_lua_func, cs_lua_arg))
+		docallback = false;
     }
 
     // keep checking (crush other things)	
@@ -1465,13 +1464,23 @@ boolean PIT_ChangeSector (mobj_t*	thing)
 boolean
 P_ChangeSector
 ( sector_t*	sector,
-  boolean	crunch )
+  int lua_func,
+  int lua_arg )
 {
     int		x;
     int		y;
-	
+
+    if(lua_func == L_NoRef())
+	docallback = false;
+    else
+	docallback = true;
+
     nofit = false;
-    crushchange = crunch;
+    cs_sector = sector;
+
+    // [kg] Lua callback
+    cs_lua_func = lua_func;
+    cs_lua_arg = lua_arg;
 	
     // re-check heights for all things near the moving sector
     for (x=sector->blockbox[BOXLEFT] ; x<= sector->blockbox[BOXRIGHT] ; x++)

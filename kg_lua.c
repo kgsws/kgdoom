@@ -84,6 +84,8 @@ static boolean lua_setup;
 static int linespec_table[256];
 int linedef_side;
 
+static int generic_sector_removed;
+
 static int block_lua_func;
 static int block_lua_arg;
 static int block_lua_x0;
@@ -143,6 +145,9 @@ static int LUA_lowCeilingFromSector(lua_State *L);
 static int LUA_highCeilingFromSector(lua_State *L);
 static int LUA_shortTexFromSector(lua_State *L);
 static int LUA_genericPlaneFromSector(lua_State *L);
+static int LUA_genericCallFromSector(lua_State *L);
+
+static int LUA_stopFromGeneric(lua_State *L);
 
 static int LUA_doSwitchTextureLine(lua_State *L);
 
@@ -156,6 +161,7 @@ static int func_get_short(lua_State *L, void *dst, void *o);
 static int func_set_byte(lua_State *L, void *dst, void *o);
 static int func_get_byte(lua_State *L, void *dst, void *o);
 
+static int func_set_lua_regfunc(lua_State *L, void *dst, void *o);
 static int func_set_lua_registry(lua_State *L, void *dst, void *o);
 static int func_get_lua_registry(lua_State *L, void *dst, void *o);
 
@@ -207,6 +213,7 @@ static int func_get_highceilingsector(lua_State *L, void *dst, void *o);
 static int func_get_shortexfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_genericfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_genericceilingsector(lua_State *L, void *dst, void *o);
+static int func_get_genericcallsector(lua_State *L, void *dst, void *o);
 
 static int func_set_sectorheight(lua_State *L, void *dst, void *o);
 static int func_set_flattexture(lua_State *L, void *dst, void *o);
@@ -219,8 +226,16 @@ static int func_get_sideset(lua_State *L, void *dst, void *o);
 
 static int func_set_walltexture(lua_State *L, void *dst, void *o);
 static int func_get_walltexture(lua_State *L, void *dst, void *o);
-
+static int func_get_linedefsectorF(lua_State *L, void *dst, void *o);
+static int func_get_linedefsectorB(lua_State *L, void *dst, void *o);
 static int func_get_doswitchline(lua_State *L, void *dst, void *o);
+
+static int func_get_genericpltypef(lua_State *L, void *dst, void *o);
+static int func_get_genericpltypec(lua_State *L, void *dst, void *o);
+static int func_get_genericpltypel(lua_State *L, void *dst, void *o);
+static int func_get_genericplraising(lua_State *L, void *dst, void *o);
+static int func_get_genericpllowering(lua_State *L, void *dst, void *o);
+static int func_get_genericstop(lua_State *L, void *dst, void *o);
 
 // all exported LUA functions; TODO: split into stages
 static const luafunc_t lua_functions[] =
@@ -314,7 +329,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"species", offsetof(mobjinfo_t, species), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
 	{"flags", offsetof(mobjinfo_t, flags), LUA_TNUMBER},
-	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_registry, func_get_lua_registry},
+	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(mobjinfo_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
 	// states; keep same order as in 'mobjinfo_t'
 	{"_spawn", offsetof(mobjinfo_t, spawnstate), LUA_TTABLE, func_set_states},
@@ -425,6 +440,8 @@ static const lua_table_model_t lua_sector[] =
 	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
+	// action
+	{"func", offsetof(sector_t, specialdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	// functions
 	{"FindLowestFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_lowefloorsector},
 	{"FindHighestFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_highfloorsector},
@@ -433,6 +450,8 @@ static const lua_table_model_t lua_sector[] =
 	{"GetShortestTexture", 0, LUA_TFUNCTION, func_set_readonly, func_get_shortexfloorsector},
 	{"GenericFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericfloorsector},
 	{"GenericCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericceilingsector},
+	{"GenericCaller", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericcallsector},
+// TODO: ThingIterator
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
@@ -453,6 +472,8 @@ static const lua_table_model_t lua_linedef[] =
 	{"arg4", offsetof(line_t, arg)+4, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"tag", offsetof(line_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
 	// sectors
+	{"sectorFront", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorF},
+	{"sectorBack", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorB},
 	{"frontsector", offsetof(line_t, frontsector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	{"backsector", offsetof(line_t, backsector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	// functions
@@ -462,6 +483,43 @@ static const lua_table_model_t lua_linedef[] =
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
 	// extra
 	{"side", 0, LUA_TBOOLEAN, func_set_sideset, func_get_sideset},
+};
+
+// all generic plane values
+static const lua_table_model_t lua_genericplane[] =
+{
+	{"sector", offsetof(generic_plane_t, info) + offsetof(generic_info_t, sector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	{"speed", offsetof(generic_plane_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"action", offsetof(generic_plane_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
+	{"crush", offsetof(generic_plane_t, lua_crush), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
+	{"arg", offsetof(generic_plane_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
+	// special
+	{"isFloor", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypef},
+	{"isCeiling", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypec},
+	{"isCaller", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypel},
+	// plane movement
+	{"isRaising", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericplraising},
+	{"isLowering", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpllowering},
+	// functions
+	{"Stop", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericstop},
+};
+
+// all sector caller values; shares a lot with generic plane
+static const lua_table_model_t lua_sectorcall[] =
+{
+	{"sector", offsetof(generic_plane_t, info) + offsetof(generic_info_t, sector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	{"ticrate", offsetof(generic_plane_t, info) + offsetof(generic_call_t, ticrate), LUA_TNUMBER},
+	{"action", offsetof(generic_plane_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
+	{"arg", offsetof(generic_plane_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
+	// special
+	{"isFloor", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypef},
+	{"isCeiling", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypec},
+	{"isCaller", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypel},
+	// plane movement
+	{"isRaising", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericplraising},
+	{"isLowering", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpllowering},
+	// functions
+	{"Stop", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericstop},
 };
 
 // all pickup options
@@ -729,12 +787,26 @@ static int func_get_byte(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+static int func_set_lua_regfunc(lua_State *L, void *dst, void *o)
+{
+	int ref = *(int*)dst;
+
+	luaL_unref(L, LUA_REGISTRYINDEX, ref);
+
+	luaL_checktype(L, -1, LUA_TFUNCTION);
+
+	ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	*(int*)dst = ref;
+	lua_pushnil(L);
+
+	return 0;
+}
+
 static int func_set_lua_registry(lua_State *L, void *dst, void *o)
 {
 	int ref = *(int*)dst;
 
-	if(ref != LUA_REFNIL)
-		luaL_unref(L, LUA_REGISTRYINDEX, ref);
+	luaL_unref(L, LUA_REGISTRYINDEX, ref);
 
 	ref = luaL_ref(L, LUA_REGISTRYINDEX);
 	*(int*)dst = ref;
@@ -1235,6 +1307,14 @@ static int func_get_genericceilingsector(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return generic sector call function
+static int func_get_genericcallsector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_genericCallFromSector, 1);
+	return 1;
+}
+
 // change sector heights
 static int func_set_sectorheight(lua_State *L, void *dst, void *o)
 {
@@ -1243,7 +1323,7 @@ static int func_set_sectorheight(lua_State *L, void *dst, void *o)
 	num = lua_tonumber(L, -1);
 	*(int*)dst = (int)(num * (lua_Number)FRACUNIT);
 
-	P_ChangeSector(o, false);
+	P_ChangeSector(o, LUA_REFNIL, LUA_REFNIL);
 
 	return 0;
 }
@@ -1343,6 +1423,95 @@ static int func_get_doswitchline(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return sector of linedef from selected side
+static int func_get_linedefsectorF(lua_State *L, void *dst, void *o)
+{
+	line_t *l = o;
+	sector_t *s;
+
+	if(linedef_side)
+		s = l->backsector;
+	else
+		s = l->frontsector;
+
+	if(s)
+		lua_pushlightuserdata(L, s);
+	else
+		lua_pushnil(L);
+
+	return 1;
+}
+
+// return sector of linedef from selected side; return other sector
+static int func_get_linedefsectorB(lua_State *L, void *dst, void *o)
+{
+	line_t *l = o;
+	sector_t *s;
+
+	if(!linedef_side)
+		s = l->backsector;
+	else
+		s = l->frontsector;
+
+	if(s)
+		lua_pushlightuserdata(L, s);
+	else
+		lua_pushnil(L);
+
+	return 1;
+}
+
+// return generic plane type match
+static int func_get_genericpltypef(lua_State *L, void *dst, void *o)
+{
+	lua_pushboolean(L, ((generic_plane_t*)o)->thinker.function.acp1 == (actionf_p1)T_GenericFloor);
+	return 1;
+}
+
+// return generic plane type match
+static int func_get_genericpltypec(lua_State *L, void *dst, void *o)
+{
+	lua_pushboolean(L, ((generic_plane_t*)o)->thinker.function.acp1 == (actionf_p1)T_GenericCeiling);
+	return 1;
+}
+
+// return generic caller type match
+static int func_get_genericpltypel(lua_State *L, void *dst, void *o)
+{
+	lua_pushboolean(L, ((generic_plane_t*)o)->thinker.function.acp1 == (actionf_p1)T_GenericCaller);
+	return 1;
+}
+
+// return plane movement match
+static int func_get_genericplraising(lua_State *L, void *dst, void *o)
+{
+	generic_plane_t *gp = o;
+	if(gp->thinker.lua_type == TT_SECCALL)
+		lua_pushboolean(L, false);
+	else
+		lua_pushboolean(L, gp->info.startz < gp->info.stopz);
+	return 1;
+}
+
+// return plane movement match
+static int func_get_genericpllowering(lua_State *L, void *dst, void *o)
+{
+	generic_plane_t *gp = o;
+	if(gp->thinker.lua_type == TT_SECCALL)
+		lua_pushboolean(L, false);
+	else
+		lua_pushboolean(L, gp->info.startz > gp->info.stopz);
+	return 1;
+}
+
+// return generic plane / caller removal function
+static int func_get_genericstop(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_stopFromGeneric, 1);
+	return 1;
+}
+
 static int func_set_lumpname_optional(lua_State *L, void *dst, void *o)
 {
 	*(int*)dst = W_GetNumForNameLua(lua_tostring(L, -1), true);
@@ -1428,20 +1597,29 @@ mobj_t *LUA_GetMobjParam(lua_State *L, int idx, boolean allownull)
 	luaL_checktype(L, idx, LUA_TLIGHTUSERDATA);
 
 	if(!lua_getmetatable(L, idx))
-		return (void*)luaL_error(L, "mobj expected");
+	{
+		luaL_error(L, "mobj expected");
+		return 0;
+	}
 
 	lua_pushstring(L, "__index");
 	lua_rawget(L, -2);
 
 	if(lua_tocfunction(L, -1) != LUA_ThinkerIndex)
-		return (void*)luaL_error(L, "mobj expected");
+	{
+		luaL_error(L, "mobj expected");
+		return 0;
+	}
 
 	lua_pop(L, 2);
 
 	dest = lua_touserdata(L, idx);
 
 	if(dest->thinker.lua_type != TT_MOBJ)
-		return (void*)luaL_error(L, "mobj expected");
+	{
+		luaL_error(L, "mobj expected");
+		return 0;
+	}
 
 	return dest;
 }
@@ -1895,6 +2073,12 @@ static int LUA_ThinkerIndex(lua_State *L)
 		break;
 		case TT_LINE:
 			field = LUA_FieldByName(idx, lua_linedef, sizeof(lua_linedef) / sizeof(lua_table_model_t));
+		break;
+		case TT_GENPLANE:
+			field = LUA_FieldByName(idx, lua_genericplane, sizeof(lua_genericplane) / sizeof(lua_table_model_t));
+		break;
+		case TT_SECCALL:
+			field = LUA_FieldByName(idx, lua_sectorcall, sizeof(lua_sectorcall) / sizeof(lua_table_model_t));
 		break;
 		default:
 			return luaL_error(L, "unknown thinker type");
@@ -2817,6 +3001,66 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 		P_GenericSectorCeiling(&gen);
 	}
 
+	// return generic plane
+	if(gen.sector->specialdata)
+		lua_pushlightuserdata(L, gen.sector->specialdata);
+	else
+		lua_pushnil(L);
+
+	return 1;
+}
+
+static int LUA_genericCallFromSector(lua_State *L)
+{
+	generic_call_t gen;
+	int act, arg;
+	generic_plane_t *gp;
+
+	gen.sector = lua_touserdata(L, lua_upvalueindex(1));
+
+	// ticrate; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	gen.ticrate = lua_tointeger(L, 1);
+
+	// function; required
+	luaL_checktype(L, 2, LUA_TFUNCTION);
+
+	// create Generic caller
+	P_GenericSectorCaller(&gen);
+	gp = gen.sector->specialdata;
+
+	if(!gp)
+	{
+		lua_pushnil(L);
+		return 1;
+	}
+
+	// argument; optional
+	if(lua_gettop(L) > 2)
+		gp->lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set function
+	gp->lua_action = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// return generic caller
+	lua_pushlightuserdata(L, gp);
+
+	return 1;
+}
+
+static int LUA_stopFromGeneric(lua_State *L)
+{
+	generic_plane_t *gp;
+	sector_t *sec;
+
+	gp = lua_touserdata(L, lua_upvalueindex(1));
+	sec = gp->info.sector;
+
+	// remove action
+	L_FinishGeneric(sec->specialdata, true);
+	P_RemoveThinker(&gp->thinker);
+	sec->specialdata = NULL;
+
 	return 0;
 }
 
@@ -3141,12 +3385,8 @@ static int LUA_LineSpecIndex(lua_State *L)
 	{
 		// set func
 		luaL_checktype(L, 3, LUA_TFUNCTION);
-
-		if(linespec_table[spec] != LUA_REFNIL)
-			luaL_unref(L, LUA_REGISTRYINDEX, linespec_table[spec]);
-
+		luaL_unref(L, LUA_REGISTRYINDEX, linespec_table[spec]);
 		linespec_table[spec] = luaL_ref(L, LUA_REGISTRYINDEX);
-
 		return 0;
 	}
 
@@ -3315,7 +3555,7 @@ void L_LoadScript(int lump)
 		// export pickup returns
 		L_ExportIntegers(luaS_game, "pickup", lua_pickups, sizeof(lua_pickups) / sizeof(lua_intvalue_t));
 		// export line special activation type
-		L_ExportIntegers(luaS_game, "special", lua_linespec, sizeof(lua_linespec) / sizeof(lua_intvalue_t));
+		L_ExportIntegers(luaS_game, "lnspec", lua_linespec, sizeof(lua_linespec) / sizeof(lua_intvalue_t));
 	}
 	// setup script name
 	scriptdata = W_CacheLumpNum(lump);
@@ -3352,6 +3592,11 @@ static boolean cb_LuaLoad(int lump)
 	if(W_LumpLength(lump) > 3)
 		L_LoadScript(lump);
 	return false;
+}
+
+int L_NoRef()
+{
+	return LUA_REFNIL;
 }
 
 void L_Init()
@@ -3462,6 +3707,103 @@ int L_TouchSpecial(mobj_t *special, mobj_t *toucher)
 				ret |= SPECIAL_NOFLASH_FLAG;
 		}
 	}
+
+	lua_settop(luaS_game, 0);
+
+	return ret;
+}
+
+void L_FinishGeneric(generic_plane_t *gp, boolean forced)
+{
+	if(!forced && gp->lua_action != LUA_REFNIL)
+	{
+		generic_sector_removed = false;
+		// function to call
+		lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, gp->lua_action);
+		// sector to pass
+		lua_pushlightuserdata(luaS_game, gp->info.sector);
+		// parameter to pass
+		lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, gp->lua_arg);
+		// do the call
+		if(lua_pcall(luaS_game, 2, 0, 0))
+			// script error
+			I_Error("L_FinishGeneric: %s", lua_tostring(luaS_game, -1));
+		// check removal
+		if(generic_sector_removed)
+			// it was already removed and freed
+			return;
+	}
+	// unref action and argument
+	luaL_unref(luaS_game, LUA_REGISTRYINDEX, gp->lua_action);
+	luaL_unref(luaS_game, LUA_REGISTRYINDEX, gp->lua_arg);
+	luaL_unref(luaS_game, LUA_REGISTRYINDEX, gp->lua_crush);
+	gp->lua_action = LUA_REFNIL;
+	gp->lua_arg = LUA_REFNIL;
+	gp->lua_crush = LUA_REFNIL;
+	// mark as removed
+	generic_sector_removed = true;
+}
+
+void T_GenericCaller(generic_plane_t *gp)
+{
+	gp->call.curtics--;
+	if(!gp->call.curtics)
+	{
+		sector_t *sec = gp->info.sector;
+
+		generic_sector_removed = false;
+		// reset timer
+		if(gp->call.ticrate < 0)
+			gp->call.ticrate = TICRATE;
+		gp->call.curtics = gp->call.ticrate;
+		// function to call
+		lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, gp->lua_action);
+		// caller to pass
+		lua_pushlightuserdata(luaS_game, gp);
+		// parameter to pass
+		lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, gp->lua_arg);
+		// do the call
+		if(lua_pcall(luaS_game, 2, 1, 0))
+			// script error
+			I_Error("T_GenericCaller: %s", lua_tostring(luaS_game, -1));
+		// check removal
+		if(generic_sector_removed)
+		{
+			// it was already removed and freed
+			lua_settop(luaS_game, 0);
+			return;
+		}
+		// check continue
+		if(lua_type(luaS_game, 1) != LUA_TBOOLEAN || !lua_toboolean(luaS_game, 1))
+		{
+			// remove caller
+			L_FinishGeneric(sec->specialdata, true);
+			P_RemoveThinker(&gp->thinker);
+			sec->specialdata = NULL;
+		}
+		lua_settop(luaS_game, 0);
+	}
+}
+
+boolean L_CrushThing(mobj_t *th, sector_t *sec, int lfunc, int larg)
+{
+	boolean ret = false;
+
+	// function to call
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, lfunc);
+	// thing to pass
+	lua_pushlightuserdata(luaS_game, th);
+	// caller to pass
+	lua_pushlightuserdata(luaS_game, sec->specialdata);
+	// parameter to pass
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, larg);
+	// do the call
+	if(lua_pcall(luaS_game, 3, 1, 0))
+		// script error
+		I_Error("L_CrushThing: %s", lua_tostring(luaS_game, -1));
+
+	if(lua_type(luaS_game, 1) == LUA_TBOOLEAN)
+		ret = lua_toboolean(luaS_game, 1);
 
 	lua_settop(luaS_game, 0);
 
@@ -3586,7 +3928,7 @@ boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)
 	// line to pass
 	lua_pushlightuserdata(luaS_game, line);
 	// side to pass
-	lua_pushinteger(luaS_game, side);
+	lua_pushboolean(luaS_game, !side);
 	// activation to pass
 	lua_pushinteger(luaS_game, act);
 	// do the call
