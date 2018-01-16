@@ -2332,12 +2332,12 @@ static int LUA_attackAim(lua_State *L)
 	if(source->player && !dest)
 	{
 		// player aim
-		angle = source->angle;
 		if(sv_freeaim)
 		{
 			slope = source->pitch;
 		} else
 		{
+			angle = source->angle;
 			slope = P_AimLineAttack (source, angle, 16*64*FRACUNIT, NULL);
 
 			if (!linetarget)
