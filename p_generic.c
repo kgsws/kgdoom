@@ -11,6 +11,8 @@
 
 #include "kg_lua.h"
 
+generic_plane_t *crush_gp;
+
 //
 // Ceiling
 //
@@ -19,6 +21,8 @@ void T_GenericCeiling(generic_plane_t *gp)
 {
 	fixed_t speed;
 	sector_t *sec = gp->info.sector;
+
+	crush_gp = gp;
 
 	if(gp->info.startz < gp->info.stopz)
 	{
@@ -58,7 +62,7 @@ void T_GenericCeiling(generic_plane_t *gp)
 	{
 		if(gp->info.stopsound)
 			S_StartSound((mobj_t *)&sec->soundorg, gp->info.stopsound, SOUND_BODY);
-		sec->specialdata = NULL;
+		sec->ceilingdata = NULL;
 		sec->ceilingpic = gp->info.stoppic;
 		L_FinishGeneric(gp, false);
 		P_RemoveThinker(&gp->thinker);
@@ -69,19 +73,19 @@ void T_GenericCeiling(generic_plane_t *gp)
 	}
 }
 
-void P_GenericSectorCeiling(generic_info_t *info)
+generic_plane_t *P_GenericSectorCeiling(generic_info_t *info)
 {
 	generic_plane_t *gp;
 
 	// remove old one
-	if(info->sector->specialdata)
+	if(info->sector->ceilingdata)
 	{
-		L_FinishGeneric(info->sector->specialdata, true);
-		P_RemoveThinker(info->sector->specialdata);
+		L_FinishGeneric(info->sector->ceilingdata, true);
+		P_RemoveThinker(info->sector->ceilingdata);
 	}
 	// check speed
 	if(info->speed <= 0)
-		return;
+		return NULL;
 	// add new one
 	gp = Z_Malloc(sizeof(generic_plane_t), PU_LEVSPEC, 0);
 	P_AddThinker(&gp->thinker, TT_GENPLANE);
@@ -90,13 +94,16 @@ void P_GenericSectorCeiling(generic_info_t *info)
 	gp->lua_action = L_NoRef();
 	gp->lua_arg = L_NoRef();
 	gp->lua_crush = L_NoRef();
-	info->sector->specialdata = gp;
+	info->sector->ceilingdata = gp;
 	// set starting parameters
+	gp->gp = &info->sector->ceilingdata;
 	gp->speed = gp->info.speed;
 	info->sector->ceilingheight = info->startz;
 	info->sector->ceilingpic = info->startpic;
 	if(info->startsound)
 		S_StartSound((mobj_t *)&info->sector->soundorg, info->startsound, SOUND_BODY);
+
+	return gp;
 }
 
 //
@@ -107,6 +114,8 @@ void T_GenericFloor(generic_plane_t *gp)
 {
 	fixed_t speed;
 	sector_t *sec = gp->info.sector;
+
+	crush_gp = gp;
 
 	if(gp->info.startz > gp->info.stopz)
 	{
@@ -146,7 +155,7 @@ void T_GenericFloor(generic_plane_t *gp)
 	{
 		if(gp->info.stopsound)
 			S_StartSound((mobj_t *)&sec->soundorg, gp->info.stopsound, SOUND_BODY);
-		sec->specialdata = NULL;
+		sec->floordata = NULL;
 		sec->floorpic = gp->info.stoppic;
 		L_FinishGeneric(gp, false);
 		P_RemoveThinker(&gp->thinker);
@@ -157,19 +166,19 @@ void T_GenericFloor(generic_plane_t *gp)
 	}
 }
 
-void P_GenericSectorFloor(generic_info_t *info)
+generic_plane_t *P_GenericSectorFloor(generic_info_t *info)
 {
 	generic_plane_t *gp;
 
 	// remove old one
-	if(info->sector->specialdata)
+	if(info->sector->floordata)
 	{
-		L_FinishGeneric(info->sector->specialdata, true);
-		P_RemoveThinker(info->sector->specialdata);
+		L_FinishGeneric(info->sector->floordata, true);
+		P_RemoveThinker(info->sector->floordata);
 	}
 	// check speed
 	if(info->speed <= 0)
-		return;
+		return NULL;
 	// add new one
 	gp = Z_Malloc(sizeof(generic_plane_t), PU_LEVSPEC, 0);
 	P_AddThinker(&gp->thinker, TT_GENPLANE);
@@ -178,32 +187,38 @@ void P_GenericSectorFloor(generic_info_t *info)
 	gp->lua_action = L_NoRef();
 	gp->lua_arg = L_NoRef();
 	gp->lua_crush = L_NoRef();
-	info->sector->specialdata = gp;
+	info->sector->floordata = gp;
 	// set starting parameters
+	gp->gp = &info->sector->floordata;
 	gp->speed = gp->info.speed;
 	info->sector->floorheight = info->startz;
 	info->sector->floorpic = info->startpic;
 	if(info->startsound)
 		S_StartSound((mobj_t *)&info->sector->soundorg, info->startsound, SOUND_BODY);
+
+	return gp;
 }
 
 //
 // Caller
 //
 
-void P_GenericSectorCaller(generic_call_t *info)
+generic_plane_t *P_GenericSectorCaller(generic_call_t *info, int dest)
 {
 	generic_plane_t *gp;
+	generic_plane_t **ptr = (generic_plane_t **)&info->sector->floordata;
+
+	ptr += dest;
 
 	// remove old one
-	if(info->sector->specialdata)
+	if(*ptr)
 	{
-		L_FinishGeneric(info->sector->specialdata, true);
-		P_RemoveThinker(info->sector->specialdata);
+		L_FinishGeneric(*ptr, true);
+		P_RemoveThinker((thinker_t*)*ptr);
 	}
 	// check ticrate
 	if(info->ticrate <= 0)
-		return;
+		return NULL;
 	// add new one
 	gp = Z_Malloc(sizeof(generic_plane_t), PU_LEVSPEC, 0);
 	P_AddThinker(&gp->thinker, TT_SECCALL);
@@ -212,8 +227,11 @@ void P_GenericSectorCaller(generic_call_t *info)
 	gp->lua_action = L_NoRef();
 	gp->lua_arg = L_NoRef();
 	gp->lua_crush = L_NoRef();
-	info->sector->specialdata = gp;
+	*ptr = gp;
 	// set starting parameters
+	gp->gp = (void**)ptr;
 	gp->call.curtics = gp->call.ticrate;
+
+	return gp;
 }
 

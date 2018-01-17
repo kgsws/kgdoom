@@ -106,7 +106,9 @@ typedef	struct
     mobj_t*	thinglist;
 
     // thinker_t for reversable actions
-    void*	specialdata;
+    void*	floordata;
+    void*	ceilingdata;
+    void*	customdata;
 
     int			linecount;
     struct line_s**	lines;	// [linecount] size
@@ -194,7 +196,7 @@ typedef struct line_s
     int		validcount;
 
     // thinker_t for reversable actions
-    void*	specialdata;		
+    void*	specialdata;
 } line_t;
 
 

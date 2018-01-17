@@ -25,6 +25,7 @@ typedef struct
 typedef struct
 {
 	thinker_t thinker;
+	void **gp; // pointer to origin (floor / ceiling / custom) in sector
 	union {
 		generic_info_t info;
 		generic_call_t call;
@@ -35,12 +36,14 @@ typedef struct
 	int lua_crush; // Lua function to call on crush
 } generic_plane_t;
 
+extern generic_plane_t *crush_gp;
+
 void T_GenericCeiling(generic_plane_t *gp);
-void P_GenericSectorCeiling(generic_info_t *info);
+generic_plane_t *P_GenericSectorCeiling(generic_info_t *info);
 
 void T_GenericFloor(generic_plane_t *gp);
-void P_GenericSectorFloor(generic_info_t *info);
+generic_plane_t *P_GenericSectorFloor(generic_info_t *info);
 
 void T_GenericCaller(generic_plane_t *gp);
-void P_GenericSectorCaller(generic_call_t *info);
+generic_plane_t *P_GenericSectorCaller(generic_call_t *info, int dest);
 

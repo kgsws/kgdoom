@@ -271,7 +271,7 @@ fixed_t	P_FindHighestFloorSurrounding(sector_t *sec)
     int			i;
     line_t*		check;
     sector_t*		other;
-    fixed_t		floor = -500*FRACUNIT;
+    fixed_t		floor = ONFLOORZ;
 	
     for (i=0 ;i < sec->linecount ; i++)
     {
@@ -299,15 +299,14 @@ fixed_t	P_FindHighestFloorSurrounding(sector_t *sec)
 
 fixed_t
 P_FindNextHighestFloor
-( sector_t*	sec,
-  int		currentheight )
+( sector_t*	sec)
 {
     int			i;
     int			h;
     int			min;
     line_t*		check;
     sector_t*		other;
-    fixed_t		height = currentheight;
+    fixed_t		height = sec->floorheight;
 
     
     fixed_t		heightlist[MAX_ADJOINING_SECTORS];		
@@ -333,7 +332,7 @@ P_FindNextHighestFloor
     
     // Find lowest height in list
     if (!h)
-	return currentheight;
+	return sec->floorheight;
 		
     min = heightlist[0];
     
@@ -486,7 +485,7 @@ P_aShootSpecialLine
 //
 void P_PlayerInSpecialSector (player_t* player)
 {
-    sector_t*	sector;
+/*    sector_t*	sector;
 	
     sector = player->mo->subsector->sector;
 
@@ -541,11 +540,8 @@ void P_PlayerInSpecialSector (player_t* player)
 	break;
 			
       default:
-/*	I_Error ("P_PlayerInSpecialSector: "
-		 "unknown special %i",
-		 sector->special);*/
 	break;
-    };
+    };*/
 }
 
 

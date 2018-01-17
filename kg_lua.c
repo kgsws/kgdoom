@@ -86,6 +86,7 @@ int linedef_side;
 
 static int generic_sector_removed;
 
+static lua_State *luaS_PIT;
 static int block_lua_func;
 static int block_lua_arg;
 static int block_lua_x0;
@@ -139,13 +140,12 @@ static int LUA_setPlayerWeapon(lua_State *L);
 static int LUA_playerRefireWeapon(lua_State *L);
 static int LUA_playerFlashWeapon(lua_State *L);
 
-static int LUA_lowFloorFromSector(lua_State *L);
-static int LUA_highFloorFromSector(lua_State *L);
-static int LUA_lowCeilingFromSector(lua_State *L);
-static int LUA_highCeilingFromSector(lua_State *L);
+static int LUA_heightFromSector(lua_State *L);
 static int LUA_shortTexFromSector(lua_State *L);
 static int LUA_genericPlaneFromSector(lua_State *L);
 static int LUA_genericCallFromSector(lua_State *L);
+static int LUA_sectorThingIterator(lua_State *L);
+static int LUA_sectorLineIterator(lua_State *L);
 
 static int LUA_stopFromGeneric(lua_State *L);
 
@@ -208,12 +208,17 @@ static int func_playerwflash(lua_State *L, void *dst, void *o);
 
 static int func_get_lowefloorsector(lua_State *L, void *dst, void *o);
 static int func_get_highfloorsector(lua_State *L, void *dst, void *o);
+static int func_get_nextfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_loweceilingsector(lua_State *L, void *dst, void *o);
 static int func_get_highceilingsector(lua_State *L, void *dst, void *o);
 static int func_get_shortexfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_genericfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_genericceilingsector(lua_State *L, void *dst, void *o);
+static int func_get_genericcallsectorfloor(lua_State *L, void *dst, void *o);
+static int func_get_genericcallsectorceiling(lua_State *L, void *dst, void *o);
 static int func_get_genericcallsector(lua_State *L, void *dst, void *o);
+static int func_get_thingitersector(lua_State *L, void *dst, void *o);
+static int func_get_lineitersector(lua_State *L, void *dst, void *o);
 
 static int func_set_sectorheight(lua_State *L, void *dst, void *o);
 static int func_set_flattexture(lua_State *L, void *dst, void *o);
@@ -441,17 +446,23 @@ static const lua_table_model_t lua_sector[] =
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
 	// action
-	{"func", offsetof(sector_t, specialdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	{"funcFloor", offsetof(sector_t, floordata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	{"funcCeiling", offsetof(sector_t, ceilingdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	{"funcCustom", offsetof(sector_t, customdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	// functions
 	{"FindLowestFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_lowefloorsector},
 	{"FindHighestFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_highfloorsector},
+	{"FindNextFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_nextfloorsector},
 	{"FindLowestCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_loweceilingsector},
 	{"FindHighestCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_highceilingsector},
 	{"GetShortestTexture", 0, LUA_TFUNCTION, func_set_readonly, func_get_shortexfloorsector},
 	{"GenericFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericfloorsector},
 	{"GenericCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericceilingsector},
+	{"GenericCallerFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericcallsectorfloor},
+	{"GenericCallerCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericcallsectorceiling},
 	{"GenericCaller", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericcallsector},
-// TODO: ThingIterator
+	{"ThingIterator", 0, LUA_TFUNCTION, func_set_readonly, func_get_thingitersector},
+	{"LineIterator", 0, LUA_TFUNCTION, func_set_readonly, func_get_lineitersector},
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
@@ -1253,7 +1264,8 @@ static int func_playerwflash(lua_State *L, void *dst, void *o)
 static int func_get_lowefloorsector(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
-	lua_pushcclosure(L, LUA_lowFloorFromSector, 1);
+	lua_pushlightuserdata(L, P_FindLowestFloorSurrounding);
+	lua_pushcclosure(L, LUA_heightFromSector, 2);
 	return 1;
 }
 
@@ -1261,7 +1273,17 @@ static int func_get_lowefloorsector(lua_State *L, void *dst, void *o)
 static int func_get_highfloorsector(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
-	lua_pushcclosure(L, LUA_highFloorFromSector, 1);
+	lua_pushlightuserdata(L, P_FindHighestFloorSurrounding);
+	lua_pushcclosure(L, LUA_heightFromSector, 2);
+	return 1;
+}
+
+// return floor search function
+static int func_get_nextfloorsector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushlightuserdata(L, P_FindNextHighestFloor);
+	lua_pushcclosure(L, LUA_heightFromSector, 2);
 	return 1;
 }
 
@@ -1269,7 +1291,8 @@ static int func_get_highfloorsector(lua_State *L, void *dst, void *o)
 static int func_get_loweceilingsector(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
-	lua_pushcclosure(L, LUA_lowCeilingFromSector, 1);
+	lua_pushlightuserdata(L, P_FindLowestCeilingSurrounding);
+	lua_pushcclosure(L, LUA_heightFromSector, 2);
 	return 1;
 }
 
@@ -1277,7 +1300,8 @@ static int func_get_loweceilingsector(lua_State *L, void *dst, void *o)
 static int func_get_highceilingsector(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
-	lua_pushcclosure(L, LUA_highCeilingFromSector, 1);
+	lua_pushlightuserdata(L, P_FindHighestCeilingSurrounding);
+	lua_pushcclosure(L, LUA_heightFromSector, 2);
 	return 1;
 }
 
@@ -1307,11 +1331,46 @@ static int func_get_genericceilingsector(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
-// return generic sector call function
+// return generic sector call function (floor)
+static int func_get_genericcallsectorfloor(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushinteger(L, 0);
+	lua_pushcclosure(L, LUA_genericCallFromSector, 2);
+	return 1;
+}
+
+// return generic sector call function (ceiling)
+static int func_get_genericcallsectorceiling(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushinteger(L, 1);
+	lua_pushcclosure(L, LUA_genericCallFromSector, 2);
+	return 1;
+}
+
+// return generic sector call function (custom)
 static int func_get_genericcallsector(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
-	lua_pushcclosure(L, LUA_genericCallFromSector, 1);
+	lua_pushinteger(L, 2);
+	lua_pushcclosure(L, LUA_genericCallFromSector, 2);
+	return 1;
+}
+
+// return sector line iterator function
+static int func_get_thingitersector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_sectorThingIterator, 1);
+	return 1;
+}
+
+// return sector line iterator function
+static int func_get_lineitersector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_sectorLineIterator, 1);
 	return 1;
 }
 
@@ -1881,6 +1940,8 @@ static int LUA_blockThingsIterator(lua_State *L)
 	xe = (xe - bmaporgx)>>MAPBLOCKSHIFT;
 	y = (y - bmaporgy)>>MAPBLOCKSHIFT;
 	ye = (ye - bmaporgy)>>MAPBLOCKSHIFT;
+
+	luaS_PIT = L;
 
 	for(bx = x; bx <= xe; bx++)
 		for(by = y; by <= ye; by++)
@@ -2928,6 +2989,7 @@ static int LUA_playerFlashWeapon(lua_State *L)
 
 static int LUA_genericPlaneFromSector(lua_State *L)
 {
+	generic_plane_t *gp;
 	generic_info_t gen;
 	int top = lua_gettop(L);
 	boolean floor;
@@ -2946,7 +3008,7 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 		gen.speed = -gen.speed;
 
 	// crush speed; optional
-	if(top > 2)
+	if(top > 2 && lua_type(L, 3) != LUA_TNIL)
 	{
 		luaL_checktype(L, 3, LUA_TNUMBER);
 		gen.crushspeed = (fixed_t)lua_tonumber(L, 3) * (lua_Number)FRACUNIT;
@@ -2955,21 +3017,21 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 	}
 
 	// sounds; optional
-	if(top > 3)
+	if(top > 3 && lua_type(L, 4) != LUA_TNIL)
 	{
 		luaL_checktype(L, 4, LUA_TSTRING);
 		gen.startsound = W_GetNumForNameLua(lua_tostring(L, 4), true);
 	} else
 		gen.startsound = 0;
 
-	if(top > 4)
+	if(top > 4 && lua_type(L, 5) != LUA_TNIL)
 	{
 		luaL_checktype(L, 5, LUA_TSTRING);
 		gen.stopsound = W_GetNumForNameLua(lua_tostring(L, 5), true);
 	} else
 		gen.stopsound = 0;
 
-	if(top > 5)
+	if(top > 5 && lua_type(L, 6) != LUA_TNIL)
 	{
 		luaL_checktype(L, 6, LUA_TSTRING);
 		gen.movesound = W_GetNumForNameLua(lua_tostring(L, 6), true);
@@ -2977,7 +3039,7 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 		gen.movesound = 0;
 
 	// texture; optional
-	if(top > 6)
+	if(top > 6 && lua_type(L, 7) != LUA_TNIL)
 	{
 		luaL_checktype(L, 7, LUA_TSTRING);
 		char temp[8];
@@ -2993,17 +3055,17 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 	{
 		gen.startpic = gen.sector->floorpic;
 		gen.startz = gen.sector->floorheight;
-		P_GenericSectorFloor(&gen);
+		gp = P_GenericSectorFloor(&gen);
 	} else
 	{
 		gen.startpic = gen.sector->ceilingpic;
 		gen.startz = gen.sector->ceilingheight;
-		P_GenericSectorCeiling(&gen);
+		gp = P_GenericSectorCeiling(&gen);
 	}
 
 	// return generic plane
-	if(gen.sector->specialdata)
-		lua_pushlightuserdata(L, gen.sector->specialdata);
+	if(gp)
+		lua_pushlightuserdata(L, gp);
 	else
 		lua_pushnil(L);
 
@@ -3013,10 +3075,11 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 static int LUA_genericCallFromSector(lua_State *L)
 {
 	generic_call_t gen;
-	int act, arg;
+	int act, arg, dest;
 	generic_plane_t *gp;
 
 	gen.sector = lua_touserdata(L, lua_upvalueindex(1));
+	dest = lua_tointeger(L, lua_upvalueindex(2));
 
 	// ticrate; required
 	luaL_checktype(L, 1, LUA_TNUMBER);
@@ -3026,8 +3089,7 @@ static int LUA_genericCallFromSector(lua_State *L)
 	luaL_checktype(L, 2, LUA_TFUNCTION);
 
 	// create Generic caller
-	P_GenericSectorCaller(&gen);
-	gp = gen.sector->specialdata;
+	gp = P_GenericSectorCaller(&gen, dest);
 
 	if(!gp)
 	{
@@ -3048,6 +3110,72 @@ static int LUA_genericCallFromSector(lua_State *L)
 	return 1;
 }
 
+static int LUA_sectorLineIterator(lua_State *L)
+{
+	int i, ret;
+	sector_t *sec;
+	int lua_func;
+	int lua_arg = LUA_REFNIL;
+
+	// function; required
+	luaL_checktype(L, 1, LUA_TFUNCTION);
+
+	// argument; optional
+	if(lua_gettop(L) > 1)
+		lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	// set function
+	lua_func = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	sec = lua_touserdata(L, lua_upvalueindex(1));
+
+	// reset stack
+	lua_settop(L, 0);
+
+	for(i = 0; i < sec->linecount; i++)
+	{
+		// function to call
+		lua_rawgeti(L, LUA_REGISTRYINDEX, lua_func);
+		// line to pass
+		lua_pushlightuserdata(L, sec->lines[i]);
+		// parameter to pass
+		lua_rawgeti(L, LUA_REGISTRYINDEX, lua_arg);
+		// do the call
+		if(lua_pcall(L, 2, LUA_MULTRET, 0))
+			// script error
+			return luaL_error(L, "LineIterator: %s", lua_tostring(luaS_game, -1));
+
+		if(lua_gettop(L) == 0)
+			// no return means continue
+			continue;
+
+		// first return has to be continue flag
+		luaL_checktype(L, 1, LUA_TBOOLEAN);
+		ret = lua_toboolean(L, 1);
+
+		if(ret)
+			// iteration will continue, discard all returns
+			lua_settop(L, 0);
+		else
+		{
+			// remove only this flag, rest will get returned
+			lua_remove(L, 1);
+			break;
+		}
+	}
+
+	luaL_unref(L, LUA_REGISTRYINDEX, lua_func);
+	luaL_unref(L, LUA_REGISTRYINDEX, lua_arg);
+
+	return lua_gettop(L);
+}
+
+static int LUA_sectorThingIterator(lua_State *L)
+{
+	// TODO
+	return 0;
+}
+
 static int LUA_stopFromGeneric(lua_State *L)
 {
 	generic_plane_t *gp;
@@ -3057,9 +3185,9 @@ static int LUA_stopFromGeneric(lua_State *L)
 	sec = gp->info.sector;
 
 	// remove action
-	L_FinishGeneric(sec->specialdata, true);
+	L_FinishGeneric(*gp->gp, true);
+	*gp->gp = NULL;
 	P_RemoveThinker(&gp->thinker);
-	sec->specialdata = NULL;
 
 	return 0;
 }
@@ -3125,112 +3253,16 @@ static int LUA_doSwitchTextureLine(lua_State *L)
 	return 0;
 }
 
-static int LUA_lowFloorFromSector(lua_State *L)
+static int LUA_heightFromSector(lua_State *L)
 {
-	int i;
-	sector_t *sec, *next;
+	fixed_t (*func)(sector_t*);
+	sector_t *sec;
 	fixed_t height;
 
 	sec = lua_touserdata(L, lua_upvalueindex(1));
+	func = lua_touserdata(L, lua_upvalueindex(2));
 
-	if(!sec->linecount)
-	{
-		lua_pushnumber(L, sec->floorheight / (lua_Number)FRACUNIT);
-		return 1;
-	}
-
-	height = ONCEILINGZ;
-
-	for(i = 0; i < sec->linecount; i++)
-	{
-		next = getNextSector(sec->lines[i], sec);
-		if(next && next->floorheight < height)
-			height = next->floorheight;
-	}
-
-	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
-
-	return 1;
-}
-
-static int LUA_highFloorFromSector(lua_State *L)
-{
-	int i;
-	sector_t *sec, *next;
-	fixed_t height;
-
-	sec = lua_touserdata(L, lua_upvalueindex(1));
-
-	if(!sec->linecount)
-	{
-		lua_pushnumber(L, sec->floorheight / (lua_Number)FRACUNIT);
-		return 1;
-	}
-
-	height = ONFLOORZ;
-
-	for(i = 0; i < sec->linecount; i++)
-	{
-		next = getNextSector(sec->lines[i], sec);
-		if(next && next->floorheight > height)
-			height = next->floorheight;
-	}
-
-	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
-
-	return 1;
-}
-
-static int LUA_lowCeilingFromSector(lua_State *L)
-{
-	int i;
-	sector_t *sec, *next;
-	fixed_t height;
-
-	sec = lua_touserdata(L, lua_upvalueindex(1));
-
-	if(!sec->linecount)
-	{
-		lua_pushnumber(L, sec->ceilingheight / (lua_Number)FRACUNIT);
-		return 1;
-	}
-
-	height = ONCEILINGZ;
-
-	for(i = 0; i < sec->linecount; i++)
-	{
-		next = getNextSector(sec->lines[i], sec);
-		if(next && next->ceilingheight < height)
-			height = next->ceilingheight;
-	}
-
-	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
-
-	return 1;
-}
-
-static int LUA_highCeilingFromSector(lua_State *L)
-{
-	int i;
-	sector_t *sec, *next;
-	fixed_t height;
-
-	sec = lua_touserdata(L, lua_upvalueindex(1));
-
-	if(!sec->linecount)
-	{
-		lua_pushnumber(L, sec->ceilingheight / (lua_Number)FRACUNIT);
-		return 1;
-	}
-
-	height = ONFLOORZ;
-
-	for(i = 0; i < sec->linecount; i++)
-	{
-		next = getNextSector(sec->lines[i], sec);
-		if(next && next->ceilingheight > height)
-			height = next->ceilingheight;
-	}
+	height = func(sec);
 
 	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
 
@@ -3715,6 +3747,8 @@ int L_TouchSpecial(mobj_t *special, mobj_t *toucher)
 
 void L_FinishGeneric(generic_plane_t *gp, boolean forced)
 {
+	if(crush_gp == gp)
+		crush_gp = NULL;
 	if(!forced && gp->lua_action != LUA_REFNIL)
 	{
 		generic_sector_removed = false;
@@ -3777,9 +3811,9 @@ void T_GenericCaller(generic_plane_t *gp)
 		if(lua_type(luaS_game, 1) != LUA_TBOOLEAN || !lua_toboolean(luaS_game, 1))
 		{
 			// remove caller
-			L_FinishGeneric(sec->specialdata, true);
+			L_FinishGeneric(*gp->gp, true);
+			*gp->gp = NULL;
 			P_RemoveThinker(&gp->thinker);
-			sec->specialdata = NULL;
 		}
 		lua_settop(luaS_game, 0);
 	}
@@ -3794,7 +3828,10 @@ boolean L_CrushThing(mobj_t *th, sector_t *sec, int lfunc, int larg)
 	// thing to pass
 	lua_pushlightuserdata(luaS_game, th);
 	// caller to pass
-	lua_pushlightuserdata(luaS_game, sec->specialdata);
+	if(crush_gp)
+		lua_pushlightuserdata(luaS_game, crush_gp);
+	else
+		lua_pushnil(luaS_game);
 	// parameter to pass
 	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, larg);
 	// do the call
@@ -3963,30 +4000,30 @@ boolean PIT_LuaCheckThing(mobj_t *thing)
 		return true;
 
 	// function to call
-	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, block_lua_func);
+	lua_rawgeti(luaS_PIT, LUA_REGISTRYINDEX, block_lua_func);
 	// mobj to pass
-	lua_pushlightuserdata(luaS_game, thing);
+	lua_pushlightuserdata(luaS_PIT, thing);
 	// parameter to pass
-	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, block_lua_arg);
+	lua_rawgeti(luaS_PIT, LUA_REGISTRYINDEX, block_lua_arg);
 	// do the call
-	if(lua_pcall(luaS_game, 2, LUA_MULTRET, 0))
+	if(lua_pcall(luaS_PIT, 2, LUA_MULTRET, 0))
 		// script error
-		return luaL_error(luaS_game, "ThingsIterator: %s", lua_tostring(luaS_game, -1));
+		return luaL_error(luaS_PIT, "ThingsIterator: %s", lua_tostring(luaS_PIT, -1));
 
-	if(lua_gettop(luaS_game) == 0)
+	if(lua_gettop(luaS_PIT) == 0)
 		// no return means continue
 		return true;
 
 	// first return has to be continue flag
-	luaL_checktype(luaS_game, 1, LUA_TBOOLEAN);
-	ret = lua_toboolean(luaS_game, 1);
+	luaL_checktype(luaS_PIT, 1, LUA_TBOOLEAN);
+	ret = lua_toboolean(luaS_PIT, 1);
 
 	if(ret)
 		// iteration will continue, discard all returns
-		lua_settop(luaS_game, 0);
+		lua_settop(luaS_PIT, 0);
 	else
 		// remove only this flag, rest will get returned
-		lua_remove(luaS_game, 1);
+		lua_remove(luaS_PIT, 1);
 
 	return ret;
 }
