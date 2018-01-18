@@ -732,6 +732,7 @@ P_SetupLevel
     int		i;
     char	lumpname[9];
     int		lumpnum;
+    thinker_t *think;
 	
     totalkills = totalitems = totalsecret = wminfo.maxfrags = 0;
     wminfo.partime = 180;
@@ -748,16 +749,20 @@ P_SetupLevel
     // Make sure all sounds are stopped before Z_FreeTags.
     S_Start ();			
 
-    // [kg] cleanup old MOBJs
-    thinker_t *think;
-
+    // [kg] cleanup old thinkers
     if(thinkercap.next)
     for(think = thinkercap.next; think != &thinkercap; think = think->next)
     {
-	if(think->lua_type != TT_MOBJ)
-	    // not a mobj thinker
-	    continue;
-	P_RemoveInventory((mobj_t*)think);
+	switch(think->lua_type)
+	{
+		case TT_MOBJ:
+			P_RemoveInventory((mobj_t*)think);
+		break;
+		case TT_GENPLANE:
+		case TT_SECCALL:
+			L_FinishGeneric((generic_plane_t*)think, true);
+		break;
+	}
     }
 
     Z_FreeTags (PU_LEVEL, PU_PURGELEVEL-1);

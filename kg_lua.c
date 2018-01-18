@@ -105,7 +105,6 @@ static int LUA_ThinkerIndex(lua_State *L);
 static int LUA_print(lua_State *L);
 static int LUA_createMobjType(lua_State *L);
 static int LUA_setPlayerType(lua_State *L);
-static int LUA_setDoomTeleportType(lua_State *L);
 static int LUA_doomRandom(lua_State *L);
 static int LUA_spawnMobj(lua_State *L);
 static int LUA_blockThingsIterator(lua_State *L);
@@ -242,14 +241,13 @@ static int func_get_genericplraising(lua_State *L, void *dst, void *o);
 static int func_get_genericpllowering(lua_State *L, void *dst, void *o);
 static int func_get_genericstop(lua_State *L, void *dst, void *o);
 
-// all exported LUA functions; TODO: split into stages
+// all exported LUA functions
 static const luafunc_t lua_functions[] =
 {
 	{"print", LUA_print, LUA_EXPORT_SETUP | LUA_EXPORT_LEVEL},
 	// loading stage
 	{"createMobjType", LUA_createMobjType, LUA_EXPORT_SETUP},
 	{"setPlayerType", LUA_setPlayerType, LUA_EXPORT_SETUP},
-	{"setDoomTeleportType", LUA_setDoomTeleportType, LUA_EXPORT_SETUP},
 	// map stage
 	{"doomRandom", LUA_doomRandom, LUA_EXPORT_SETUP | LUA_EXPORT_LEVEL},
 	{"spawnMobj", LUA_spawnMobj, LUA_EXPORT_LEVEL},
@@ -558,6 +556,20 @@ lua_intvalue_t lua_linespec[] =
 //
 // debug
 
+#define LUA_DebugRef(r, f)	LUA_DebugRefTxt(r, f, __FUNCTION__)
+
+void LUA_DebugRefTxt(int ref, boolean free, const char *func)
+{
+	const char *text;
+
+	if(free)
+		text = "LuaRef: free %i at %s\n";
+	else
+		text = "LuaRef: ref %i at %s\n";
+
+	printf(text, ref, func);
+}
+
 static void LUA_DumpTable(lua_State *L, int depth)
 {
 	char temp[depth*2+1];
@@ -699,6 +711,7 @@ static int state_add(lua_State *L)
 		break;
 		case LUA_TFUNCTION:
 			st.func = luaL_ref(L, LUA_REGISTRYINDEX);
+			LUA_DebugRef(st.func, false);
 		break;
 		default:
 			return luaL_error(L, "invalid state function");
@@ -802,11 +815,13 @@ static int func_set_lua_regfunc(lua_State *L, void *dst, void *o)
 {
 	int ref = *(int*)dst;
 
+	LUA_DebugRef(ref, true);
 	luaL_unref(L, LUA_REGISTRYINDEX, ref);
 
 	luaL_checktype(L, -1, LUA_TFUNCTION);
 
 	ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(ref, false);
 	*(int*)dst = ref;
 	lua_pushnil(L);
 
@@ -817,9 +832,11 @@ static int func_set_lua_registry(lua_State *L, void *dst, void *o)
 {
 	int ref = *(int*)dst;
 
+	LUA_DebugRef(ref, true);
 	luaL_unref(L, LUA_REGISTRYINDEX, ref);
 
 	ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(ref, false);
 	*(int*)dst = ref;
 	lua_pushnil(L);
 
@@ -1756,12 +1773,6 @@ static int LUA_setPlayerType(lua_State *L)
 	return 0;
 }
 
-static int LUA_setDoomTeleportType(lua_State *L)
-{
-	MT_TELEPORTMAN = LUA_GetMobjTypeParam(L, 1);
-	return 0;
-}
-
 static int LUA_doomRandom(lua_State *L)
 {
 	int top = lua_gettop(L);
@@ -1857,11 +1868,14 @@ static int LUA_blockThingsIterator(lua_State *L)
 		mo = LUA_GetMobjParam(L, 1, false);
 
 		if(top > 2)
+		{
 			block_lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
-		else
+			LUA_DebugRef(block_lua_arg, false);
+		} else
 			block_lua_arg = LUA_REFNIL;
 
 		block_lua_func = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(block_lua_func, false);
 
 		x = mo->x;
 		xe = x + mo->radius;
@@ -1884,11 +1898,14 @@ static int LUA_blockThingsIterator(lua_State *L)
 		luaL_checktype(L, 3, LUA_TFUNCTION);
 
 		if(top > 3)
+		{
 			block_lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
-		else
+			LUA_DebugRef(block_lua_arg, false);
+		} else
 			block_lua_arg = LUA_REFNIL;
 
 		block_lua_func = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(block_lua_func, false);
 
 	} else
 	if(top == 5 || top == 6)
@@ -1907,11 +1924,14 @@ static int LUA_blockThingsIterator(lua_State *L)
 		luaL_checktype(L, 5, LUA_TFUNCTION);
 
 		if(top > 5)
+		{
 			block_lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
-		else
+			LUA_DebugRef(block_lua_arg, false);
+		} else
 			block_lua_arg = LUA_REFNIL;
 
 		block_lua_func = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(block_lua_func, false);
 	} else
 		return luaL_error(L, "blockThingsIterator: incorrect number of arguments");
 
@@ -1944,9 +1964,16 @@ static int LUA_blockThingsIterator(lua_State *L)
 	luaS_PIT = L;
 
 	for(bx = x; bx <= xe; bx++)
+	{
 		for(by = y; by <= ye; by++)
 			if(!P_BlockThingsIterator(bx, by, PIT_LuaCheckThing))
 				break;
+		if(by <= ye)
+			break;
+	}
+
+	LUA_DebugRef(block_lua_func, true);
+	LUA_DebugRef(block_lua_arg, true);
 
 	luaL_unref(L, LUA_REGISTRYINDEX, block_lua_func);
 	luaL_unref(L, LUA_REGISTRYINDEX, block_lua_arg);
@@ -1966,11 +1993,14 @@ static int LUA_globalThingsIterator(lua_State *L)
 	luaL_checktype(L, 1, LUA_TFUNCTION);
 
 	if(top > 1)
+	{
 		arg = luaL_ref(L, LUA_REGISTRYINDEX);
-	else
+		LUA_DebugRef(arg, false);
+	} else
 		arg = LUA_REFNIL;
 
 	func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(func, false);
 
 	lua_settop(L, 0);
 
@@ -2007,6 +2037,8 @@ static int LUA_globalThingsIterator(lua_State *L)
 			break;
 		}
 	}
+	LUA_DebugRef(func, true);
+	LUA_DebugRef(arg, true);
 	luaL_unref(L, LUA_REGISTRYINDEX, func);
 	luaL_unref(L, LUA_REGISTRYINDEX, arg);
 	return lua_gettop(L);
@@ -2027,11 +2059,14 @@ static int LUA_sectorTagIterator(lua_State *L)
 	tag = lua_tointeger(L, 1);
 
 	if(top > 2)
+	{
 		arg = luaL_ref(L, LUA_REGISTRYINDEX);
-	else
+		LUA_DebugRef(arg, false);
+	} else
 		arg = LUA_REFNIL;
 
 	func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(func, false);
 
 	lua_settop(L, 0);
 
@@ -2067,7 +2102,8 @@ static int LUA_sectorTagIterator(lua_State *L)
 			break;
 		}
 	}
-
+	LUA_DebugRef(func, true);
+	LUA_DebugRef(arg, true);
 	luaL_unref(L, LUA_REGISTRYINDEX, func);
 	luaL_unref(L, LUA_REGISTRYINDEX, arg);
 	return lua_gettop(L);
@@ -2239,43 +2275,45 @@ static int LUA_teleportMobj(lua_State *L)
 {
 	mobj_t *mo;
 	fixed_t x, y, z;
-	boolean stomp;
 
 	luaL_checktype(L, 1, LUA_TNUMBER);
 	luaL_checktype(L, 2, LUA_TNUMBER);
-	luaL_checktype(L, 3, LUA_TNUMBER);
-	luaL_checktype(L, 4, LUA_TBOOLEAN);
+	if(lua_type(L, 3) == LUA_TBOOLEAN)
+	{
+		if(lua_toboolean(L, 3))
+			z = ONCEILINGZ;
+		else
+			z = ONFLOORZ;
+	} else
+	{
+		luaL_checktype(L, 3, LUA_TNUMBER);
+		z = lua_tonumber(L, 3) * (lua_Number)FRACUNIT;
+	}
 
 	x = lua_tonumber(L, 1) * (lua_Number)FRACUNIT;
 	y = lua_tonumber(L, 2) * (lua_Number)FRACUNIT;
-	z = lua_tonumber(L, 3) * (lua_Number)FRACUNIT;
-	stomp = lua_toboolean(L, 4);
 
 	mo = lua_touserdata(L, lua_upvalueindex(1));
 
-	if(stomp)
-	{
-		if(!P_TeleportMove(mo, x, y)) // TODO: proper Z
-		{
-			lua_pushboolean(L, 0);
-			return 1;
-		}
-		mo->z = z;
-	} else
-	{
-		P_UnsetThingPosition(mo);
-		mo->x = x;
-		mo->y = y;
-		mo->z = z;
-		P_SetThingPosition(mo);
-	}
+	P_UnsetThingPosition(mo);
+	mo->x = x;
+	mo->y = y;
+	mo->z = z;
+	P_SetThingPosition(mo);
+
+	mo->floorz = mo->subsector->sector->floorheight;
+	mo->ceilingz = mo->subsector->sector->ceilingheight;
+
+	if(z == ONCEILINGZ)
+		mo->z = mo->ceilingz - mo->info->height;
+
+	if(mo->z < mo->floorz)
+		mo->z = mo->floorz;
 
 	if(mo->player)
 		mo->player->viewz = mo->z + mo->player->viewheight;
 
-	lua_pushboolean(L, 1);
-
-	return 1;
+	return 0;
 }
 
 static int LUA_checkMobjPos(lua_State *L)
@@ -3099,10 +3137,14 @@ static int LUA_genericCallFromSector(lua_State *L)
 
 	// argument; optional
 	if(lua_gettop(L) > 2)
+	{
 		gp->lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(gp->lua_arg, false);
+	}
 
 	// set function
 	gp->lua_action = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(gp->lua_action, false);
 
 	// return generic caller
 	lua_pushlightuserdata(L, gp);
@@ -3122,10 +3164,14 @@ static int LUA_sectorLineIterator(lua_State *L)
 
 	// argument; optional
 	if(lua_gettop(L) > 1)
+	{
 		lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(lua_arg, false);
+	}
 
 	// set function
 	lua_func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(lua_func, false);
 
 	sec = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -3164,6 +3210,9 @@ static int LUA_sectorLineIterator(lua_State *L)
 		}
 	}
 
+	LUA_DebugRef(lua_func, true);
+	LUA_DebugRef(lua_arg, true);
+
 	luaL_unref(L, LUA_REGISTRYINDEX, lua_func);
 	luaL_unref(L, LUA_REGISTRYINDEX, lua_arg);
 
@@ -3172,8 +3221,89 @@ static int LUA_sectorLineIterator(lua_State *L)
 
 static int LUA_sectorThingIterator(lua_State *L)
 {
-	// TODO
-	return 0;
+	mobj_t *mobj;
+	sector_t *sec;
+	int lua_func, ret;
+	int lua_arg = LUA_REFNIL;
+	int top = lua_gettop(L);
+	boolean touching = false;
+
+	// function; required
+	luaL_checktype(L, 1, LUA_TFUNCTION);
+
+	// argument; optional
+	if(top > 1)
+	{
+		lua_arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(lua_arg, false);
+	}
+
+	// touching flag; optional
+	if(top > 2)
+	{
+		luaL_checktype(L, 3, LUA_TBOOLEAN);
+		touching = lua_toboolean(L, 3);
+		lua_pop(L, 1);
+	}	
+
+	// set function
+	lua_func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(lua_func, false);
+
+	// pop everything
+	lua_settop(L, 0);
+
+	sec = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(touching)
+		return luaL_error(L, "ThingIterator: TODO touching");
+	else
+	{
+		mobj = sec->thinglist;
+		while(mobj)
+		{
+			// function to call
+			lua_rawgeti(L, LUA_REGISTRYINDEX, lua_func);
+			// mobj to pass
+			lua_pushlightuserdata(L, mobj);
+			// parameter to pass
+			lua_rawgeti(L, LUA_REGISTRYINDEX, lua_arg);
+			// do the call
+			if(lua_pcall(L, 2, LUA_MULTRET, 0))
+				// script error
+				return luaL_error(L, "ThingIterator: %s", lua_tostring(luaS_game, -1));
+
+			if(lua_gettop(L) == 0)
+			{
+				// no return means continue
+				mobj = mobj->snext;
+				continue;
+			}
+
+			// first return has to be continue flag
+			luaL_checktype(L, 1, LUA_TBOOLEAN);
+			ret = lua_toboolean(L, 1);
+
+			if(ret)
+				// iteration will continue, discard all returns
+				lua_settop(L, 0);
+			else
+			{
+				// remove only this flag, rest will get returned
+				lua_remove(L, 1);
+				break;
+			}
+			mobj = mobj->snext;
+		}
+	}
+
+	LUA_DebugRef(lua_func, true);
+	LUA_DebugRef(lua_arg, true);
+
+	luaL_unref(L, LUA_REGISTRYINDEX, lua_func);
+	luaL_unref(L, LUA_REGISTRYINDEX, lua_arg);
+
+	return lua_gettop(L);
 }
 
 static int LUA_stopFromGeneric(lua_State *L)
@@ -3417,8 +3547,10 @@ static int LUA_LineSpecIndex(lua_State *L)
 	{
 		// set func
 		luaL_checktype(L, 3, LUA_TFUNCTION);
+		LUA_DebugRef(linespec_table[spec], true);
 		luaL_unref(L, LUA_REGISTRYINDEX, linespec_table[spec]);
 		linespec_table[spec] = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(linespec_table[spec], false);
 		return 0;
 	}
 
@@ -3768,6 +3900,9 @@ void L_FinishGeneric(generic_plane_t *gp, boolean forced)
 			return;
 	}
 	// unref action and argument
+	LUA_DebugRef(gp->lua_action, true);
+	LUA_DebugRef(gp->lua_arg, true);
+	LUA_DebugRef(gp->lua_crush, true);
 	luaL_unref(luaS_game, LUA_REGISTRYINDEX, gp->lua_action);
 	luaL_unref(luaS_game, LUA_REGISTRYINDEX, gp->lua_arg);
 	luaL_unref(luaS_game, LUA_REGISTRYINDEX, gp->lua_crush);
@@ -3839,10 +3974,13 @@ boolean L_CrushThing(mobj_t *th, sector_t *sec, int lfunc, int larg)
 		// script error
 		I_Error("L_CrushThing: %s", lua_tostring(luaS_game, -1));
 
-	if(lua_type(luaS_game, 1) == LUA_TBOOLEAN)
-		ret = lua_toboolean(luaS_game, 1);
+	if(lua_gettop(luaS_game) == 0)
+		// no return means continue
+		return true;
 
-	lua_settop(luaS_game, 0);
+	// first return has to be continue flag
+	luaL_checktype(luaS_game, 1, LUA_TBOOLEAN);
+	ret = lua_toboolean(luaS_game, 1);
 
 	return ret;
 }
@@ -3984,19 +4122,19 @@ boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)
 boolean PIT_LuaCheckThing(mobj_t *thing)
 {
 	boolean ret;
-	fixed_t tbx0 = thing->x + thing->radius;
-	fixed_t tbx1 = thing->x - thing->radius;
-	fixed_t tby0 = thing->y + thing->radius;
-	fixed_t tby1 = thing->y - thing->radius;
+	fixed_t tbx0 = thing->x - thing->radius;
+	fixed_t tbx1 = thing->x + thing->radius;
+	fixed_t tby0 = thing->y - thing->radius;
+	fixed_t tby1 = thing->y + thing->radius;
 
 	// range check
-	if(tbx1 > block_lua_x1)
+	if(tbx0 > block_lua_x1)
 		return true;
-	if(tbx0 < block_lua_x0)
+	if(tbx1 < block_lua_x0)
 		return true;
-	if(tby1 > block_lua_y1)
+	if(tby0 > block_lua_y1)
 		return true;
-	if(tby0 < block_lua_y0)
+	if(tby1 < block_lua_y0)
 		return true;
 
 	// function to call

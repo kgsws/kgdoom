@@ -97,7 +97,6 @@ typedef int mobjtype_t;
 
 // some to-be-set types
 extern int MT_PLAYER;
-extern int MT_TELEPORTMAN;
 
 // TODO: fix these
 #define MT_TFOG 0

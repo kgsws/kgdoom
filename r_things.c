@@ -495,6 +495,10 @@ void R_ProjectSprite (mobj_t* thing)
     // too far off the side?
     if (abs(tx)>(tz<<2))
 	return;
+
+    // [kg] hidden marker? TODO: option to show markers
+    if(thing->state == &states[S_NULL])
+	return;
     
     // decide which patch to use for sprite relative to player
 #ifdef RANGECHECK

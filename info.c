@@ -16,7 +16,6 @@ int numsnames;
 sprname_t *sprnames;
 
 int MT_PLAYER;
-int MT_TELEPORTMAN;
 
 //
 // some engine defaults
@@ -28,7 +27,7 @@ const sprname_t info_def_sprnames[NUM_DEF_SPRITES] =
 
 const state_t info_def_states[NUM_DEF_STATES] =
 {
-	{}, // S_NULL
+	{.tics = -1, .frame = FF_FULLBRIGHT | 1}, // S_NULL
 	{.tics = -1, .frame = FF_FULLBRIGHT}, // S_UNKNOWN
 	{.nextstate = S_ITEMRESPAWN1}, // S_ITEMRESPAWN0
 	{} // S_ITEMRESPAWN1

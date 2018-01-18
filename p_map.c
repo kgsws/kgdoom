@@ -58,114 +58,6 @@ line_t*		spechit[MAXSPECIALCROSS];
 int		numspechit;
 
 
-
-//
-// TELEPORT MOVE
-// 
-
-//
-// PIT_StompThing
-//
-boolean PIT_StompThing (mobj_t* thing)
-{
-    fixed_t	blockdist;
-		
-    if (!(thing->flags & MF_SHOOTABLE) )
-	return true;
-		
-    blockdist = thing->radius + tmthing->radius;
-    
-    if ( abs(thing->x - tmx) >= blockdist
-	 || abs(thing->y - tmy) >= blockdist )
-    {
-	// didn't hit it
-	return true;
-    }
-    
-    // don't clip against self
-    if (thing == tmthing)
-	return true;
-    
-    // monsters don't stomp things except on boss level
-    if ( !tmthing->player && gamemap != 30)
-	return false;	
-		
-    P_DamageMobj (thing, tmthing, tmthing, 10000);
-	
-    return true;
-}
-
-
-//
-// P_TeleportMove
-//
-boolean
-P_TeleportMove
-( mobj_t*	thing,
-  fixed_t	x,
-  fixed_t	y )
-{
-    int			xl;
-    int			xh;
-    int			yl;
-    int			yh;
-    int			bx;
-    int			by;
-    
-    subsector_t*	newsubsec;
-    
-    // kill anything occupying the position
-    tmthing = thing;
-    tmflags = thing->flags;
-	
-    tmx = x;
-    tmy = y;
-	
-    tmbbox[BOXTOP] = y + tmthing->radius;
-    tmbbox[BOXBOTTOM] = y - tmthing->radius;
-    tmbbox[BOXRIGHT] = x + tmthing->radius;
-    tmbbox[BOXLEFT] = x - tmthing->radius;
-
-    newsubsec = R_PointInSubsector (x,y);
-    ceilingline = NULL;
-    floorline = NULL;
-    
-    // The base floor/ceiling is from the subsector
-    // that contains the point.
-    // Any contacted lines the step closer together
-    // will adjust them.
-    tmfloorz = tmdropoffz = newsubsec->sector->floorheight;
-    tmceilingz = newsubsec->sector->ceilingheight;
-			
-    validcount++;
-    numspechit = 0;
-    
-    // stomp on any things contacted
-    xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
-    xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
-    yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
-    yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
-
-    for (bx=xl ; bx<=xh ; bx++)
-	for (by=yl ; by<=yh ; by++)
-	    if (!P_BlockThingsIterator(bx,by,PIT_StompThing))
-		return false;
-    
-    // the move is ok,
-    // so link the thing into its new position
-    P_UnsetThingPosition (thing);
-
-    thing->floorz = tmfloorz;
-    thing->ceilingz = tmceilingz;	
-    thing->x = x;
-    thing->y = y;
-
-    P_SetThingPosition (thing);
-	
-    return true;
-}
-
-
 //
 // MOVEMENT ITERATOR FUNCTIONS
 //
@@ -425,6 +317,7 @@ P_CheckPosition
 
     newsubsec = R_PointInSubsector (x,y);
     ceilingline = NULL;
+    floorline = NULL;
     
     // The base floor / ceiling is from the subsector
     // that contains the point.
@@ -538,13 +431,16 @@ P_TryMove
     return true;
 
 nocross:
+#ifndef SERVER
+    if(!netgame)
+#endif
     // [kg] bump special for player
-    if(tmthing->player)
+    if(thing->player)
     {
 	if(floorline && floorline->special)
-		P_ExtraLineSpecial(tmthing, floorline, P_PointOnLineSide(tmthing->x, tmthing->y, floorline), EXTRA_BUMP);
+		P_ExtraLineSpecial(thing, floorline, P_PointOnLineSide(thing->x, thing->y, floorline), EXTRA_BUMP);
 	if(ceilingline && ceilingline != floorline && ceilingline->special)
-		P_ExtraLineSpecial(tmthing, ceilingline, P_PointOnLineSide(tmthing->x, tmthing->y, ceilingline), EXTRA_BUMP);
+		P_ExtraLineSpecial(thing, ceilingline, P_PointOnLineSide(thing->x, thing->y, ceilingline), EXTRA_BUMP);
     }
 
     return false;
@@ -1448,7 +1344,7 @@ boolean PIT_ChangeSector (mobj_t*	thing)
     // [kg] Lua callback
     if(docallback)
     {
-	if(L_CrushThing(thing, cs_sector, cs_lua_func, cs_lua_arg))
+	if(!L_CrushThing(thing, cs_sector, cs_lua_func, cs_lua_arg))
 		docallback = false;
     }
 
