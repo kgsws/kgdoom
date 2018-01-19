@@ -422,8 +422,15 @@ P_TryMove
 	    oldside = P_PointOnLineSide (oldx, oldy, ld);
 	    if (side != oldside)
 	    {
-		if (ld->special)
+		if(ld->special)
+		{
+		    fixed_t bx = thing->x;
+		    fixed_t by = thing->y;
 		    P_ExtraLineSpecial(thing, ld, oldside, EXTRA_CROSS);
+		    // [kg] check for teleport
+		    if(thing->x != bx || thing->y != by)
+			break;
+		}
 	    }
 	}
     }

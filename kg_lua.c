@@ -147,6 +147,8 @@ static int LUA_sectorThingIterator(lua_State *L);
 static int LUA_sectorLineIterator(lua_State *L);
 
 static int LUA_stopFromGeneric(lua_State *L);
+static int LUA_sleepFromGeneric(lua_State *L);
+static int LUA_reverseFromGeneric(lua_State *L);
 
 static int LUA_doSwitchTextureLine(lua_State *L);
 
@@ -237,9 +239,12 @@ static int func_get_doswitchline(lua_State *L, void *dst, void *o);
 static int func_get_genericpltypef(lua_State *L, void *dst, void *o);
 static int func_get_genericpltypec(lua_State *L, void *dst, void *o);
 static int func_get_genericpltypel(lua_State *L, void *dst, void *o);
+static int func_get_genericplsuspended(lua_State *L, void *dst, void *o);
 static int func_get_genericplraising(lua_State *L, void *dst, void *o);
 static int func_get_genericpllowering(lua_State *L, void *dst, void *o);
 static int func_get_genericstop(lua_State *L, void *dst, void *o);
+static int func_get_genericsleep(lua_State *L, void *dst, void *o);
+static int func_get_genericreverse(lua_State *L, void *dst, void *o);
 
 // all exported LUA functions
 static const luafunc_t lua_functions[] =
@@ -498,7 +503,7 @@ static const lua_table_model_t lua_linedef[] =
 static const lua_table_model_t lua_genericplane[] =
 {
 	{"sector", offsetof(generic_plane_t, info) + offsetof(generic_info_t, sector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
-	{"speed", offsetof(generic_plane_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+//	{"speed", offsetof(generic_plane_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"action", offsetof(generic_plane_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"crush", offsetof(generic_plane_t, lua_crush), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(generic_plane_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
@@ -506,11 +511,14 @@ static const lua_table_model_t lua_genericplane[] =
 	{"isFloor", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypef},
 	{"isCeiling", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypec},
 	{"isCaller", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypel},
+	{"isSuspended", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericplsuspended},
 	// plane movement
 	{"isRaising", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericplraising},
 	{"isLowering", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpllowering},
 	// functions
 	{"Stop", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericstop},
+	{"Suspend", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericsleep},
+	{"Reverse", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericreverse},
 };
 
 // all sector caller values; shares a lot with generic plane
@@ -524,11 +532,13 @@ static const lua_table_model_t lua_sectorcall[] =
 	{"isFloor", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypef},
 	{"isCeiling", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypec},
 	{"isCaller", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpltypel},
+	{"isSuspended", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericplsuspended},
 	// plane movement
 	{"isRaising", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericplraising},
 	{"isLowering", 0, LUA_TBOOLEAN, func_set_readonly, func_get_genericpllowering},
 	// functions
 	{"Stop", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericstop},
+	{"Suspend", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericsleep},
 };
 
 // all pickup options
@@ -818,7 +828,8 @@ static int func_set_lua_regfunc(lua_State *L, void *dst, void *o)
 	LUA_DebugRef(ref, true);
 	luaL_unref(L, LUA_REGISTRYINDEX, ref);
 
-	luaL_checktype(L, -1, LUA_TFUNCTION);
+	if(lua_type(L, -1) != LUA_TNIL)
+		luaL_checktype(L, -1, LUA_TFUNCTION);
 
 	ref = luaL_ref(L, LUA_REGISTRYINDEX);
 	LUA_DebugRef(ref, false);
@@ -1558,6 +1569,13 @@ static int func_get_genericpltypel(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return suspension flag
+static int func_get_genericplsuspended(lua_State *L, void *dst, void *o)
+{
+	lua_pushboolean(L, !((generic_plane_t*)o)->speed);
+	return 1;
+}
+
 // return plane movement match
 static int func_get_genericplraising(lua_State *L, void *dst, void *o)
 {
@@ -1585,6 +1603,22 @@ static int func_get_genericstop(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_stopFromGeneric, 1);
+	return 1;
+}
+
+// return sleep / wakeup function
+static int func_get_genericsleep(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_sleepFromGeneric, 1);
+	return 1;
+}
+
+// return reversal function
+static int func_get_genericreverse(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_reverseFromGeneric, 1);
 	return 1;
 }
 
@@ -2338,7 +2372,10 @@ static int LUA_checkMobjPos(lua_State *L)
 		z = lua_tonumber(L, 3) * (lua_Number)FRACUNIT;
 	}
 
+	mo->flags |= MF_TELEPORT;
 	lua_pushboolean(L, P_CheckPosition(mo, x, y)); // TODO: add Z
+	mo->flags &= ~MF_TELEPORT;
+
 	return 1;
 }
 
@@ -3037,11 +3074,11 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 
 	// stopz; required
 	luaL_checktype(L, 1, LUA_TNUMBER);
-	gen.stopz = (fixed_t)lua_tonumber(L, 1) * (lua_Number)FRACUNIT;
+	gen.stopz = (fixed_t)(lua_tonumber(L, 1) * (lua_Number)FRACUNIT);
 
 	// speed; required
 	luaL_checktype(L, 2, LUA_TNUMBER);
-	gen.speed = (fixed_t)lua_tonumber(L, 2) * (lua_Number)FRACUNIT;
+	gen.speed = (fixed_t)(lua_tonumber(L, 2) * (lua_Number)FRACUNIT);
 	if(gen.speed < 0)
 		gen.speed = -gen.speed;
 
@@ -3049,7 +3086,7 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 	if(top > 2 && lua_type(L, 3) != LUA_TNIL)
 	{
 		luaL_checktype(L, 3, LUA_TNUMBER);
-		gen.crushspeed = (fixed_t)lua_tonumber(L, 3) * (lua_Number)FRACUNIT;
+		gen.crushspeed = (fixed_t)(lua_tonumber(L, 3) * (lua_Number)FRACUNIT);
 		if(gen.crushspeed < 0)
 			gen.crushspeed = -gen.crushspeed;
 	}
@@ -3318,6 +3355,50 @@ static int LUA_stopFromGeneric(lua_State *L)
 	L_FinishGeneric(*gp->gp, true);
 	*gp->gp = NULL;
 	P_RemoveThinker(&gp->thinker);
+
+	return 0;
+}
+
+static int LUA_sleepFromGeneric(lua_State *L)
+{
+	generic_plane_t *gp;
+	boolean sleep;
+
+	luaL_checktype(L, 1, LUA_TBOOLEAN);
+	sleep = lua_toboolean(L, 1);
+
+	gp = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(sleep)
+		gp->speed = 0;
+	else
+	{
+		if(gp->thinker.lua_type == TT_SECCALL)
+			gp->speed = gp->call.ticrate;
+		else
+			gp->speed = gp->info.speed;
+	}
+
+	return 0;
+}
+
+static int LUA_reverseFromGeneric(lua_State *L)
+{
+	generic_plane_t *gp;
+	fixed_t tmp;
+	int temp;
+
+	gp = lua_touserdata(L, lua_upvalueindex(1));
+
+	// reverse motion
+	tmp = gp->info.startz;
+	gp->info.startz = gp->info.stopz;
+	gp->info.stopz = tmp;
+
+	// reverse textures
+	temp = gp->info.stoppic;
+	gp->info.stoppic = gp->info.startpic;
+	gp->info.startpic = temp;
 
 	return 0;
 }
@@ -3915,6 +3996,9 @@ void L_FinishGeneric(generic_plane_t *gp, boolean forced)
 
 void T_GenericCaller(generic_plane_t *gp)
 {
+	if(gp->speed <= 0)
+		// suspended
+		return;
 	gp->call.curtics--;
 	if(!gp->call.curtics)
 	{
@@ -3922,9 +4006,7 @@ void T_GenericCaller(generic_plane_t *gp)
 
 		generic_sector_removed = false;
 		// reset timer
-		if(gp->call.ticrate < 0)
-			gp->call.ticrate = TICRATE;
-		gp->call.curtics = gp->call.ticrate;
+		gp->call.curtics = gp->speed;
 		// function to call
 		lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, gp->lua_action);
 		// caller to pass
@@ -3956,6 +4038,7 @@ void T_GenericCaller(generic_plane_t *gp)
 
 boolean L_CrushThing(mobj_t *th, sector_t *sec, int lfunc, int larg)
 {
+	int type;
 	boolean ret = false;
 
 	// function to call
@@ -3974,13 +4057,18 @@ boolean L_CrushThing(mobj_t *th, sector_t *sec, int lfunc, int larg)
 		// script error
 		I_Error("L_CrushThing: %s", lua_tostring(luaS_game, -1));
 
-	if(lua_gettop(luaS_game) == 0)
+	type = lua_type(luaS_game, 1);
+
+	if(type == LUA_TNIL)
 		// no return means continue
 		return true;
 
 	// first return has to be continue flag
-	luaL_checktype(luaS_game, 1, LUA_TBOOLEAN);
+	if(type != LUA_TBOOLEAN)
+		I_Error("L_CrushThing: boolean or no return expected");
 	ret = lua_toboolean(luaS_game, 1);
+
+	lua_settop(luaS_game, 0);
 
 	return ret;
 }

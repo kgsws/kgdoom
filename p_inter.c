@@ -263,17 +263,9 @@ P_DamageMobj
     // player specific
     if (player)
     {
-	// end of game hell hack
-	if (target->subsector->sector->special == 11
-	    && damage >= target->health)
-	{
-	    damage = target->health - 1;
-	}
-	
-
 	// Below certain threshold,
 	// ignore damage in GOD mode, or with INVUL power.
-	if ( damage < 1000
+	if ( damage < 100000
 	     && ( (player->cheats&CF_GODMODE)
 		  || player->powers[pw_invulnerability] ) )
 	{
@@ -287,7 +279,7 @@ P_DamageMobj
 	
 	temp = damage < 100 ? damage : 100;
 
-	if (player == &players[consoleplayer])
+	if (player == &players[displayplayer])
 	    I_Tactile (40,10,40+temp*2);
     }
 

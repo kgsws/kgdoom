@@ -22,6 +22,10 @@ void T_GenericCeiling(generic_plane_t *gp)
 	fixed_t speed;
 	sector_t *sec = gp->info.sector;
 
+	if(gp->speed <= 0)
+		// suspended
+		return;
+
 	crush_gp = gp;
 
 	if(gp->info.startz < gp->info.stopz)
@@ -114,6 +118,10 @@ void T_GenericFloor(generic_plane_t *gp)
 {
 	fixed_t speed;
 	sector_t *sec = gp->info.sector;
+
+	if(gp->speed <= 0)
+		// suspended
+		return;
 
 	crush_gp = gp;
 
@@ -231,6 +239,7 @@ generic_plane_t *P_GenericSectorCaller(generic_call_t *info, int dest)
 	// set starting parameters
 	gp->gp = (void**)ptr;
 	gp->call.curtics = gp->call.ticrate;
+	gp->speed = gp->call.ticrate;
 
 	return gp;
 }

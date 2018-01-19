@@ -215,10 +215,17 @@ void P_XYMovement (mobj_t* mo)
 		if(hitmobj)
 		    SV_UpdateMobj(mo, SV_MOBJF_POSITION | SV_MOBJF_MOMENTNUM | SV_MOBJF_FLAGS | SV_MOBJF_STATE | SV_MOBJF_SOUND_DEATH);
 #endif
+		break;
 	    }
 	    else
+	    {
 		mo->momx = mo->momy = 0;
+		break;
+	    }
 	}
+	// [kg] check line special location change
+	if(ptryx != mo->x || ptryy != mo->y)
+	    break;
     } while (xmove || ymove);
     
     // slow down
