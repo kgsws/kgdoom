@@ -40,6 +40,7 @@ typedef union
 
 
 // [kg] types for lua
+// keep 'thinker_names' up to date in kg_lua.c
 typedef enum
 {
 	TT_INVALID, // should not be used

@@ -187,6 +187,9 @@ typedef enum
     // used on dead projectiles and puffs
     MF_NOZCHANGE	= 0x10000000,
 
+    // [kg] ignore thing colisions
+    MF_TROUGHMOBJ	= 0x20000000,
+
     // [kg] holey rendering
     MF_HOLEY = 0x40000000,
 

@@ -303,7 +303,7 @@ void P_XYMovement (mobj_t* mo)
 //
 // P_ZMovement
 //
-void P_ZMovement (mobj_t* mo)
+void P_ZMovement (mobj_t* mo, boolean checkonly)
 {
     fixed_t	dist;
     fixed_t	delta;
@@ -315,7 +315,7 @@ void P_ZMovement (mobj_t* mo)
     ceilingz = mo->ceilingz;
 
     // [kg] mobj Z collision
-    if(!(mo->flags & (MF_MISSILE | MF_NOZCHANGE)))
+    if(!(mo->flags & (MF_MISSILE | MF_NOZCHANGE | MF_NOCLIP)))
     {
 	if(!thzcbot) // use thing calculated in XY movement, if any
 	    P_CheckPositionZ(mo);
@@ -331,7 +331,7 @@ void P_ZMovement (mobj_t* mo)
 #ifdef SERVER
     if(mo->player && mo->z < floorz)
 #else
-    if(!local_player_predict && mo->player && mo->z < floorz)
+    if(!checkonly && !local_player_predict && mo->player && mo->z < floorz)
 #endif
     {
 	mo->player->viewheight -= floorz-mo->z;
@@ -546,7 +546,7 @@ void P_MobjThinker (mobj_t* mobj)
     }
     if ( (mobj->z != mobj->floorz) || mobj->momz)
     {
-	P_ZMovement (mobj);
+	P_ZMovement (mobj, false);
 	
 	// FIXME: decent NOP/NULL/Nil function pointer please.
 	if (mobj->thinker.function.acv == (actionf_v) (-1))

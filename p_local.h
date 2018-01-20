@@ -203,7 +203,7 @@ void P_CheckPositionZ(mobj_t *thing);
 // [kg] only to find foorz and ceilingz
 void P_CheckPositionLines(mobj_t *thing);
 
-void P_ZMovement (mobj_t* mo);
+void P_ZMovement (mobj_t* mo, boolean checkonly);
 
 extern mobj_t*	linetarget;	// who got hit (or NULL)
 

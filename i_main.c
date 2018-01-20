@@ -205,6 +205,10 @@ void main_finish()
 #endif
 }
 
+extern fixed_t viewx;
+extern fixed_t viewy;
+extern fixed_t viewz;
+
 void I_Error (char *error, ...)
 {
 	va_list vl;
@@ -213,7 +217,12 @@ void I_Error (char *error, ...)
 	ret = vprintf(error, vl);
 	va_end(vl);
 
-	printf("\n");
+//	printf("\n");
+
+	printf("\nAt %ix%ix%i\n", viewx / FRACUNIT, viewy / FRACUNIT, viewz / FRACUNIT);
+
+	I_FinishUpdate();
+	*((uint8_t*)1) = 1;
 
 	longjmp(exitenv, 2);
 }

@@ -1,5 +1,6 @@
 // LUA game scripting
 // by kgsws
+// TODO: better string search algorithm for Lua indexing
 #include "doomdef.h"
 #include "doomstat.h"
 #include "i_system.h"
@@ -77,6 +78,18 @@ typedef struct
 	const char *name;
 	int value;
 } lua_intvalue_t;
+
+const char *const thinker_names[] =
+{
+	"invalid",
+	"mobj",
+	"mobjinfo",
+	"player",
+	"sector",
+	"line",
+	"genericPlane",
+	"genericCaller",
+};
 
 static lua_State *luaS_game;
 static boolean lua_setup;
@@ -290,6 +303,7 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"holey", MF_HOLEY},
 	{"skullFly", MF_SKULLFLY},
 	{"noZChange", MF_NOZCHANGE},
+	{"troughMobj", MF_TROUGHMOBJ},
 	// flag combinations
 	{"Monster", MF_ISMONSTER | MF_COUNTKILL | MF_SOLID | MF_SHOOTABLE},
 	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF | MF_NOZCHANGE},
@@ -2218,7 +2232,7 @@ static int LUA_ThinkerIndex(lua_State *L)
 
 	// check field
 	if(!field)
-		return luaL_error(L, "thinker does not contain '%s'", idx);
+		return luaL_error(L, "thinker '%s' does not contain '%s'", thinker_names[th->lua_type], idx);
 
 	if(top == 2)
 	{
@@ -2339,7 +2353,10 @@ static int LUA_teleportMobj(lua_State *L)
 	mo->floorz = mo->subsector->sector->floorheight;
 	mo->ceilingz = mo->subsector->sector->ceilingheight;
 
-	P_ZMovement(mo);
+	if(mo->z < mo->floorz)
+		mo->z = mo->floorz;
+
+	P_ZMovement(mo, true);
 
 	if(mo->player)
 		mo->player->viewz = mo->z + mo->player->viewheight;

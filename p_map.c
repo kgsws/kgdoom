@@ -332,7 +332,8 @@ P_CheckPosition
     xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
     yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
     yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
-    
+
+    if(!(thing->flags & MF_TROUGHMOBJ))
     // Check things first, possibly picking things up.
     for (bx=xl ; bx<=xh ; bx++)
 	for (by=yl ; by<=yh ; by++)
@@ -482,7 +483,7 @@ boolean P_ThingHeightClip (mobj_t* thing)
 	    // walking monsters rise and fall with the floor
 	    thing->z = thing->floorz;
 	    // [kg] check updated things
-	    P_ZMovement(thing);
+	    P_ZMovement(thing, true);
 	}
     }
     else
@@ -1409,7 +1410,7 @@ boolean PIT_CheckThingZ(mobj_t* thing)
 	if(thing == tmthing)
 		return true;
 
-	if(!(thing->flags & MF_SOLID))
+	if(!(thing->flags & MF_SOLID) || thing->flags & MF_NOCLIP)
 		return true;
 
 	if(tmthing->flags & MF_MISSILE && tmthing->source == thing)
@@ -1429,7 +1430,7 @@ boolean PIT_CheckThingZ(mobj_t* thing)
 		} else
 			thzctop = thing;
 	}
-	if(tmthing->z >= thing->z)
+	if(tmthing->z > thing->z)
 	{
 		if(thzcbot)
 		{
@@ -1450,10 +1451,13 @@ void P_CheckPositionZ(mobj_t *thing)
 	int bx;
 	int by;
 
+	if(thing->flags & MF_NOCLIP)
+		return;
+
 	thzcbot = NULL;
 	thzctop = NULL;
 
-	if(thing->flags & MF_NOCLIP)
+	if(thing->flags & (MF_NOCLIP | MF_TROUGHMOBJ))
 		return;
 
 	tmthing = thing;
@@ -1489,7 +1493,11 @@ void P_CheckPositionLines(mobj_t *thing)
 	sector_t *sec = thing->subsector->sector;
 
 	if(thing->flags & MF_NOCLIP)
+	{
+		tmfloorz = tmdropoffz = sec->floorheight;
+		tmceilingz = sec->ceilingheight;
 		return;
+	}
 
 	tmthing = thing;
 	tmflags = thing->flags;
