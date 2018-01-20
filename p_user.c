@@ -20,9 +20,6 @@
 // 16 pixels of bob
 #define MAXBOB	0x100000	
 
-boolean		onground;
-
-
 //
 // P_Thrust
 // Moves the given origin along a given angle.
@@ -72,7 +69,7 @@ void P_CalcHeight (player_t* player)
 		// [kg] scale
 		player->bob = FixedMul(player->bob, player->mo->info->bobz / 16);
 
-		if ((player->cheats & CF_NOMOMENTUM) || !onground)
+		if ((player->cheats & CF_NOMOMENTUM) || !player->mo->onground)
 		{
 			player->viewz = player->mo->z + player->mo->info->viewz;
 
@@ -156,12 +153,11 @@ void P_MovePlayer (player_t* player)
 
     // Do not let the player control movement
     //  if not onground.
-    onground = (player->mo->z <= player->mo->floorz);
-	
-    if (cmd->forwardmove && onground)
+
+    if (cmd->forwardmove && player->mo->onground)
 	P_Thrust (player, player->mo->angle, cmd->forwardmove*2048);
     
-    if (cmd->sidemove && onground)
+    if (cmd->sidemove && player->mo->onground)
 	P_Thrust (player, player->mo->angle-ANG90, cmd->sidemove*2048);
 
 #ifndef SERVER
@@ -214,7 +210,6 @@ void P_DeathThink (player_t* player)
 	player->mo->pitch += 3000;
 
     player->deltaviewheight = 0;
-    onground = (player->mo->z <= player->mo->floorz);
 
     P_CalcHeight (player);
 

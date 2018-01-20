@@ -35,6 +35,9 @@ fixed_t		tmy;
 
 // [kg] keep track of projectile hits
 mobj_t *hitmobj;
+// [kg] for thing Z collision checking
+mobj_t *thzcbot;
+mobj_t *thzctop;
 
 // If "floatok" true, move would be ok
 // if within "tmfloorz - tmceilingz".
@@ -159,15 +162,12 @@ boolean PIT_CheckThing (mobj_t* thing)
     if (thing == tmthing)
 	return true;
 
-    // [kg] Z collision checking
-    if(sv_zcollision)
-    {
-	if(tmthing->z + tmthing->height < thing->z)
-	    return true;
-	if(tmthing->z >= thing->z + thing->height)
-	    return true;
-    }
-    
+    // [kg] thing Z collision checking
+    if(tmthing->z + tmthing->height <= thing->z)
+	return true;
+    if(tmthing->z >= thing->z + thing->height)
+	return true;
+
     // check for skulls slamming into things
     if (tmthing->flags & MF_SKULLFLY && thing->flags & MF_SOLID)
     {
@@ -197,12 +197,7 @@ boolean PIT_CheckThing (mobj_t* thing)
 	    // [kg] no client side prediction for projectiles
 	    return true;
 #endif
-	// see if it went over / under
-	if (tmthing->z > thing->z + thing->height)
-	    return true;		// overhead
-	if (tmthing->z+tmthing->height < thing->z)
-	    return true;		// underneath
-	
+
 	// [kg] do not hit self
 	if(thing == tmthing->source)
 	    return true;
@@ -467,19 +462,28 @@ nocross:
 boolean P_ThingHeightClip (mobj_t* thing)
 {
     boolean		onfloor;
+    fixed_t oldfz;
 	
     onfloor = (thing->z == thing->floorz);
 	
-    P_CheckPosition (thing, thing->x, thing->y);	
+//    P_CheckPosition (thing, thing->x, thing->y);
+    P_CheckPositionLines(thing);
     // what about stranding a monster partially off an edge?
-	
+
+    oldfz = thing->floorz;
+
     thing->floorz = tmfloorz;
     thing->ceilingz = tmceilingz;
-	
+
     if (onfloor)
     {
-	// walking monsters rise and fall with the floor
-	thing->z = thing->floorz;
+	if(oldfz != thing->floorz)
+	{
+	    // walking monsters rise and fall with the floor
+	    thing->z = thing->floorz;
+	    // [kg] check updated things
+	    P_ZMovement(thing);
+	}
     }
     else
     {
@@ -998,7 +1002,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 
     // Spawn bullet puffs or blod spots,
     // depending on target type.
-    if (in->d.thing->flags & MF_NOBLOOD)
+    if (th->flags & MF_NOBLOOD)
 	P_SpawnPuff (x,y,z, shootthing);
     else
 	P_SpawnBlood (x,y,z, shootthing);
@@ -1392,5 +1396,130 @@ P_ChangeSector
 	
 	
     return nofit;
+}
+
+//
+// [kg] thing Z collision
+// this will find things under and over this one
+
+boolean PIT_CheckThingZ(mobj_t* thing)
+{
+	fixed_t blockdist;
+
+	if(thing == tmthing)
+		return true;
+
+	if(!(thing->flags & MF_SOLID))
+		return true;
+
+	if(tmthing->flags & MF_MISSILE && tmthing->source == thing)
+		return true;
+
+	blockdist = thing->radius + tmthing->radius;
+
+	if( abs(thing->x - tmx) >= blockdist || abs(thing->y - tmy) >= blockdist )
+		return true;	
+
+	if(tmthing->z <= thing->z)
+	{
+		if(thzctop)
+		{
+			if(thing->z < thzctop->z)
+				thzctop = thing;
+		} else
+			thzctop = thing;
+	}
+	if(tmthing->z >= thing->z)
+	{
+		if(thzcbot)
+		{
+			if(thing->z + thing->height > thzcbot->z + thzcbot->height)
+				thzcbot = thing;
+		} else
+			thzcbot = thing;
+	}
+	return true;
+}
+
+void P_CheckPositionZ(mobj_t *thing)
+{
+	int xl;
+	int xh;
+	int yl;
+	int yh;
+	int bx;
+	int by;
+
+	thzcbot = NULL;
+	thzctop = NULL;
+
+	if(thing->flags & MF_NOCLIP)
+		return;
+
+	tmthing = thing;
+	tmx = thing->x;
+	tmy = thing->y;
+
+	tmbbox[BOXTOP] = tmy + tmthing->radius;
+	tmbbox[BOXBOTTOM] = tmy - tmthing->radius;
+	tmbbox[BOXRIGHT] = tmx + tmthing->radius;
+	tmbbox[BOXLEFT] = tmx - tmthing->radius;
+
+	xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
+	xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
+	yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
+	yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
+
+	for (bx=xl ; bx<=xh ; bx++)
+		for (by=yl ; by<=yh ; by++)
+			if (!P_BlockThingsIterator(bx,by,PIT_CheckThingZ))
+				return;
+
+	return;
+}
+
+void P_CheckPositionLines(mobj_t *thing)
+{
+	int xl;
+	int xh;
+	int yl;
+	int yh;
+	int bx;
+	int by;
+	sector_t *sec = thing->subsector->sector;
+
+	if(thing->flags & MF_NOCLIP)
+		return;
+
+	tmthing = thing;
+	tmflags = thing->flags;
+
+	tmx = thing->x;
+	tmy = thing->y;
+
+	tmbbox[BOXTOP] = tmy + tmthing->radius;
+	tmbbox[BOXBOTTOM] = tmy - tmthing->radius;
+	tmbbox[BOXRIGHT] = tmx + tmthing->radius;
+	tmbbox[BOXLEFT] = tmx - tmthing->radius;
+
+	xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
+	xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
+	yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
+	yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
+
+	// The base floor / ceiling is from the subsector
+	// that contains the point.
+	// Any contacted lines the step closer together
+	// will adjust them.
+	tmfloorz = tmdropoffz = sec->floorheight;
+	tmceilingz = sec->ceilingheight;
+
+	validcount++;
+	numspechit = 0;
+
+	// check lines
+	for (bx=xl ; bx<=xh ; bx++)
+		for (by=yl ; by<=yh ; by++)
+			P_BlockLinesIterator (bx,by,PIT_CheckLine);
 }
 

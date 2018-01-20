@@ -289,9 +289,10 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"noRadiusDamage", MF_NORADIUSDMG},
 	{"holey", MF_HOLEY},
 	{"skullFly", MF_SKULLFLY},
+	{"noZChange", MF_NOZCHANGE},
 	// flag combinations
 	{"Monster", MF_ISMONSTER | MF_COUNTKILL | MF_SOLID | MF_SHOOTABLE},
-	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF},
+	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF | MF_NOZCHANGE},
 };
 
 // all exported state actions
@@ -2338,11 +2339,7 @@ static int LUA_teleportMobj(lua_State *L)
 	mo->floorz = mo->subsector->sector->floorheight;
 	mo->ceilingz = mo->subsector->sector->ceilingheight;
 
-	if(z == ONCEILINGZ)
-		mo->z = mo->ceilingz - mo->info->height;
-
-	if(mo->z < mo->floorz)
-		mo->z = mo->floorz;
+	P_ZMovement(mo);
 
 	if(mo->player)
 		mo->player->viewz = mo->z + mo->player->viewheight;
@@ -2353,7 +2350,7 @@ static int LUA_teleportMobj(lua_State *L)
 static int LUA_checkMobjPos(lua_State *L)
 {
 	mobj_t *mo;
-	fixed_t x, y, z;
+	fixed_t x, y, z, oz;
 
 	mo = lua_touserdata(L, lua_upvalueindex(1));
 
@@ -2373,7 +2370,10 @@ static int LUA_checkMobjPos(lua_State *L)
 	}
 
 	mo->flags |= MF_TELEPORT;
-	lua_pushboolean(L, P_CheckPosition(mo, x, y)); // TODO: add Z
+	oz = mo->z;
+	mo->z = z;
+	lua_pushboolean(L, P_CheckPosition(mo, x, y));
+	mo->z = oz;
 	mo->flags &= ~MF_TELEPORT;
 
 	return 1;

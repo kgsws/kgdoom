@@ -183,6 +183,10 @@ typedef enum
     MF_ISMONSTER	= 0x4000000,
     MF_NORADIUSDMG	= 0x8000000,
 
+    // [kg] disable thing Z collision updates
+    // used on dead projectiles and puffs
+    MF_NOZCHANGE	= 0x10000000,
+
     // [kg] holey rendering
     MF_HOLEY = 0x40000000,
 
@@ -282,6 +286,9 @@ typedef struct mobj_s
 
     // [kg] network ID
     int netid;
+
+    // [kg] for Z movement
+    boolean onground;
 
 } mobj_t;
 

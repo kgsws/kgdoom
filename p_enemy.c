@@ -284,6 +284,8 @@ boolean P_Move (mobj_t*	actor)
 	    else
 		actor->z -= FLOATSPEED;
 
+	    P_ZMovement(actor);
+
 	    actor->flags |= MF_INFLOAT;
 	    return true;
 	}

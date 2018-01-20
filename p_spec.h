@@ -8,11 +8,6 @@
 extern	boolean levelTimer;
 extern	int	levelTimeCount;
 
-
-//      Define values for map objects
-#define MO_TELEPORTMAN          14
-
-
 // at game start
 void    P_InitPicAnims (void);
 

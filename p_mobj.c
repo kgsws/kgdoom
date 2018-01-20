@@ -27,6 +27,9 @@
 
 // [kg] keep track of projectile hits
 extern mobj_t *hitmobj;
+// [kg] for thing Z collision checking
+extern mobj_t *thzcbot;
+extern mobj_t *thzctop;
 
 void G_PlayerReborn (int player);
 void P_SpawnMapThing (mapthing_hexen_t*	mthing);
@@ -95,6 +98,7 @@ void P_ExplodeMissile (mobj_t* mo)
     }
 
     mo->flags &= ~MF_MISSILE;
+    mo->flags |= MF_NOZCHANGE;
 
     if (mo->info->deathsound)
 	S_StartSound (mo, mo->info->deathsound, SOUND_BODY);
@@ -108,12 +112,13 @@ void P_ExplodeMissile (mobj_t* mo)
 //
 
 void P_XYMovement (mobj_t* mo) 
-{ 	
+{
     fixed_t 	ptryx;
     fixed_t	ptryy;
     player_t*	player;
     fixed_t	xmove;
     fixed_t	ymove;
+    fixed_t floorz;
 
     int stepdir = 0;
 
@@ -129,7 +134,7 @@ void P_XYMovement (mobj_t* mo)
 	}
 	return;
     }
-	
+
     player = mo->player;
 		
     if (mo->momx > MAXMOVE)
@@ -236,11 +241,24 @@ void P_XYMovement (mobj_t* mo)
 	return;
     }
 
-    if (mo->flags & (MF_MISSILE | MF_SKULLFLY) )
+    if (mo->flags & (MF_MISSILE | MF_SKULLFLY|MF_NOZCHANGE) )
 	return; 	// no friction for missiles ever
-		
-    if (mo->z > mo->floorz)
+
+    // [kg] detect floorz to walk on things
+    P_CheckPositionZ(mo);
+    if(thzcbot && thzcbot->z + thzcbot->height > mo->floorz)
+	floorz = thzcbot->z + thzcbot->height;
+    else
+	floorz = mo->floorz;
+
+    // [kg] preset ground info
+    mo->onground = false;
+
+    if (mo->z > floorz)
 	return;		// no friction when airborne
+
+    // [kg] set actual status
+    mo->onground = true;
 
     if (mo->flags & MF_CORPSE)
     {
@@ -251,7 +269,7 @@ void P_XYMovement (mobj_t* mo)
 	    || mo->momy > FRACUNIT/4
 	    || mo->momy < -FRACUNIT/4)
 	{
-	    if (mo->floorz != mo->subsector->sector->floorheight)
+	    if (floorz != mo->subsector->sector->floorheight)
 		return;
 	}
     }
@@ -289,15 +307,34 @@ void P_ZMovement (mobj_t* mo)
 {
     fixed_t	dist;
     fixed_t	delta;
-    
+
+    // [kg] mobj Z collision
+    fixed_t floorz, ceilingz;
+
+    floorz = mo->floorz;
+    ceilingz = mo->ceilingz;
+
+    // [kg] mobj Z collision
+    if(!(mo->flags & (MF_MISSILE | MF_NOZCHANGE)))
+    {
+	if(!thzcbot) // use thing calculated in XY movement, if any
+	    P_CheckPositionZ(mo);
+	if(thzcbot && thzcbot->z + thzcbot->height > mo->floorz)
+	    floorz = thzcbot->z + thzcbot->height;
+	thzcbot = NULL; // and reset it now
+    }
+
+    // [kg] reset ground check
+    mo->onground = false;
+
     // check for smooth step up
 #ifdef SERVER
-    if(mo->player && mo->z < mo->floorz)
+    if(mo->player && mo->z < floorz)
 #else
-    if(!local_player_predict && mo->player && mo->z < mo->floorz)
+    if(!local_player_predict && mo->player && mo->z < floorz)
 #endif
     {
-	mo->player->viewheight -= mo->floorz-mo->z;
+	mo->player->viewheight -= floorz-mo->z;
 
 	mo->player->deltaviewheight = (mo->info->viewz - mo->player->viewheight)>>3;
     }
@@ -326,9 +363,10 @@ void P_ZMovement (mobj_t* mo)
     }
     
     // clip movement
-    if (mo->z <= mo->floorz)
+    if (mo->z <= floorz)
     {
 	// hit the floor
+	mo->onground = true;
 
 	if (mo->flags & MF_SKULLFLY)
 	{
@@ -356,7 +394,7 @@ void P_ZMovement (mobj_t* mo)
 	    if(!(mo->flags & MF_NOGRAVITY)) // [kg] added no gravity check
 		mo->momz = 0;
 	}
-	mo->z = mo->floorz;
+	mo->z = floorz;
 
 	if ( (mo->flags & MF_MISSILE)
 	     && !(mo->flags & MF_NOCLIP) )
@@ -380,13 +418,13 @@ void P_ZMovement (mobj_t* mo)
 	    mo->momz -= GRAVITY;
     }
 	
-    if (mo->z + mo->height > mo->ceilingz)
+    if (mo->z + mo->height > ceilingz)
     {
 	// hit the ceiling
 	if (mo->momz > 0 && !(mo->flags & MF_NOGRAVITY))  // [kg] added no gravity check
 	    mo->momz = 0;
 
-	mo->z = mo->ceilingz - mo->height;
+	mo->z = ceilingz - mo->height;
 
 	if (mo->flags & MF_SKULLFLY)
 	{	// the skull slammed into something
@@ -506,8 +544,7 @@ void P_MobjThinker (mobj_t* mobj)
 	if (mobj->thinker.function.acv == (actionf_v) (-1))
 	    return;		// mobj was removed
     }
-    if ( (mobj->z != mobj->floorz)
-	 || mobj->momz )
+    if ( (mobj->z != mobj->floorz) || mobj->momz)
     {
 	P_ZMovement (mobj);
 	
@@ -623,6 +660,9 @@ P_SpawnMobj
 	mobj->z = mobj->ceilingz - mobj->info->height;
     else 
 	mobj->z = z;
+
+    if(mobj->z <= mobj->floorz)
+	mobj->onground = true;
 
     mobj->thinker.function.acp1 = (actionf_p1)P_MobjThinker;
 	

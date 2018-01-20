@@ -133,7 +133,7 @@ typedef struct
     }			d;
 } intercept_t;
 
-#define MAXINTERCEPTS	128
+#define MAXINTERCEPTS	256
 
 extern intercept_t	intercepts[MAXINTERCEPTS];
 extern intercept_t*	intercept_p;
@@ -197,6 +197,13 @@ boolean P_CheckSight (mobj_t* t1, mobj_t* t2);
 void 	P_UseLines (player_t* player);
 
 boolean P_ChangeSector(sector_t *sector, int lua_func, int lua_arg);
+
+// [kg] thing Z clipping
+void P_CheckPositionZ(mobj_t *thing);
+// [kg] only to find foorz and ceilingz
+void P_CheckPositionLines(mobj_t *thing);
+
+void P_ZMovement (mobj_t* mo);
 
 extern mobj_t*	linetarget;	// who got hit (or NULL)
 

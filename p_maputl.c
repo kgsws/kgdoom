@@ -582,6 +582,9 @@ PIT_AddLineIntercepts (line_t* ld)
     intercept_p->d.line = ld;
     intercept_p++;
 
+    if(intercept_p == &intercepts[MAXINTERCEPTS])
+	return false; // [kg] don't overflow
+
     return true;	// continue
 }
 
@@ -646,6 +649,9 @@ boolean PIT_AddThingIntercepts (mobj_t* thing)
     intercept_p->isaline = false;
     intercept_p->d.thing = thing;
     intercept_p++;
+
+    if(intercept_p == &intercepts[MAXINTERCEPTS])
+	return false; // [kg] don't overflow
 
     return true;		// keep going
 }
