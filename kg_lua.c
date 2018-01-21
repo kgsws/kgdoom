@@ -2353,10 +2353,11 @@ static int LUA_teleportMobj(lua_State *L)
 	mo->floorz = mo->subsector->sector->floorheight;
 	mo->ceilingz = mo->subsector->sector->ceilingheight;
 
+	if(mo->z == ONCEILINGZ)
+		mo->z = mo->ceilingz - mo->height;
+
 	if(mo->z < mo->floorz)
 		mo->z = mo->floorz;
-
-	P_ZMovement(mo, true);
 
 	if(mo->player)
 		mo->player->viewz = mo->z + mo->player->viewheight;

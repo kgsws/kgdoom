@@ -245,11 +245,13 @@ void P_XYMovement (mobj_t* mo)
 	return; 	// no friction for missiles ever
 
     // [kg] detect floorz to walk on things
-    P_CheckPositionZ(mo);
-    if(thzcbot && thzcbot->z + thzcbot->height > mo->floorz)
-	floorz = thzcbot->z + thzcbot->height;
-    else
-	floorz = mo->floorz;
+    floorz = mo->floorz;
+    if(mo->z > floorz)
+    {
+	P_CheckPositionZ(mo);
+	if(thzcbot && thzcbot->z + thzcbot->height > mo->floorz)
+	    floorz = thzcbot->z + thzcbot->height;
+    }
 
     // [kg] preset ground info
     mo->onground = false;
@@ -303,24 +305,24 @@ void P_XYMovement (mobj_t* mo)
 //
 // P_ZMovement
 //
-void P_ZMovement (mobj_t* mo, boolean checkonly)
+void P_ZMovement (mobj_t* mo)
 {
     fixed_t	dist;
     fixed_t	delta;
-
-    // [kg] mobj Z collision
     fixed_t floorz, ceilingz;
 
     floorz = mo->floorz;
     ceilingz = mo->ceilingz;
 
     // [kg] mobj Z collision
-    if(!(mo->flags & (MF_MISSILE | MF_NOZCHANGE | MF_NOCLIP)))
+    if(mo->z > floorz && !(mo->flags & (MF_MISSILE | MF_NOZCHANGE | MF_NOCLIP)))
     {
 	if(!thzcbot) // use thing calculated in XY movement, if any
 	    P_CheckPositionZ(mo);
 	if(thzcbot && thzcbot->z + thzcbot->height > mo->floorz)
+	{
 	    floorz = thzcbot->z + thzcbot->height;
+	}
 	thzcbot = NULL; // and reset it now
     }
 
@@ -331,7 +333,7 @@ void P_ZMovement (mobj_t* mo, boolean checkonly)
 #ifdef SERVER
     if(mo->player && mo->z < floorz)
 #else
-    if(!checkonly && !local_player_predict && mo->player && mo->z < floorz)
+    if(!local_player_predict && mo->player && mo->z < floorz)
 #endif
     {
 	mo->player->viewheight -= floorz-mo->z;
@@ -445,7 +447,7 @@ void P_ZMovement (mobj_t* mo, boolean checkonly)
 	    return;
 	}
     }
-} 
+}
 
 
 
@@ -546,7 +548,7 @@ void P_MobjThinker (mobj_t* mobj)
     }
     if ( (mobj->z != mobj->floorz) || mobj->momz)
     {
-	P_ZMovement (mobj, false);
+	P_ZMovement (mobj);
 	
 	// FIXME: decent NOP/NULL/Nil function pointer please.
 	if (mobj->thinker.function.acv == (actionf_v) (-1))

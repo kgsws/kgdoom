@@ -38,6 +38,10 @@ mobj_t *hitmobj;
 // [kg] for thing Z collision checking
 mobj_t *thzcbot;
 mobj_t *thzctop;
+static boolean tmblocked;
+static fixed_t tmthingtop;
+static fixed_t tmthingtopnew;
+static fixed_t tmthingnewz;
 
 // If "floatok" true, move would be ok
 // if within "tmfloorz - tmceilingz".
@@ -460,14 +464,16 @@ nocross:
 // the z will be set to the lowest value
 // and false will be returned.
 //
+// [kg] updates for thing Z collisions
+boolean P_UpdateThingZ(mobj_t *thing, fixed_t newz);
+//
 boolean P_ThingHeightClip (mobj_t* thing)
 {
     boolean		onfloor;
     fixed_t oldfz;
-	
-    onfloor = (thing->z == thing->floorz);
-	
-//    P_CheckPosition (thing, thing->x, thing->y);
+
+    onfloor = (thing->z <= thing->floorz);
+
     P_CheckPositionLines(thing);
     // what about stranding a monster partially off an edge?
 
@@ -476,14 +482,14 @@ boolean P_ThingHeightClip (mobj_t* thing)
     thing->floorz = tmfloorz;
     thing->ceilingz = tmceilingz;
 
-    if (onfloor)
+    if(onfloor || thing->z <= thing->floorz)
     {
 	if(oldfz != thing->floorz)
 	{
+	    tmblocked = false;
 	    // walking monsters rise and fall with the floor
-	    thing->z = thing->floorz;
-	    // [kg] check updated things
-	    P_ZMovement(thing, true);
+	    if(!P_UpdateThingZ(thing, thing->floorz))
+		return false;
 	}
     }
     else
@@ -1400,7 +1406,7 @@ P_ChangeSector
 }
 
 //
-// [kg] thing Z collision
+// [kg] thing Z collision search
 // this will find things under and over this one
 
 boolean PIT_CheckThingZ(mobj_t* thing)
@@ -1430,7 +1436,7 @@ boolean PIT_CheckThingZ(mobj_t* thing)
 		} else
 			thzctop = thing;
 	}
-	if(tmthing->z > thing->z)
+	if(tmthing->z >= thing->z + thing->height)
 	{
 		if(thzcbot)
 		{
@@ -1442,6 +1448,7 @@ boolean PIT_CheckThingZ(mobj_t* thing)
 	return true;
 }
 
+// this will find things under and over this one
 void P_CheckPositionZ(mobj_t *thing)
 {
 	int xl;
@@ -1476,12 +1483,12 @@ void P_CheckPositionZ(mobj_t *thing)
 
 	for (bx=xl ; bx<=xh ; bx++)
 		for (by=yl ; by<=yh ; by++)
-			if (!P_BlockThingsIterator(bx,by,PIT_CheckThingZ))
-				return;
+			P_BlockThingsIterator(bx,by,PIT_CheckThingZ);
 
 	return;
 }
 
+// this will setup correct floorz/ceilingz values for this thing
 void P_CheckPositionLines(mobj_t *thing)
 {
 	int xl;
@@ -1529,5 +1536,113 @@ void P_CheckPositionLines(mobj_t *thing)
 	for (bx=xl ; bx<=xh ; bx++)
 		for (by=yl ; by<=yh ; by++)
 			P_BlockLinesIterator (bx,by,PIT_CheckLine);
+}
+
+boolean PIT_UpdateThingZ(mobj_t* thing)
+{
+	fixed_t blockdist;
+	fixed_t top;
+	fixed_t newz = thing->z;
+
+	if(thing == tmthing)
+		return true;
+
+	if(thing->flags & MF_NOCLIP)
+		return true;
+
+	if(tmthing->flags & MF_MISSILE)
+		return true;
+
+	blockdist = thing->radius + tmthing->radius;
+
+	if( abs(thing->x - tmx) >= blockdist || abs(thing->y - tmy) >= blockdist )
+		return true;
+
+	top = thing->z + thing->height;
+
+	if(tmthingtopnew > tmthingtop)
+	{
+		// raising
+		if(thing->z >= tmthingtop && thing->z < tmthingtopnew)
+		{
+			// raise this one too
+			newz = tmthingtopnew;
+		}
+	} else
+	{
+		// lowering
+		if(tmthing->z >= top && tmthingnewz < top)
+		{
+			// blocked by this thing
+			tmthingnewz = top;
+			// fix positions
+			tmthingtopnew = tmthingnewz + tmthing->height;
+		}
+	}
+
+	if(newz != thing->z)
+	{
+		mobj_t *bkthing = tmthing;
+		fixed_t bktop = tmthingtop;
+		fixed_t bktopnew = tmthingtopnew;
+		fixed_t bknewz = tmthingnewz;
+		fixed_t bkx = tmx;
+		fixed_t bky = tmy;
+
+		P_UpdateThingZ(thing, newz);
+
+		tmthing = bkthing;
+		tmthingtop = bktop;
+		tmthingtopnew = bktopnew;
+		tmthingnewz = bknewz;
+		tmx = bkx;
+		tmy = bky;
+	}
+
+	return true;
+}
+
+// this will update thing Z based on sector movement
+// might be called recursively for stacked things
+boolean P_UpdateThingZ(mobj_t *thing, fixed_t newz)
+{
+	int xl;
+	int xh;
+	int yl;
+	int yh;
+	int bx;
+	int by;
+
+	if(thing->flags & (MF_NOCLIP | MF_TROUGHMOBJ))
+	{
+		thing->z = newz;
+		return true;
+	}
+
+	tmthingtop = thing->z + thing->height;
+	tmthingtopnew = newz + thing->height;
+	tmthingnewz = newz;
+
+	tmthing = thing;
+	tmx = thing->x;
+	tmy = thing->y;
+
+	tmbbox[BOXTOP] = tmy + tmthing->radius;
+	tmbbox[BOXBOTTOM] = tmy - tmthing->radius;
+	tmbbox[BOXRIGHT] = tmx + tmthing->radius;
+	tmbbox[BOXLEFT] = tmx - tmthing->radius;
+
+	xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
+	xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
+	yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
+	yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
+
+	for (bx=xl ; bx<=xh ; bx++)
+		for (by=yl ; by<=yh ; by++)
+			P_BlockThingsIterator(bx,by,PIT_UpdateThingZ);
+
+	thing->z = tmthingnewz;
+
+	return !tmblocked;
 }
 
