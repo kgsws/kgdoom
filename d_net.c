@@ -16,7 +16,7 @@
 // [kg] new gameplay stuff
 
 int sv_slowmo;
-int sv_freeaim;
+int sv_freeaim = 1;
 int sv_itemrespawn;	// in ticks
 int sv_ammorespawn;	// in ticks
 int sv_weaponrespawn;	// in ticks

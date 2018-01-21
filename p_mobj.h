@@ -190,8 +190,11 @@ typedef enum
     // [kg] ignore thing colisions
     MF_TROUGHMOBJ	= 0x20000000,
 
+    // [kg] ignore thing colisions
+    MF_FULLVOLUME	= 0x40000000,
+
     // [kg] holey rendering
-    MF_HOLEY = 0x40000000,
+    MF_HOLEY = 0x80000000,
 
 } mobjflag_t;
 

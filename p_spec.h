@@ -59,8 +59,11 @@ P_FindSectorFromTag
 
 int
 P_FindMinSurroundingLight
-( sector_t*	sector,
-  int		max );
+( sector_t*	sector);
+
+int
+P_FindMaxSurroundingLight
+( sector_t*	sector);
 
 sector_t*
 getNextSector

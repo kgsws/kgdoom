@@ -113,6 +113,7 @@ int
 S_AdjustSoundParams
 ( mobj_t*	listener,
   mobj_t*	source,
+  int		slot,
   int*		vol,
   int*		sep,
   int*		pitch );
@@ -240,6 +241,7 @@ S_StartSoundAtVolume
   {
     rc = S_AdjustSoundParams(players[displayplayer].mo,
 			     origin,
+			     origin_slot,
 			     &volume,
 			     &sep,
 			     &pitch);
@@ -390,6 +392,7 @@ void S_UpdateSounds(void* listener_p)
 		{
 		    audible = S_AdjustSoundParams(listener,
 						  c->origin,
+						  c->slot,
 						  &volume,
 						  &sep,
 						  &pitch);
@@ -558,6 +561,7 @@ int
 S_AdjustSoundParams
 ( mobj_t*	listener,
   mobj_t*	source,
+  int		slot,
   int*		vol,
   int*		sep,
   int*		pitch )
@@ -572,6 +576,14 @@ S_AdjustSoundParams
     {
 	*vol = 0;
 	return 0;
+    }
+
+    // [kg] full volume?
+    if(slot == SOUND_BODY && source->flags & MF_FULLVOLUME)
+    {
+	*sep = NORM_SEP;
+	*vol = snd_SfxVolume;
+	return 1;
     }
 
     // calculate the distance to sound origin

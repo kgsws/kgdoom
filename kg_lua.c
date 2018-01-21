@@ -18,6 +18,8 @@
 
 #include "p_inventory.h"
 
+#include "g_game.h"
+
 #ifdef LINUX
 #include <lua5.3/lua.h>
 #include <lua5.3/lauxlib.h>
@@ -153,6 +155,7 @@ static int LUA_playerRefireWeapon(lua_State *L);
 static int LUA_playerFlashWeapon(lua_State *L);
 
 static int LUA_heightFromSector(lua_State *L);
+static int LUA_lightFromSector(lua_State *L);
 static int LUA_shortTexFromSector(lua_State *L);
 static int LUA_genericPlaneFromSector(lua_State *L);
 static int LUA_genericCallFromSector(lua_State *L);
@@ -225,6 +228,8 @@ static int func_get_highfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_nextfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_loweceilingsector(lua_State *L, void *dst, void *o);
 static int func_get_highceilingsector(lua_State *L, void *dst, void *o);
+static int func_get_highlightsector(lua_State *L, void *dst, void *o);
+static int func_get_lowlightsector(lua_State *L, void *dst, void *o);
 static int func_get_shortexfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_genericfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_genericceilingsector(lua_State *L, void *dst, void *o);
@@ -300,10 +305,10 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"notInDeathmatch", MF_NOTDMATCH},
 	{"isMonster", MF_ISMONSTER},
 	{"noRadiusDamage", MF_NORADIUSDMG},
-	{"holey", MF_HOLEY},
 	{"skullFly", MF_SKULLFLY},
 	{"noZChange", MF_NOZCHANGE},
 	{"troughMobj", MF_TROUGHMOBJ},
+	{"fullVolume", MF_FULLVOLUME},
 	// flag combinations
 	{"Monster", MF_ISMONSTER | MF_COUNTKILL | MF_SOLID | MF_SHOOTABLE},
 	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF | MF_NOZCHANGE},
@@ -473,6 +478,8 @@ static const lua_table_model_t lua_sector[] =
 	{"FindNextFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_nextfloorsector},
 	{"FindLowestCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_loweceilingsector},
 	{"FindHighestCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_highceilingsector},
+	{"FindMinimalLight", 0, LUA_TFUNCTION, func_set_readonly, func_get_highlightsector},
+	{"FindMaximalLight", 0, LUA_TFUNCTION, func_set_readonly, func_get_lowlightsector},
 	{"GetShortestTexture", 0, LUA_TFUNCTION, func_set_readonly, func_get_shortexfloorsector},
 	{"GenericFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericfloorsector},
 	{"GenericCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericceilingsector},
@@ -1348,6 +1355,24 @@ static int func_get_highceilingsector(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return light search function
+static int func_get_highlightsector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushlightuserdata(L, P_FindMaxSurroundingLight);
+	lua_pushcclosure(L, LUA_lightFromSector, 2);
+	return 1;
+}
+
+// return light search function
+static int func_get_lowlightsector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushlightuserdata(L, P_FindMinSurroundingLight);
+	lua_pushcclosure(L, LUA_lightFromSector, 2);
+	return 1;
+}
+
 // return texture height search function
 static int func_get_shortexfloorsector(lua_State *L, void *dst, void *o)
 {
@@ -2160,6 +2185,21 @@ static int LUA_sectorTagIterator(lua_State *L)
 
 //
 // indirect LUA functions
+
+static int LUA_doomExit(lua_State *L)
+{
+	if(lua_gettop(L) > 0)
+	{
+		luaL_checktype(L, 1, LUA_TBOOLEAN);
+		if(lua_toboolean(L, 1))
+		{
+			G_SecretExitLevel();
+			return 0;
+		}
+	}
+	G_ExitLevel();
+	return 0;
+}
 
 static int LUA_TableReadOnly(lua_State *L)
 {
@@ -3498,6 +3538,22 @@ static int LUA_heightFromSector(lua_State *L)
 	return 1;
 }
 
+static int LUA_lightFromSector(lua_State *L)
+{
+	int (*func)(sector_t*);
+	sector_t *sec;
+	int level;
+
+	sec = lua_touserdata(L, lua_upvalueindex(1));
+	func = lua_touserdata(L, lua_upvalueindex(2));
+
+	level = func(sec);
+
+	lua_pushnumber(L, level);
+
+	return 1;
+}
+
 static int LUA_shortTexFromSector(lua_State *L)
 {
 	int i;
@@ -3654,7 +3710,37 @@ static int LUA_LineSpecIndex(lua_State *L)
 	}
 
 	// get func
-	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, linespec_table[spec]);
+	lua_rawgeti(L, LUA_REGISTRYINDEX, linespec_table[spec]);
+
+	return 1;
+}
+
+static int LUA_GameInfoIndex(lua_State *L)
+{
+	const char *par;
+
+	if(lua_gettop(L) > 2)
+		return luaL_error(L, "you can't modify this");
+
+	luaL_checktype(L, 2, LUA_TSTRING);
+	par = lua_tostring(L, 2);
+
+	if(!strcmp(par, "map"))
+	{
+		if(level_name[0])
+			lua_pushstring(L, level_name);
+		else
+			lua_pushnil(L);
+	} else
+	if(!strcmp(par, "time"))
+	{
+		lua_pushinteger(L, leveltime);
+	} else
+	if(!strcmp(par, "DoomExit"))
+	{
+		lua_pushcfunction(L, LUA_doomExit);
+	} else
+		lua_pushnil(L);
 
 	return 1;
 }
@@ -3774,6 +3860,24 @@ void L_ExportLineSpecTable(lua_State *L)
 	lua_setglobal(L, "linefunc");
 }
 
+void L_ExportGameInfoTable(lua_State *L)
+{
+	// variable 'linefunc'
+	lua_createtable(L, 0, 0);
+	// metatable
+	lua_createtable(L, 0, 2);
+	// newindex
+	lua_pushcfunction(L, LUA_GameInfoIndex);
+	lua_setfield(L, -2, "__newindex");
+	// index
+	lua_pushcfunction(L, LUA_GameInfoIndex);
+	lua_setfield(L, -2, "__index");
+	// add metatable
+	lua_setmetatable(L, -2);
+	// finish
+	lua_setglobal(L, "game");
+}
+
 void L_ExportFunctions(lua_State *L, int mask)
 {
 	int i;
@@ -3813,12 +3917,16 @@ void L_LoadScript(int lump)
 		// export Doom sin / cos tables
 		L_ExportSinTable(luaS_game);
 		L_ExportCosTable(luaS_game);
+		// export game info table
+		L_ExportGameInfoTable(luaS_game);
 		// export line special table
 		L_ExportLineSpecTable(luaS_game);
 		// export pickup returns
 		L_ExportIntegers(luaS_game, "pickup", lua_pickups, sizeof(lua_pickups) / sizeof(lua_intvalue_t));
 		// export line special activation type
 		L_ExportIntegers(luaS_game, "lnspec", lua_linespec, sizeof(lua_linespec) / sizeof(lua_intvalue_t));
+		// done
+		lua_settop(luaS_game, 0);
 	}
 	// setup script name
 	scriptdata = W_CacheLumpNum(lump);
@@ -3914,13 +4022,8 @@ void L_Init()
 
 void L_SetupMap()
 {
-	const char *maplump = W_LumpNumName(level_lump);
-
-	lua_pushstring(luaS_game, maplump);
-	lua_setglobal(luaS_game, "levelLump");
-
 	// TODO: start map load scripts
-	lua_settop(luaS_game, 0);
+//	lua_settop(luaS_game, 0);
 }
 
 void L_SpawnPlayer(player_t *pl)
@@ -4023,8 +4126,6 @@ void T_GenericCaller(generic_plane_t *gp)
 		sector_t *sec = gp->info.sector;
 
 		generic_sector_removed = false;
-		// reset timer
-		gp->call.curtics = gp->speed;
 		// function to call
 		lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, gp->lua_action);
 		// caller to pass
@@ -4049,6 +4150,11 @@ void T_GenericCaller(generic_plane_t *gp)
 			L_FinishGeneric(*gp->gp, true);
 			*gp->gp = NULL;
 			P_RemoveThinker(&gp->thinker);
+		} else
+		{
+			// reset timer, ticrate might be different
+			gp->speed = gp->call.ticrate;
+			gp->call.curtics = gp->speed;
 		}
 		lua_settop(luaS_game, 0);
 	}

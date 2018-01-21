@@ -40,7 +40,9 @@
 #define INSTANTKILL	12345678
 
 // [kg] some levelinfo used for server -> client stuff
-int level_lump;
+extern int level_lump;
+// and this one for Lua
+extern char level_name[9];
 
 // [kg] moved here
 #define STOPSPEED		0x1000

@@ -434,15 +434,14 @@ P_FindSectorFromTag
 //
 int
 P_FindMinSurroundingLight
-( sector_t*	sector,
-  int		max )
+( sector_t*	sector)
 {
     int		i;
     int		min;
     line_t*	line;
     sector_t*	check;
 	
-    min = max;
+    min = 255;
     for (i=0 ; i < sector->linecount ; i++)
     {
 	line = sector->lines[i];
@@ -457,7 +456,29 @@ P_FindMinSurroundingLight
     return min;
 }
 
+int
+P_FindMaxSurroundingLight
+( sector_t*	sector)
+{
+    int		i;
+    int		min;
+    line_t*	line;
+    sector_t*	check;
+	
+    min = 0;
+    for (i=0 ; i < sector->linecount ; i++)
+    {
+	line = sector->lines[i];
+	check = getNextSector(line,sector);
 
+	if (!check)
+	    continue;
+
+	if (check->lightlevel > min)
+	    min = check->lightlevel;
+    }
+    return min;
+}
 
 //
 // EVENTS

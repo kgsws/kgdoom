@@ -24,6 +24,8 @@
 
 void	P_SpawnMapThing (mapthing_hexen_t*	mthing);
 
+int level_lump;
+char level_name[9];
 
 //
 // MAP related Lookup tables.
@@ -790,6 +792,11 @@ P_SetupLevel
     lumpnum = W_GetNumForName (lumpname);
 
     level_lump = lumpnum;
+    {
+	char *tmp = W_LumpNumName(level_lump);
+	level_name[8] = 0;
+	strncpy(level_name, tmp, 8);
+    }
 	
     leveltime = 0;
 
