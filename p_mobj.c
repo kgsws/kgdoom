@@ -836,7 +836,7 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     P_SetupPsprites (p);
 
     // give all cards in death match mode
-    if (deathmatch)
+    if (sv_deathmatch)
 	for (i=0 ; i<NUMCARDS ; i++)
 	    p->cards[i] = true;
 
@@ -883,7 +883,7 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
     {
 	// save spots for respawning in network games
 	playerstarts[mthing->type-1] = *mthing;
-	if (!deathmatch)
+	if (!sv_deathmatch)
 	    P_SpawnPlayer (mthing, -1);
 
 	return;
@@ -922,13 +922,13 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
     // [kg] spawn network weapons only in deathmatch
     if(netgame && mthing->flags & 16)
     {
-	if(!(mobjinfo[i].flags & MF_ISMONSTER) && !deathmatch)
+	if(!(mobjinfo[i].flags & MF_ISMONSTER) && !sv_deathmatch)
 		// it's not a monster, don't spawn
 		return;
     }
 #endif
     // don't spawn keycards and players in deathmatch
-    if (deathmatch && mobjinfo[i].flags & MF_NOTDMATCH)
+    if (sv_deathmatch && mobjinfo[i].flags & MF_NOTDMATCH)
 	return;
 		
     // don't spawn any monsters if -nomonsters

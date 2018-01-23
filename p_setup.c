@@ -436,7 +436,7 @@ void P_LoadLineDefs (int lump)
     ld = lines;
     for (i=0 ; i<numlines ; i++, mld++, ld++)
     {
-	ld->think.lua_type = TT_LINE;
+	ld->soundorg.thinker.lua_type = TT_LINE;
 	ld->flags = SHORT(mld->flags) & 0x01FF;
 	ld->special = SHORT(mld->special);
 	ld->tag = SHORT(mld->tag);
@@ -491,6 +491,10 @@ void P_LoadLineDefs (int lump)
 	    ld->backsector = sides[ld->sidenum[1]].sector;
 	else
 	    ld->backsector = 0;
+
+	// [kg] soundorg
+	ld->soundorg.x = ((v2->x - v1->x) / 2) + v1->x;
+	ld->soundorg.y = ((v2->y - v1->y) / 2) + v1->y;
     }
 	
 //    Z_Free (data);
@@ -515,7 +519,7 @@ void P_LoadLineDefs_H(int lump)
 	ld = lines;
 	for (i=0 ; i<numlines ; i++, mld++, ld++)
 	{
-		ld->think.lua_type = TT_LINE;
+		ld->soundorg.thinker.lua_type = TT_LINE;
 		ld->flags = SHORT(mld->flags);
 		ld->special = mld->special;
 		memcpy(ld->arg, mld->arg, 5);
@@ -570,6 +574,10 @@ void P_LoadLineDefs_H(int lump)
 			ld->backsector = sides[ld->sidenum[1]].sector;
 		else
 			ld->backsector = 0;
+
+		// [kg] soundorg
+		ld->soundorg.x = ((v2->x - v1->x) / 2) + v1->x;
+		ld->soundorg.y = ((v2->y - v1->y) / 2) + v1->y;
 	}
 
 //	Z_Free (data);
@@ -779,6 +787,7 @@ P_SetupLevel
 	    sprintf (lumpname,"map0%i", map);
 	else
 	    sprintf (lumpname,"map%i", map);
+	gameepisode = 0;
     }
     else
     {
@@ -839,7 +848,7 @@ P_SetupLevel
 		P_LoadThings(lumpnum+ML_THINGS);
     
     // if deathmatch, randomly spawn the active players
-    if (deathmatch)
+    if (sv_deathmatch)
     {
 	for (i=0 ; i<MAXPLAYERS ; i++)
 	    if (playeringame[i])

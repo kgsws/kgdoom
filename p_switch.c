@@ -96,7 +96,7 @@ P_StartButton
   int sound )
 {
     int		i;
-    mobj_t *sndorg = (mobj_t *)(linedef_side ? line->backsector : line->frontsector);
+    mobj_t *sndorg = (mobj_t *)&line->soundorg;
     
     // See if button is already pressed
     for (i = 0;i < MAXBUTTONS;i++)
@@ -145,7 +145,7 @@ P_ChangeSwitchTexture
     int     texBot;
     int     i;
     int     useAgain = 0;
-    mobj_t *sndorg = (mobj_t *)(linedef_side ? line->backsector : line->frontsector);
+    mobj_t *sndorg = (mobj_t *)&line->soundorg;
 
     if(isHexen)
     {
@@ -156,6 +156,9 @@ P_ChangeSwitchTexture
 	if(line->special)
 	    useAgain = 1;
     }
+
+    if(line->sidenum[linedef_side] < 0)
+	return;
 
     texTop = sides[line->sidenum[linedef_side]].toptexture;
     texMid = sides[line->sidenum[linedef_side]].midtexture;

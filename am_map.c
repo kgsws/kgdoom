@@ -674,7 +674,7 @@ AM_Responder
 	    cheatstate=0;
 	    rc = false;
 	}
-	if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
+	if (!sv_deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
 	{
 	    rc = false;
 	    cheating = (cheating+1) % 3;
@@ -1254,7 +1254,7 @@ void AM_drawPlayers(void)
 	their_color++;
 	p = &players[i];
 
-	if ( deathmatch && p != plr)
+	if ( sv_deathmatch && p != plr)
 	    continue;
 
 	if (!playeringame[i])

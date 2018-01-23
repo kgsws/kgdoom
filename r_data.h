@@ -42,6 +42,9 @@ typedef struct
 extern int		numtextures;
 extern texture_t**	textures;
 
+// [kg] better looks
+extern boolean r_fakecontrast;
+
 // Retrieve column data for span blitting.
 byte*
 R_GetColumn

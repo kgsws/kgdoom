@@ -15,6 +15,7 @@
 
 // [kg] new gameplay stuff
 
+int sv_deathmatch;
 int sv_slowmo;
 int sv_freeaim = 1;
 int sv_itemrespawn;	// in ticks

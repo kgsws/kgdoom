@@ -1493,7 +1493,7 @@ void WI_Ticker(void)
     switch (state)
     {
       case StatCount:
-	if (deathmatch) WI_updateDeathmatchStats();
+	if (sv_deathmatch) WI_updateDeathmatchStats();
 	else if (netgame) WI_updateNetgameStats();
 	else WI_updateStats();
 	break;
@@ -1744,7 +1744,7 @@ void WI_Drawer (void)
     switch (state)
     {
       case StatCount:
-	if (deathmatch)
+	if (sv_deathmatch)
 	    WI_drawDeathmatchStats();
 	else if (netgame)
 	    WI_drawNetgameStats();
@@ -1811,7 +1811,7 @@ void WI_Start(wbstartstruct_t* wbstartstruct)
     WI_initVariables(wbstartstruct);
     WI_loadData();
 
-    if (deathmatch)
+    if (sv_deathmatch)
 	WI_initDeathmatchStats();
     else if (netgame)
 	WI_initNetgameStats();

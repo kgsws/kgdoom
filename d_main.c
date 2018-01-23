@@ -652,7 +652,7 @@ void D_DoomMain (void)
     autostart = false;
 
     if(M_CheckParm("-deathmatch"))
-	deathmatch = true;
+	sv_deathmatch = true;
 		
     p = M_CheckParm ("-skill");
     if (p && p < myargc-1)

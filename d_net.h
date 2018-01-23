@@ -10,6 +10,7 @@
 
 // [kg] new gameplay stuff
 
+extern int sv_deathmatch;
 extern int sv_slowmo;
 extern int sv_freeaim;
 extern int sv_itemrespawn;

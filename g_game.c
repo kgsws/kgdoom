@@ -87,7 +87,6 @@ int             starttime;          	// for comparative timing purposes
  
 boolean         viewactive; 
  
-boolean         deathmatch;           	// only if started as net death 
 int         netgame;                // only true if packets are broadcast 
 
 #ifdef SERVER
@@ -415,7 +414,7 @@ boolean G_Responder (event_t* ev)
 
     // allow spy mode changes
     if (gamestate == GS_LEVEL && ev->type == ev_keydown 
-	&& ev->data1 == KEY_F12 && !deathmatch )
+	&& ev->data1 == KEY_F12 && !sv_deathmatch )
     {
 	// spy mode 
 	do 
@@ -584,7 +583,11 @@ void G_Ticker (void)
 #endif
 	    break; 
 	  case ga_victory: 
-//	    F_StartFinale (); 
+#ifdef SERVER
+	    SV_ExitLevel();
+#else
+	    F_StartFinale ();
+#endif
 	    break; 
 	  case ga_worlddone: 
 	    G_DoWorldDone (); 
@@ -841,7 +844,7 @@ void G_DoReborn (int playernum)
 		players[playernum].mo->player = NULL;   
 
 	// spawn at random spot if in death match 
-	if (deathmatch) 
+	if (sv_deathmatch) 
 	{ 
 	    G_DeathMatchSpawnPlayer (playernum); 
 	    return; 
@@ -1263,7 +1266,7 @@ void G_DoNewGame (void)
 {
 	if(!netgame)
 	{
-		deathmatch = false;
+		sv_deathmatch = false;
 		playeringame[1] = playeringame[2] = playeringame[3] = 0;
 		respawnparm = false;
 		fastparm = false;

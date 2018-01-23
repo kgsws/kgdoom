@@ -124,7 +124,10 @@ static int LUA_doomRandom(lua_State *L);
 static int LUA_spawnMobj(lua_State *L);
 static int LUA_blockThingsIterator(lua_State *L);
 static int LUA_globalThingsIterator(lua_State *L);
+static int LUA_globalSectorsIterator(lua_State *L);
+static int LUA_globalLinesIterator(lua_State *L);
 static int LUA_sectorTagIterator(lua_State *L);
+static int LUA_setFakeContrast(lua_State *L);
 
 static int LUA_removeMobjFromMobj(lua_State *L);
 static int LUA_flagCheckMobj(lua_State *L);
@@ -276,7 +279,10 @@ static const luafunc_t lua_functions[] =
 	{"spawnMobj", LUA_spawnMobj, LUA_EXPORT_LEVEL},
 	{"blockThingsIterator", LUA_blockThingsIterator, LUA_EXPORT_LEVEL},
 	{"globalThingsIterator", LUA_globalThingsIterator, LUA_EXPORT_LEVEL},
+	{"globalSectorsIterator", LUA_globalSectorsIterator, LUA_EXPORT_LEVEL},
+	{"globalLinesIterator", LUA_globalLinesIterator, LUA_EXPORT_LEVEL},
 	{"sectorTagIterator", LUA_sectorTagIterator, LUA_EXPORT_LEVEL},
+	{"fakeContrast", LUA_setFakeContrast, LUA_EXPORT_LEVEL},
 };
 
 // all mobj flags
@@ -2118,6 +2124,126 @@ static int LUA_globalThingsIterator(lua_State *L)
 	return lua_gettop(L);
 }
 
+static int LUA_globalSectorsIterator(lua_State *L)
+{
+	int i;
+	int arg, func;
+	int top = lua_gettop(L);
+
+	if(top > 2)
+		return luaL_error(L, "globalSectorsIterator: incorrect number of arguments");
+
+	luaL_checktype(L, 1, LUA_TFUNCTION);
+
+	if(top > 1)
+	{
+		arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(arg, false);
+	} else
+		arg = LUA_REFNIL;
+
+	func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(func, false);
+
+	lua_settop(L, 0);
+
+	for(i = 0; i < numsectors; i++)
+	{
+		// function to call
+		lua_rawgeti(L, LUA_REGISTRYINDEX, func);
+		// sector to pass
+		lua_pushlightuserdata(L, sectors + i);
+		// parameter to pass
+		lua_rawgeti(L, LUA_REGISTRYINDEX, arg);
+		// do the call
+		if(lua_pcall(L, 2, LUA_MULTRET, 0))
+			// script error
+			return luaL_error(L, "SectorsIterator: %s", lua_tostring(L, -1));
+
+		if(lua_gettop(L) == 0)
+			// no return means continue
+			continue;
+
+		// first return has to be continue flag
+		luaL_checktype(L, 1, LUA_TBOOLEAN);
+
+		if(lua_toboolean(L, 1))
+			// iteration will continue, discard all returns
+			lua_settop(L, 0);
+		else
+		{
+			// remove only this flag, rest will get returned
+			lua_remove(L, 1);
+			break;
+		}
+	}
+	LUA_DebugRef(func, true);
+	LUA_DebugRef(arg, true);
+	luaL_unref(L, LUA_REGISTRYINDEX, func);
+	luaL_unref(L, LUA_REGISTRYINDEX, arg);
+	return lua_gettop(L);
+}
+
+static int LUA_globalLinesIterator(lua_State *L)
+{
+	int i;
+	int arg, func;
+	int top = lua_gettop(L);
+
+	if(top > 2)
+		return luaL_error(L, "globalLinesIterator: incorrect number of arguments");
+
+	luaL_checktype(L, 1, LUA_TFUNCTION);
+
+	if(top > 1)
+	{
+		arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(arg, false);
+	} else
+		arg = LUA_REFNIL;
+
+	func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(func, false);
+
+	lua_settop(L, 0);
+
+	for(i = 0; i < numlines; i++)
+	{
+		// function to call
+		lua_rawgeti(L, LUA_REGISTRYINDEX, func);
+		// sector to pass
+		lua_pushlightuserdata(L, lines + i);
+		// parameter to pass
+		lua_rawgeti(L, LUA_REGISTRYINDEX, arg);
+		// do the call
+		if(lua_pcall(L, 2, LUA_MULTRET, 0))
+			// script error
+			return luaL_error(L, "LinesIterator: %s", lua_tostring(L, -1));
+
+		if(lua_gettop(L) == 0)
+			// no return means continue
+			continue;
+
+		// first return has to be continue flag
+		luaL_checktype(L, 1, LUA_TBOOLEAN);
+
+		if(lua_toboolean(L, 1))
+			// iteration will continue, discard all returns
+			lua_settop(L, 0);
+		else
+		{
+			// remove only this flag, rest will get returned
+			lua_remove(L, 1);
+			break;
+		}
+	}
+	LUA_DebugRef(func, true);
+	LUA_DebugRef(arg, true);
+	luaL_unref(L, LUA_REGISTRYINDEX, func);
+	luaL_unref(L, LUA_REGISTRYINDEX, arg);
+	return lua_gettop(L);
+}
+
 static int LUA_sectorTagIterator(lua_State *L)
 {
 	int i, tag;
@@ -2181,6 +2307,13 @@ static int LUA_sectorTagIterator(lua_State *L)
 	luaL_unref(L, LUA_REGISTRYINDEX, func);
 	luaL_unref(L, LUA_REGISTRYINDEX, arg);
 	return lua_gettop(L);
+}
+
+static int LUA_setFakeContrast(lua_State *L)
+{
+	luaL_checktype(L, 1, LUA_TBOOLEAN);
+	r_fakecontrast = lua_toboolean(L, 1);
+	return 0;
 }
 
 //
@@ -2914,15 +3047,6 @@ static int LUA_soundFromMobj(lua_State *L)
 	}
 
 	source = lua_touserdata(L, lua_upvalueindex(1));
-	if(source->thinker.lua_type == TT_LINE)
-	{
-		// sound from line
-		line = (line_t*)source;
-		source = (mobj_t*)(linedef_side ? line->backsector : line->frontsector);
-		if(!source)
-			return 0;
-	}
-
 	chan = lua_tointeger(L, lua_upvalueindex(2));
 
 	S_StartSound(source, lump, chan);
@@ -3740,6 +3864,14 @@ static int LUA_GameInfoIndex(lua_State *L)
 	{
 		lua_pushcfunction(L, LUA_doomExit);
 	} else
+	if(!strcmp(par, "deathMatch"))
+	{
+		lua_pushboolean(L, !!sv_deathmatch);
+	} else
+	if(!strcmp(par, "doomEpisode"))
+	{
+		lua_pushinteger(L, gameepisode);
+	} else
 		lua_pushnil(L);
 
 	return 1;
@@ -4022,8 +4154,15 @@ void L_Init()
 
 void L_SetupMap()
 {
-	// TODO: start map load scripts
-//	lua_settop(luaS_game, 0);
+	// start map load scripts
+	lua_getglobal(luaS_game, "mapLoaded");
+	if(lua_type(luaS_game, -1) == LUA_TFUNCTION)
+	{
+		if(lua_pcall(luaS_game, 0, 0, 0))
+			// script error
+			I_Error("L_SetupMap: %s", lua_tostring(luaS_game, -1));
+	}
+	lua_settop(luaS_game, 0);
 }
 
 void L_SpawnPlayer(player_t *pl)

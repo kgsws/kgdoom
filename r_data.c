@@ -66,6 +66,8 @@ typedef struct __attribute__((packed))
     mappatch_t	patches[1];
 } maptexture_t;
 
+// [kg] for better looks
+boolean r_fakecontrast = true;
 
 // [kg] multiple wads support
 int	firstflat[MAXWADS];

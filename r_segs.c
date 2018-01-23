@@ -92,16 +92,20 @@ R_RenderMaskedSegRange
 	
     lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
 
-    if (curline->v1->y == curline->v2->y)
-	lightnum--;
-    else if (curline->v1->x == curline->v2->x)
-	lightnum++;
+    if(r_fakecontrast)
+    {
+	if (curline->v1->y == curline->v2->y)
+	    lightnum--;
+	else if (curline->v1->x == curline->v2->x)
+	    lightnum++;
 
-    if (lightnum < 0)		
-	walllights = scalelight[0];
-    else if (lightnum >= LIGHTLEVELS)
-	walllights = scalelight[LIGHTLEVELS-1];
-    else
+	if (lightnum < 0)		
+	    walllights = scalelight[0];
+	else if (lightnum >= LIGHTLEVELS)
+	    walllights = scalelight[LIGHTLEVELS-1];
+	else
+	    walllights = scalelight[lightnum];
+    } else
 	walllights = scalelight[lightnum];
 
     maskedtexturecol = ds->maskedtexturecol;
@@ -630,16 +634,20 @@ R_StoreWallRange
 	{
 	    lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
 
-	    if (curline->v1->y == curline->v2->y)
-		lightnum--;
-	    else if (curline->v1->x == curline->v2->x)
-		lightnum++;
+	    if(r_fakecontrast)
+	    {
+		if (curline->v1->y == curline->v2->y)
+		    lightnum--;
+		else if (curline->v1->x == curline->v2->x)
+		    lightnum++;
 
-	    if (lightnum < 0)		
-		walllights = scalelight[0];
-	    else if (lightnum >= LIGHTLEVELS)
-		walllights = scalelight[LIGHTLEVELS-1];
-	    else
+		if (lightnum < 0)		
+		    walllights = scalelight[0];
+		else if (lightnum >= LIGHTLEVELS)
+		    walllights = scalelight[LIGHTLEVELS-1];
+		else
+		    walllights = scalelight[lightnum];
+	    } else
 		walllights = scalelight[lightnum];
 	}
     }

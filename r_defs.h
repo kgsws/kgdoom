@@ -159,8 +159,9 @@ typedef enum
 
 typedef struct line_s
 {
-    // [kg] for Lua access
-    degenthinker_t think;
+    // [kg] origin for any sounds played by the line (buttons)
+    // [kg] this also servers as thinker_t for Lua
+    degenmobj_t	soundorg;
 
     // Vertices, from v1 to v2.
     vertex_t*	v1;
