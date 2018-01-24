@@ -123,6 +123,7 @@ static int LUA_setPlayerType(lua_State *L);
 static int LUA_doomRandom(lua_State *L);
 static int LUA_spawnMobj(lua_State *L);
 static int LUA_blockThingsIterator(lua_State *L);
+static int LUA_globalPlayersIterator(lua_State *L);
 static int LUA_globalThingsIterator(lua_State *L);
 static int LUA_globalSectorsIterator(lua_State *L);
 static int LUA_globalLinesIterator(lua_State *L);
@@ -169,7 +170,10 @@ static int LUA_stopFromGeneric(lua_State *L);
 static int LUA_sleepFromGeneric(lua_State *L);
 static int LUA_reverseFromGeneric(lua_State *L);
 
+static int LUA_stopFromLine(lua_State *L);
+
 static int LUA_doSwitchTextureLine(lua_State *L);
+static int LUA_scrollFromLine(lua_State *L);
 
 static int LUA_animationFromMobj(lua_State *L);
 
@@ -255,7 +259,9 @@ static int func_set_walltexture(lua_State *L, void *dst, void *o);
 static int func_get_walltexture(lua_State *L, void *dst, void *o);
 static int func_get_linedefsectorF(lua_State *L, void *dst, void *o);
 static int func_get_linedefsectorB(lua_State *L, void *dst, void *o);
+static int func_getlinefunc_ptr(lua_State *L, void *dst, void *o);
 static int func_get_doswitchline(lua_State *L, void *dst, void *o);
+static int func_get_scrollerline(lua_State *L, void *dst, void *o);
 
 static int func_get_genericpltypef(lua_State *L, void *dst, void *o);
 static int func_get_genericpltypec(lua_State *L, void *dst, void *o);
@@ -266,6 +272,8 @@ static int func_get_genericpllowering(lua_State *L, void *dst, void *o);
 static int func_get_genericstop(lua_State *L, void *dst, void *o);
 static int func_get_genericsleep(lua_State *L, void *dst, void *o);
 static int func_get_genericreverse(lua_State *L, void *dst, void *o);
+
+static int func_get_texfuncstop(lua_State *L, void *dst, void *o);
 
 // all exported LUA functions
 static const luafunc_t lua_functions[] =
@@ -278,6 +286,7 @@ static const luafunc_t lua_functions[] =
 	{"doomRandom", LUA_doomRandom, LUA_EXPORT_SETUP | LUA_EXPORT_LEVEL},
 	{"spawnMobj", LUA_spawnMobj, LUA_EXPORT_LEVEL},
 	{"blockThingsIterator", LUA_blockThingsIterator, LUA_EXPORT_LEVEL},
+	{"globalPlayersIterator", LUA_globalPlayersIterator, LUA_EXPORT_LEVEL},
 	{"globalThingsIterator", LUA_globalThingsIterator, LUA_EXPORT_LEVEL},
 	{"globalSectorsIterator", LUA_globalSectorsIterator, LUA_EXPORT_LEVEL},
 	{"globalLinesIterator", LUA_globalLinesIterator, LUA_EXPORT_LEVEL},
@@ -518,8 +527,13 @@ static const lua_table_model_t lua_linedef[] =
 	{"sectorBack", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorB},
 	{"frontsector", offsetof(line_t, frontsector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	{"backsector", offsetof(line_t, backsector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	// action
+	{"func", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_getlinefunc_ptr},
+	{"funcFront", offsetof(line_t, specialdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	{"funcBack", offsetof(line_t, specialdata) + sizeof(void*), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	// functions
 	{"DoButton", 0, LUA_TFUNCTION, func_set_readonly, func_get_doswitchline},
+	{"SetScroller", 0, LUA_TFUNCTION, func_set_readonly, func_get_scrollerline},
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
@@ -531,7 +545,6 @@ static const lua_table_model_t lua_linedef[] =
 static const lua_table_model_t lua_genericplane[] =
 {
 	{"sector", offsetof(generic_plane_t, info) + offsetof(generic_info_t, sector), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
-//	{"speed", offsetof(generic_plane_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"action", offsetof(generic_plane_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"crush", offsetof(generic_plane_t, lua_crush), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(generic_plane_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
@@ -567,6 +580,14 @@ static const lua_table_model_t lua_sectorcall[] =
 	// functions
 	{"Stop", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericstop},
 	{"Suspend", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericsleep},
+};
+
+// all texture scroller values
+static const lua_table_model_t lua_texturescroll[] =
+{
+	{"x", offsetof(generic_plane_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"y", offsetof(generic_plane_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"Stop", 0, LUA_TFUNCTION, func_set_readonly, func_get_texfuncstop},
 };
 
 // all pickup options
@@ -815,7 +836,7 @@ static int func_set_fixedt(lua_State *L, void *dst, void *o)
 	lua_Number num;
 
 	num = lua_tonumber(L, -1);
-	*(int*)dst = (int)(num * (lua_Number)FRACUNIT);
+	*(fixed_t*)dst = (fixed_t)(num * (lua_Number)FRACUNIT);
 	return 0;
 }
 
@@ -1548,11 +1569,30 @@ static int func_get_walltexture(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return line function from selected side
+static int func_getlinefunc_ptr(lua_State *L, void *dst, void *o)
+{
+	void *func = ((line_t*)o)->specialdata[linedef_side];
+	if(func)
+		lua_pushlightuserdata(L, func);
+	else
+		lua_pushnil(L);
+	return 1;
+}
+
 // return switch function
 static int func_get_doswitchline(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_doSwitchTextureLine, 1);
+	return 1;
+}
+
+// return scroller add function
+static int func_get_scrollerline(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_scrollFromLine, 1);
 	return 1;
 }
 
@@ -1665,6 +1705,14 @@ static int func_get_genericreverse(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_reverseFromGeneric, 1);
+	return 1;
+}
+
+// return scroller removal function
+static int func_get_texfuncstop(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_stopFromLine, 1);
 	return 1;
 }
 
@@ -2061,6 +2109,68 @@ static int LUA_blockThingsIterator(lua_State *L)
 	return lua_gettop(L);
 }
 
+static int LUA_globalPlayersIterator(lua_State *L)
+{
+	int i;
+	int arg, func;
+	int top = lua_gettop(L);
+
+	if(top > 2)
+		return luaL_error(L, "globalPlayersIterator: incorrect number of arguments");
+
+	luaL_checktype(L, 1, LUA_TFUNCTION);
+
+	if(top > 1)
+	{
+		arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(arg, false);
+	} else
+		arg = LUA_REFNIL;
+
+	func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(func, false);
+
+	lua_settop(L, 0);
+
+	for(i = 0; i < MAXPLAYERS; i++)
+	{
+		if(!playeringame[i] || players[i].playerstate != PST_LIVE)
+			continue;
+		// function to call
+		lua_rawgeti(L, LUA_REGISTRYINDEX, func);
+		// player to pass
+		lua_pushlightuserdata(L, players + i);
+		// parameter to pass
+		lua_rawgeti(L, LUA_REGISTRYINDEX, arg);
+		// do the call
+		if(lua_pcall(L, 2, LUA_MULTRET, 0))
+			// script error
+			return luaL_error(L, "PlayersIterator: %s", lua_tostring(L, -1));
+
+		if(lua_gettop(L) == 0)
+			// no return means continue
+			continue;
+
+		// first return has to be continue flag
+		luaL_checktype(L, 1, LUA_TBOOLEAN);
+
+		if(lua_toboolean(L, 1))
+			// iteration will continue, discard all returns
+			lua_settop(L, 0);
+		else
+		{
+			// remove only this flag, rest will get returned
+			lua_remove(L, 1);
+			break;
+		}
+	}
+	LUA_DebugRef(func, true);
+	LUA_DebugRef(arg, true);
+	luaL_unref(L, LUA_REGISTRYINDEX, func);
+	luaL_unref(L, LUA_REGISTRYINDEX, arg);
+	return lua_gettop(L);
+}
+
 static int LUA_globalThingsIterator(lua_State *L)
 {
 	int arg, func;
@@ -2398,6 +2508,9 @@ static int LUA_ThinkerIndex(lua_State *L)
 		break;
 		case TT_SECCALL:
 			field = LUA_FieldByName(idx, lua_sectorcall, sizeof(lua_sectorcall) / sizeof(lua_table_model_t));
+		break;
+		case TT_SCROLLTEX:
+			field = LUA_FieldByName(idx, lua_texturescroll, sizeof(lua_texturescroll) / sizeof(lua_table_model_t));
 		break;
 		default:
 			return luaL_error(L, "unknown thinker type");
@@ -3581,6 +3694,53 @@ static int LUA_reverseFromGeneric(lua_State *L)
 	temp = gp->info.stoppic;
 	gp->info.stoppic = gp->info.startpic;
 	gp->info.startpic = temp;
+
+	return 0;
+}
+
+static int LUA_scrollFromLine(lua_State *L)
+{
+	generic_line_t *ga;
+	fixed_t x, y;
+	line_t *line;
+	int side = linedef_side;
+
+	// x; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	// y; required
+	luaL_checktype(L, 2, LUA_TNUMBER);
+
+	x = (fixed_t)(lua_tonumber(L, 1) * (lua_Number)FRACUNIT);
+	y = (fixed_t)(lua_tonumber(L, 2) * (lua_Number)FRACUNIT);
+
+	// side; optional
+	if(lua_gettop(L) > 2)
+	{
+		luaL_checktype(L, 3, LUA_TBOOLEAN);
+		side = !lua_toboolean(L, 3);
+	}
+
+	line = lua_touserdata(L, lua_upvalueindex(1));
+
+	ga = P_TextureScroller(line, x, y, side);
+
+	if(ga)
+		lua_pushlightuserdata(L, ga);
+	else
+		lua_pushnil(L);
+
+	return 1;
+}
+
+static int LUA_stopFromLine(lua_State *L)
+{
+	generic_line_t *ga;
+
+	ga = lua_touserdata(L, lua_upvalueindex(1));
+
+	ga->ga = NULL;
+
+	P_RemoveThinker(&ga->thinker);
 
 	return 0;
 }

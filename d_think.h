@@ -51,6 +51,7 @@ typedef enum
 	TT_LINE, // degen
 	TT_GENPLANE,
 	TT_SECCALL,
+	TT_SCROLLTEX,
 } luathinker_t;
 
 

@@ -1,5 +1,8 @@
-// generic floor / ceiling movement
+// generic thinkers
 // by kgsws
+
+//
+// planes
 
 typedef struct
 {
@@ -46,4 +49,26 @@ generic_plane_t *P_GenericSectorFloor(generic_info_t *info);
 
 void T_GenericCaller(generic_plane_t *gp);
 generic_plane_t *P_GenericSectorCaller(generic_call_t *info, int dest);
+
+//
+// lines
+
+typedef struct
+{
+	fixed_t x, y;
+} generic_texscrl_t;
+
+typedef struct
+{
+	thinker_t thinker;
+	void **ga; // pointer to origin (either side)
+	side_t *side;
+	union
+	{
+		generic_texscrl_t scroll;
+	};
+} generic_line_t;
+
+void T_TexScroll(generic_line_t *ga);
+generic_line_t *P_TextureScroller(line_t *line, fixed_t x, fixed_t y, int side);
 

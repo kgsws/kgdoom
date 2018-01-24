@@ -1,4 +1,4 @@
-// generic floor / ceiling movement
+// generic thinkers
 // by kgsws
 #include "z_zone.h"
 #include "doomdef.h"
@@ -81,15 +81,16 @@ generic_plane_t *P_GenericSectorCeiling(generic_info_t *info)
 {
 	generic_plane_t *gp;
 
+	// check speed
+	if(info->speed <= 0)
+		return NULL;
+
 	// remove old one
 	if(info->sector->ceilingdata)
 	{
 		L_FinishGeneric(info->sector->ceilingdata, true);
 		P_RemoveThinker(info->sector->ceilingdata);
 	}
-	// check speed
-	if(info->speed <= 0)
-		return NULL;
 	// add new one
 	gp = Z_Malloc(sizeof(generic_plane_t), PU_LEVSPEC, 0);
 	P_AddThinker(&gp->thinker, TT_GENPLANE);
@@ -178,15 +179,16 @@ generic_plane_t *P_GenericSectorFloor(generic_info_t *info)
 {
 	generic_plane_t *gp;
 
+	// check speed
+	if(info->speed <= 0)
+		return NULL;
+
 	// remove old one
 	if(info->sector->floordata)
 	{
 		L_FinishGeneric(info->sector->floordata, true);
 		P_RemoveThinker(info->sector->floordata);
 	}
-	// check speed
-	if(info->speed <= 0)
-		return NULL;
 	// add new one
 	gp = Z_Malloc(sizeof(generic_plane_t), PU_LEVSPEC, 0);
 	P_AddThinker(&gp->thinker, TT_GENPLANE);
@@ -216,6 +218,10 @@ generic_plane_t *P_GenericSectorCaller(generic_call_t *info, int dest)
 	generic_plane_t *gp;
 	generic_plane_t **ptr = (generic_plane_t **)&info->sector->floordata;
 
+	// check ticrate
+	if(info->ticrate <= 0)
+		return NULL;
+
 	ptr += dest;
 
 	// remove old one
@@ -224,9 +230,6 @@ generic_plane_t *P_GenericSectorCaller(generic_call_t *info, int dest)
 		L_FinishGeneric(*ptr, true);
 		P_RemoveThinker((thinker_t*)*ptr);
 	}
-	// check ticrate
-	if(info->ticrate <= 0)
-		return NULL;
 	// add new one
 	gp = Z_Malloc(sizeof(generic_plane_t), PU_LEVSPEC, 0);
 	P_AddThinker(&gp->thinker, TT_SECCALL);
@@ -242,5 +245,43 @@ generic_plane_t *P_GenericSectorCaller(generic_call_t *info, int dest)
 	gp->speed = gp->call.ticrate;
 
 	return gp;
+}
+
+//
+// Texture scroll
+//
+
+void T_TexScroll(generic_line_t *ga)
+{
+	ga->side->textureoffset += ga->scroll.x;
+	ga->side->rowoffset += ga->scroll.y;
+}
+
+generic_line_t *P_TextureScroller(line_t *line, fixed_t x, fixed_t y, int side)
+{
+	generic_line_t *ga;
+	generic_line_t **ptr = (generic_line_t **)&line->specialdata[side];
+
+	// check speed
+	if(!x && !y)
+		return NULL;
+
+	// check sidedef
+	if(line->sidenum[side] < 0)
+		return NULL;
+
+	// remove old one
+	if(*ptr)
+		P_RemoveThinker((thinker_t*)*ptr);
+	// add new one
+	ga = Z_Malloc(sizeof(generic_line_t), PU_LEVSPEC, 0);
+	P_AddThinker(&ga->thinker, TT_SCROLLTEX);
+	ga->thinker.function.acp1 = (actionf_p1)T_TexScroll;
+	ga->side = &sides[line->sidenum[side]];
+	ga->scroll.x = x;
+	ga->scroll.y = y;
+	*ptr = ga;
+
+	return ga;
 }
 

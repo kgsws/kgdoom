@@ -707,7 +707,7 @@ R_StoreWallRange
 	floorplane = R_CheckPlane (floorplane, rw_x, rw_stopx-1);
 
     // [kg] line horizon check
-    R_RenderSegLoop(isHexen && !curline->backsector && curline->linedef && curline->linedef->special == 9);
+    R_RenderSegLoop(curline->linedef && curline->linedef->sidenum[1] == -2);
     
     // save sprite clipping info
     if ( ((ds_p->silhouette & SIL_TOP) || maskedtexture)

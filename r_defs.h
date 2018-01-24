@@ -197,7 +197,8 @@ typedef struct line_s
     int		validcount;
 
     // thinker_t for reversable actions
-    void*	specialdata;
+    // [kg] one for each side
+    void*	specialdata[2];
 } line_t;
 
 
