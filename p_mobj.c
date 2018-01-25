@@ -531,10 +531,29 @@ P_NightmareRespawn (mobj_t* mobj)
 //
 void P_MobjThinker (mobj_t* mobj)
 {
+    sector_t *sec = mobj->subsector->sector;
+
 #ifdef SERVER
     if(disable_player_think && mobj->player)
 	return;
 #endif
+
+#ifndef SERVER
+    if(!netgame)
+#endif
+    // [kg] generalized sector damage
+    if(sec->damage && sec->damagetick & 0x7FFF)
+    {
+	if(	!(leveltime % (sec->damagetick & 0x7FFF)) &&
+		(sec->damagetick & 0x8000 || mobj->z <= mobj->subsector->sector->floorheight)
+	) {
+	    P_DamageMobj(mobj, NULL, NULL, sec->damage);
+	    // FIXME: decent NOP/NULL/Nil function pointer please.
+	    if(mobj->thinker.function.acv == (actionf_v) (-1))
+		return;		// mobj was removed
+	}
+    }
+
     // momentum movement
     if (mobj->momx
 	|| mobj->momy

@@ -112,7 +112,12 @@ typedef	struct
 
     int			linecount;
     struct line_s**	lines;	// [linecount] size
-    
+
+    // [kg] generalized damage
+    int damage;
+    uint16_t damagetype;
+    uint16_t damagetick;
+
 } sector_t;
 
 

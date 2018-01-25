@@ -165,6 +165,7 @@ static int LUA_genericPlaneFromSector(lua_State *L);
 static int LUA_genericCallFromSector(lua_State *L);
 static int LUA_sectorThingIterator(lua_State *L);
 static int LUA_sectorLineIterator(lua_State *L);
+static int LUA_sectorSetDamage(lua_State *L);
 
 static int LUA_stopFromGeneric(lua_State *L);
 static int LUA_sleepFromGeneric(lua_State *L);
@@ -245,6 +246,7 @@ static int func_get_genericcallsectorceiling(lua_State *L, void *dst, void *o);
 static int func_get_genericcallsector(lua_State *L, void *dst, void *o);
 static int func_get_thingitersector(lua_State *L, void *dst, void *o);
 static int func_get_lineitersector(lua_State *L, void *dst, void *o);
+static int func_get_setdamagesector(lua_State *L, void *dst, void *o);
 
 static int func_set_sectorheight(lua_State *L, void *dst, void *o);
 static int func_set_flattexture(lua_State *L, void *dst, void *o);
@@ -503,6 +505,7 @@ static const lua_table_model_t lua_sector[] =
 	{"GenericCaller", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericcallsector},
 	{"ThingIterator", 0, LUA_TFUNCTION, func_set_readonly, func_get_thingitersector},
 	{"LineIterator", 0, LUA_TFUNCTION, func_set_readonly, func_get_lineitersector},
+	{"SetDamage", 0, LUA_TFUNCTION, func_set_readonly, func_get_setdamagesector},
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
@@ -1469,6 +1472,14 @@ static int func_get_lineitersector(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return sector damage set function
+static int func_get_setdamagesector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_sectorSetDamage, 1);
+	return 1;
+}
+
 // change sector heights
 static int func_set_sectorheight(lua_State *L, void *dst, void *o)
 {
@@ -1851,6 +1862,43 @@ int LUA_GetMobjTypeParam(lua_State *L, int idx)
 		return luaL_error(L, "mobj type expected");
 
 	return dest - mobjinfo;
+}
+
+sector_t *LUA_GetSectorParam(lua_State *L, int idx, boolean allownull)
+{
+	sector_t *dest;
+
+	if(allownull && lua_type(L, idx) == LUA_TNIL)
+		return NULL;
+
+	luaL_checktype(L, idx, LUA_TLIGHTUSERDATA);
+
+	if(!lua_getmetatable(L, idx))
+	{
+		luaL_error(L, "sector expected");
+		return 0;
+	}
+
+	lua_pushstring(L, "__index");
+	lua_rawget(L, -2);
+
+	if(lua_tocfunction(L, -1) != LUA_ThinkerIndex)
+	{
+		luaL_error(L, "sector expected");
+		return 0;
+	}
+
+	lua_pop(L, 2);
+
+	dest = lua_touserdata(L, idx);
+
+	if(dest->soundorg.thinker.lua_type != TT_SECTOR)
+	{
+		luaL_error(L, "sector expected");
+		return 0;
+	}
+
+	return dest;
 }
 
 //
@@ -3549,6 +3597,49 @@ static int LUA_sectorLineIterator(lua_State *L)
 	luaL_unref(L, LUA_REGISTRYINDEX, lua_arg);
 
 	return lua_gettop(L);
+}
+
+static int LUA_sectorSetDamage(lua_State *L)
+{
+	sector_t *sec;
+	int top = lua_gettop(L);
+
+	sec = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(top == 1)
+	{
+		// source sector; required
+		sector_t *src = LUA_GetSectorParam(L, 1, false);
+		sec->damage = src->damage;
+		sec->damagetick = src->damagetick;
+	} else
+	{
+		int damage;
+		int ticks;
+		boolean in_air = false;
+
+		// damage; required
+		luaL_checktype(L, 1, LUA_TNUMBER);
+		// ticrate; required
+		luaL_checktype(L, 2, LUA_TNUMBER);
+		// in air; optional
+		if(top > 2)
+		{
+			luaL_checktype(L, 3, LUA_TBOOLEAN);
+			in_air = lua_toboolean(L, 3);
+		}
+
+		damage = lua_tointeger(L, 1);
+		ticks = lua_tointeger(L, 2);
+
+		if(in_air)
+			ticks |= 0x8000;
+
+		sec->damage = damage;
+		sec->damagetick = ticks;
+	}
+
+	return 0;
 }
 
 static int LUA_sectorThingIterator(lua_State *L)

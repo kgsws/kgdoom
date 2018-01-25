@@ -279,8 +279,13 @@ void P_PlayerThink (player_t* player)
 	
     if (player->playerstate == PST_DEAD)
     {
-	P_DeathThink (player);
-	return;
+	if(player->mo->health > 0)
+	    player->playerstate == PST_LIVE;
+	else
+	{
+	    P_DeathThink (player);
+	    return;
+	}
     }
     
     // Move around.
@@ -304,8 +309,6 @@ void P_PlayerThink (player_t* player)
 
     if(!netgame)
 #endif
-    if (player->mo->subsector->sector->special)
-	P_PlayerInSpecialSector (player);
     
     // Check for weapon change.
     if (cmd->buttons & BT_CHANGE)

@@ -373,7 +373,9 @@ void R_DrawPlanes (void)
 	if (pl->minx > pl->maxx)
 	    continue;
 
-	
+	if(!pl->picnum)
+	    continue;
+
 	// sky flat
 	if (pl->picnum == skyflatnum)
 	{
@@ -402,7 +404,10 @@ void R_DrawPlanes (void)
 	{
 		int wnum = pl->picnum >> 24;
 		int pic = pl->picnum & 0xFFFFFF;
-		ds_source = W_CacheLumpNum((wnum << 24) | flattranslation[wnum][pic-firstflat[wnum]]);
+		if(flattranslation[wnum])
+		    ds_source = W_CacheLumpNum((wnum << 24) | flattranslation[wnum][pic-firstflat[wnum]]);
+		else
+		    ds_source = W_CacheLumpNum(pl->picnum);
 	}
 
 	planeheight = abs(pl->height-viewz);

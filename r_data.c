@@ -662,6 +662,7 @@ void R_InitFlats (void)
 	lastflat[i] = -1;
     }
 
+    // normal lumps
     W_ForEachName("F_START", cb_FirstFlat);
     W_ForEachName("F_END", cb_LastFlat);
 
