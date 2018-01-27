@@ -208,7 +208,7 @@ twoSided
 ( int	sector,
   int	line )
 {
-    return (sectors[sector].lines[line])->flags & ML_TWOSIDED;
+    return (sectors[sector].lines[line])->flags & LF_TWOSIDED;
 }
 
 
@@ -224,7 +224,7 @@ getNextSector
 ( line_t*	line,
   sector_t*	sec )
 {
-    if (!(line->flags & ML_TWOSIDED))
+    if (!(line->flags & LF_TWOSIDED))
 	return NULL;
 		
     if (line->frontsector == sec)
@@ -440,7 +440,7 @@ P_FindMinSurroundingLight
     int		min;
     line_t*	line;
     sector_t*	check;
-	
+
     min = 255;
     for (i=0 ; i < sector->linecount ; i++)
     {

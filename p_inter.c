@@ -170,7 +170,8 @@ P_DamageMobj
 ( mobj_t*	target,
   mobj_t*	inflictor,
   mobj_t*	source,
-  int 		damage )
+  int 		damage,
+  int		damagetype )
 {
     unsigned	ang;
     player_t*	player;
@@ -178,6 +179,8 @@ P_DamageMobj
     int		temp;
     boolean	isneg = false;
 
+    // [kg] negative damage is still damage
+    // however, it pulls into source
     if(damage < 0)
     {
 	isneg = true;
@@ -195,23 +198,56 @@ P_DamageMobj
     if (target->health <= 0)
 	return;
 
+    // [kg] damage resistence
+    if(damagetype < NUMDAMAGETYPES && damage != INSTANTKILL && damage != INSTANTGIB)
+    {
+	if(target->damagescale[damagetype] == 255)
+	    damage = INSTANTGIB;
+	else
+	    damage = (damage * (target->damagescale[damagetype] - (DEFAULT_DAMAGE_SCALE-10))) / 10;
+    }
+
+    player = target->player;
+
+    // [kg] scaled into negative values
+    if(damage < 0)
+    {
+	// healing
+	int max = target->health - target->info->spawnhealth;
+	damage = damage < max ? max : damage;
+	if(damage >= 0)
+	    // can't heal anymore
+	    return;
+	target->health -= damage;
+	if(player)
+	{
+	    player->healcount -= damage;
+	    if(player->healcount > 20)
+		// do not mess up screen like damage can
+		player->healcount = 20;
+	}
+	return;
+    }
+
+    if(!damage)
+	// no damage
+	return;
+
     if ( target->flags & MF_SKULLFLY )
     {
 	target->momx = target->momy = target->momz = 0;
     }
 
-    player = target->player;
-
     if (player && gameskill == sk_baby && damage < 1000)
 	damage >>= 1; 	// take half damage in trainer mode
-		
 
-    // Some close combat weapons should not
-    // inflict thrust and push the victim out of reach,
-    // thus kick away unless using the chainsaw.
+    if(!damage)
+	damage = 1;
+
+    // push / pull
     if (inflictor
 	&& !(target->flags & MF_NOCLIP)
-	&& damage != INSTANTKILL
+	&& damage != INSTANTKILL && damage != INSTANTGIB
 	&& target->info->mass)
     {
 	ang = R_PointToAngle2 ( inflictor->x,
@@ -221,8 +257,9 @@ P_DamageMobj
 
 	thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
 
-	// make fall forwards sometimes; TODO: what with this?
-	if ( damage < 40
+	// make fall forwards sometimes
+	if ( !(target->flags & MF_NODEATHPULL)
+	     && damage < 40
 	     && damage > target->health
 	     && target->z - inflictor->z > 64*FRACUNIT
 	     && (P_Random ()&1) )
@@ -242,6 +279,7 @@ P_DamageMobj
     if(damage == INSTANTKILL)
 	damage = target->health + (target->info->spawnhealth - 1);
     else
+    if(damage != INSTANTGIB)
     {
 	// [kg] armor for every mobj
 	if(target->armortype && target->armortype->damage)
@@ -285,10 +323,11 @@ P_DamageMobj
 
     // [kg] new cheat
     if(player && (player->cheats & CF_AURAMASK) == CF_REVENGEAURA && source && !source->player)
-	P_DamageMobj(source, player->mo, player->mo, INSTANTKILL);
+	P_DamageMobj(source, player->mo, player->mo, INSTANTKILL, NUMDAMAGETYPES);
 
     // [kg] set attacker, before entering pain or death state
     target->attacker = source;
+    target->damagercv = damagetype;
 
     // do the damage	
     target->health -= damage;	

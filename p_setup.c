@@ -176,7 +176,7 @@ void P_LoadSegs (int lump)
 	    I_Error("P_LoadSegs: seg %i uses invalid side idx %i", i, side);
 	li->sidedef = &sides[ldef->sidenum[side]];
 	li->frontsector = sides[ldef->sidenum[side]].sector;
-	if (ldef->flags & ML_TWOSIDED)
+	if (ldef->flags & LF_TWOSIDED)
 	    li->backsector = sides[ldef->sidenum[side^1]].sector;
 	else
 	    li->backsector = 0;
@@ -248,6 +248,7 @@ void P_LoadSectors (int lump)
 	ss->damage = 0;
 	ss->damagetype = 0;
 	ss->damagetick = 0;
+	ss->flags = 0;
     }
 	
 //    Z_Free (data);
@@ -449,7 +450,7 @@ void P_LoadLineDefs (int lump)
 	} else
 	{
 	    ld->backsector = 0;
-	    ld->flags &= ~ML_TWOSIDED;
+	    ld->flags &= ~LF_TWOSIDED;
 	}
 
 	// [kg] soundorg
@@ -542,7 +543,7 @@ void P_LoadLineDefs_H(int lump)
 		} else
 		{
 			ld->backsector = 0;
-			ld->flags &= ~ML_TWOSIDED;
+			ld->flags &= ~LF_TWOSIDED;
 		}
 
 		// [kg] soundorg

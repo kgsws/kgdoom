@@ -473,7 +473,7 @@ P_NightmareRespawn (mobj_t* mobj)
 
     // spawn a teleport fog at old spot
     // because of removal of the body?
-    mo = P_SpawnMobj (mobj->x,
+/*    mo = P_SpawnMobj (mobj->x,
 		      mobj->y,
 		      mobj->subsector->sector->floorheight , MT_TFOG);
     // initiate teleport sound
@@ -483,11 +483,11 @@ P_NightmareRespawn (mobj_t* mobj)
     // tell clients about this
     SV_SpawnMobj(mo, SV_MOBJF_SOUND_SEE);
 #endif
-
+*/
     // spawn a teleport fog at the new spot
     ss = R_PointInSubsector (x,y); 
 
-    mo = P_SpawnMobj (x, y, ss->sector->floorheight , MT_TFOG);
+/*    mo = P_SpawnMobj (x, y, ss->sector->floorheight , MT_TFOG);
     // initiate teleport sound
     if(mo->info->seesound)
 	S_StartSound (mo, mo->info->seesound, SOUND_BODY);
@@ -495,7 +495,7 @@ P_NightmareRespawn (mobj_t* mobj)
     // tell clients about this
     SV_SpawnMobj(mo, SV_MOBJF_SOUND_SEE);
 #endif
-
+*/
     // spawn the new monster
     mthing = &mobj->spawnpoint;
 	
@@ -547,7 +547,7 @@ void P_MobjThinker (mobj_t* mobj)
 	if(	!(leveltime % (sec->damagetick & 0x7FFF)) &&
 		(sec->damagetick & 0x8000 || mobj->z <= mobj->subsector->sector->floorheight)
 	) {
-	    P_DamageMobj(mobj, NULL, NULL, sec->damage);
+	    P_DamageMobj(mobj, NULL, NULL, sec->damage, sec->damagetype);
 	    // FIXME: decent NOP/NULL/Nil function pointer please.
 	    if(mobj->thinker.function.acv == (actionf_v) (-1))
 		return;		// mobj was removed
@@ -684,6 +684,9 @@ P_SpawnMobj
 
     if(mobj->z <= mobj->floorz)
 	mobj->onground = true;
+
+    // [kg] copy damage resistence
+    memcpy(mobj->damagescale, mobj->info->damagescale, NUMDAMAGETYPES);
 
     mobj->thinker.function.acp1 = (actionf_p1)P_MobjThinker;
 	

@@ -196,6 +196,9 @@ typedef enum
     // [kg] holey rendering
     MF_HOLEY = 0x80000000,
 
+    // [kg] disable death 'pull'
+    MF_NODEATHPULL = 0x100000000,
+
 } mobjflag_t;
 
 
@@ -254,6 +257,9 @@ typedef struct mobj_s
     // [kg] moved here from player
     int			armorpoints;
     mobjinfo_t*		armortype;
+    // [kg] damage resistance
+    uint8_t		damagescale[NUMDAMAGETYPES];
+    int			damagercv; // received damage type
 
     // Movement direction, movement generation (zig-zagging).
     int			movedir;	// 0-7

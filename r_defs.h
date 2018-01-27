@@ -118,6 +118,9 @@ typedef	struct
     uint16_t damagetype;
     uint16_t damagetick;
 
+    // [kg] new flags
+    uint32_t flags;
+
 } sector_t;
 
 

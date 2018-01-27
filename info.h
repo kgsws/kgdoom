@@ -74,7 +74,7 @@ typedef struct
 	int	height;
 	int	mass;
 	int	damage;
-	int	flags;
+	uint64_t	flags;
 
 	// [kg] inventory stuff
 	int maxcount;
@@ -84,6 +84,10 @@ typedef struct
 	int viewz;
 	int shootz;
 	int bobz;
+
+	// [kg] damage resistance
+	int damagetype;
+	uint8_t	damagescale[NUMDAMAGETYPES];
 
 	// [kg] some Lua stuff
 	int lua_action;
@@ -99,7 +103,6 @@ typedef int mobjtype_t;
 extern int MT_PLAYER;
 
 // TODO: fix these
-#define MT_TFOG 0
 #define MT_IFOG 0
 #define MT_PUFF 0
 #define MT_BLOOD 0

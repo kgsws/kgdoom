@@ -85,14 +85,14 @@ typedef struct
 //
 
 // Solid, is an obstacle.
-#define ML_BLOCKING		1
+#define LF_BLOCKING		1
 
 // Blocks monsters only.
-#define ML_BLOCKMONSTERS	2
+#define LF_BLOCKMONSTERS	2
 
 // Backside will not be present at all
 //  if not two sided.
-#define ML_TWOSIDED		4
+#define LF_TWOSIDED		4
 
 // If a texture is pegged, the texture will have
 // the end exposed to air held constant at the
@@ -104,25 +104,26 @@ typedef struct
 // top and bottom textures (use next to windows).
 
 // upper texture unpegged
-#define ML_DONTPEGTOP		8
+#define LF_DONTPEGTOP		8
 
 // lower texture unpegged
-#define ML_DONTPEGBOTTOM	16	
+#define LF_DONTPEGBOTTOM	16	
 
 // In AutoMap: don't map as two sided: IT'S A SECRET!
-#define ML_SECRET		32
+#define LF_SECRET		32
 
 // Sound rendering: don't let sound cross two of these.
-#define ML_SOUNDBLOCK		64
+#define LF_SOUNDBLOCK		64
 
 // Don't draw on the automap at all.
-#define ML_DONTDRAW		128
+#define LF_DONTDRAW		128
 
 // Set if already seen, thus drawn in automap.
-#define ML_MAPPED		256
+#define LF_MAPPED		256
 
-
-
+// [kg] new sector flags
+#define SF_SECRET	1
+#define SF_WAS_SECRET	2
 
 // Sector definition, from editing.
 typedef	struct

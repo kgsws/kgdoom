@@ -280,7 +280,7 @@ void P_PlayerThink (player_t* player)
     if (player->playerstate == PST_DEAD)
     {
 	if(player->mo->health > 0)
-	    player->playerstate == PST_LIVE;
+	    player->playerstate = PST_LIVE;
 	else
 	{
 	    P_DeathThink (player);
@@ -309,6 +309,15 @@ void P_PlayerThink (player_t* player)
 
     if(!netgame)
 #endif
+    {
+	sector_t *sector = player->mo->subsector->sector;
+	if(sector->flags & SF_SECRET)
+	{
+	    sector->flags &= ~SF_SECRET;
+	    sector->flags |= SF_WAS_SECRET;
+	    player->secretcount++;
+	}
+    }
     
     // Check for weapon change.
     if (cmd->buttons & BT_CHANGE)

@@ -97,7 +97,7 @@
 #define CYMTOF(y)  (f_y + (f_h - MTOF((y)-m_y)))
 
 // the following is crap
-#define LINE_NEVERSEE ML_DONTDRAW
+#define LINE_NEVERSEE LF_DONTDRAW
 
 typedef struct
 {
@@ -1116,7 +1116,7 @@ void AM_drawWalls(void)
 	l.a.y = lines[i].v1->y;
 	l.b.x = lines[i].v2->x;
 	l.b.y = lines[i].v2->y;
-	if (cheating || (lines[i].flags & ML_MAPPED))
+	if (cheating || (lines[i].flags & LF_MAPPED))
 	{
 	    if ((lines[i].flags & LINE_NEVERSEE) && !cheating)
 		continue;
@@ -1130,7 +1130,7 @@ void AM_drawWalls(void)
 		{ // teleporters
 		    AM_drawMline(&l, WALLCOLORS+WALLRANGE/2);
 		}
-		else if (lines[i].flags & ML_SECRET) // secret door
+		else if (lines[i].flags & LF_SECRET) // secret door
 		{
 		    if (cheating) AM_drawMline(&l, SECRETWALLCOLORS + lightlev);
 		    else AM_drawMline(&l, WALLCOLORS+lightlev);

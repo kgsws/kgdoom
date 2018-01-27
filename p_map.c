@@ -100,10 +100,10 @@ boolean PIT_CheckLine (line_t* ld)
 
     if (!(tmthing->flags & MF_MISSILE) )
     {
-	if ( ld->flags & ML_BLOCKING )
+	if ( ld->flags & LF_BLOCKING )
 	    goto nocross;	// explicitly blocking everything
 
-	if ( !tmthing->player && ld->flags & ML_BLOCKMONSTERS )
+	if ( !tmthing->player && ld->flags & LF_BLOCKMONSTERS )
 	    goto nocross;	// block monsters only
     }
 
@@ -175,7 +175,10 @@ boolean PIT_CheckThing (mobj_t* thing)
     // check for skulls slamming into things
     if (tmthing->flags & MF_SKULLFLY && thing->flags & MF_SOLID)
     {
-	damage = ((P_Random()%8)+1)*tmthing->info->damage;
+	if(tmthing->info->damage < 0)
+		damage = ((P_Random()%8)+1)*-tmthing->info->damage;
+	else
+		damage = tmthing->info->damage;
 
 	tmthing->flags &= ~MF_SKULLFLY;
 	tmthing->momx = tmthing->momy = tmthing->momz = 0;
@@ -187,7 +190,7 @@ boolean PIT_CheckThing (mobj_t* thing)
 #else
 	if(!netgame)
 #endif
-	P_DamageMobj (thing, tmthing, tmthing, damage);
+	P_DamageMobj (thing, tmthing, tmthing, damage, tmthing->info->damagetype);
 
 	return false;		// stop moving
     }
@@ -232,7 +235,7 @@ boolean PIT_CheckThing (mobj_t* thing)
 	{
 	    if(damage < 0) // Doom random
 		damage = ((P_Random()%8)+1)*-damage;
-	    P_DamageMobj (thing, tmthing, tmthing->source, damage);
+	    P_DamageMobj (thing, tmthing, tmthing->source, damage, tmthing->info->damagetype);
 	}
 	// save hit thing
 	hitmobj = thing;
@@ -590,7 +593,7 @@ boolean PTR_SlideTraverse (intercept_t* in)
 		
     li = in->d.line;
 
-    if ( ! (li->flags & ML_TWOSIDED) )
+    if ( ! (li->flags & LF_TWOSIDED) )
     {
 	if (P_PointOnLineSide (slidemo->x, slidemo->y, li))
 	{
@@ -599,7 +602,7 @@ boolean PTR_SlideTraverse (intercept_t* in)
 	}
 	goto isblocking;
     } else
-    if(li->flags & ML_BLOCKING)
+    if(li->flags & LF_BLOCKING)
         goto isblocking;
 
     // set openrange, opentop, openbottom
@@ -780,7 +783,7 @@ PTR_AimTraverse (intercept_t* in)
     {
 	li = in->d.line;
 	
-	if ( !(li->flags & ML_TWOSIDED) )
+	if ( !(li->flags & LF_TWOSIDED) )
 	    return false;		// stop
 	
 	// Crosses a two sided line.
@@ -887,7 +890,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	if (li->special)
 	    P_ExtraLineSpecial(shootthing, li, P_PointOnLineSide(shootthing->x, shootthing->y, li), EXTRA_HITSCAN);
 
-	if ( !(li->flags & ML_TWOSIDED) )
+	if ( !(li->flags & LF_TWOSIDED) )
 	    goto hitline;
 	
 	// crosses a two sided line
@@ -1015,7 +1018,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	P_SpawnBlood (x,y,z, shootthing);
 
     if (la_damage)
-	P_DamageMobj (th, shootthing, shootthing, la_damage);
+	P_DamageMobj (th, shootthing, shootthing, la_damage, mobjinfo[la_pufftype].damagetype);
 
     // don't go any farther
     return false;
@@ -1182,6 +1185,7 @@ mobj_t*		bombspot;
 int		bombdamage;
 fixed_t		bombdist;
 boolean		bombhurt;
+int		bombtype;
 
 //
 // PIT_RadiusAttack
@@ -1235,7 +1239,7 @@ boolean PIT_RadiusAttack (mobj_t* thing)
     if ( P_CheckSight (thing, bombspot) )
     {
 	// must be in direct path
-	P_DamageMobj (thing, bombspot, bombsource, damage);
+	P_DamageMobj (thing, bombspot, bombsource, damage, bombtype);
     }
     
     return true;
@@ -1252,7 +1256,8 @@ P_RadiusAttack
   mobj_t*	source,
   fixed_t	range,
   int		damage,
-  boolean	hurtsource )
+  boolean	hurtsource,
+  int		damagetype )
 {
     int		x;
     int		y;
@@ -1271,6 +1276,7 @@ P_RadiusAttack
     bombsource = source;
     bombdamage = damage * FRACUNIT;
     bombhurt = hurtsource;
+    bombtype = damagetype;
 	
     for (y=yl ; y<=yh ; y++)
 	for (x=xl ; x<=xh ; x++)

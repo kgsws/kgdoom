@@ -99,7 +99,7 @@ P_RecursiveSound
     for (i=0 ;i<sec->linecount ; i++)
     {
 	check = sec->lines[i];
-	if (! (check->flags & ML_TWOSIDED) )
+	if (! (check->flags & LF_TWOSIDED) )
 	    continue;
 	
 	P_LineOpening (check);
@@ -112,7 +112,7 @@ P_RecursiveSound
 	else
 	    other = sides[ check->sidenum[0] ].sector;
 	
-	if (check->flags & ML_SOUNDBLOCK)
+	if (check->flags & LF_SOUNDBLOCK)
 	{
 	    if (!soundblocks)
 		P_RecursiveSound (other, 1);
@@ -770,12 +770,12 @@ void A_FaceTarget (mobj_t* actor)
 		switch(actor->target->player->cheats & CF_AURAMASK)
 		{
 			case CF_DEATHAURA:
-				P_DamageMobj(actor, actor->target, actor->target, INSTANTKILL);
+				P_DamageMobj(actor, actor->target, actor->target, INSTANTKILL, NUMDAMAGETYPES);
 			break;
 			case CF_SAFEAURA:
 				if(actor->flags & MF_COUNTKILL)
 					actor->target->player->killcount++;	
-				fog = P_SpawnMobj(actor->x, actor->y, actor->z, MT_TFOG);
+//				fog = P_SpawnMobj(actor->x, actor->y, actor->z, MT_TFOG);
 				P_RemoveMobj(actor);
 //				S_StartSound(fog, sfx_telept, SOUND_BODY);
 			break;

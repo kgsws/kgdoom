@@ -116,7 +116,7 @@ R_RenderMaskedSegRange
     mceilingclip = ds->sprtopclip;
     
     // find positioning
-    if (curline->linedef->flags & ML_DONTPEGBOTTOM)
+    if (curline->linedef->flags & LF_DONTPEGBOTTOM)
     {
 	dc_texturemid = frontsector->floorheight > backsector->floorheight
 	    ? frontsector->floorheight : backsector->floorheight;
@@ -386,7 +386,7 @@ R_StoreWallRange
     linedef = curline->linedef;
 
     // mark the segment as visible for auto map
-    linedef->flags |= ML_MAPPED;
+    linedef->flags |= LF_MAPPED;
     
     // calculate rw_distance for scale calculation
     rw_normalangle = curline->angle + ANG90;
@@ -450,7 +450,7 @@ R_StoreWallRange
 	midtexture = texturetranslation[sidedef->midtexture];
 	// a single sided line is terminal, so it must mark ends
 	markfloor = markceiling = true;
-	if (linedef->flags & ML_DONTPEGBOTTOM)
+	if (linedef->flags & LF_DONTPEGBOTTOM)
 	{
 	    vtop = frontsector->floorheight +
 		textureheight[sidedef->midtexture];
@@ -562,7 +562,7 @@ R_StoreWallRange
 	{
 	    // top texture
 	    toptexture = texturetranslation[sidedef->toptexture];
-	    if (linedef->flags & ML_DONTPEGTOP)
+	    if (linedef->flags & LF_DONTPEGTOP)
 	    {
 		// top of texture at top
 		rw_toptexturemid = worldtop;
@@ -582,7 +582,7 @@ R_StoreWallRange
 	    // bottom texture
 	    bottomtexture = texturetranslation[sidedef->bottomtexture];
 
-	    if (linedef->flags & ML_DONTPEGBOTTOM )
+	    if (linedef->flags & LF_DONTPEGBOTTOM )
 	    {
 		// bottom of texture at bottom
 		// top of texture at top

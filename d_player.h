@@ -124,6 +124,8 @@ typedef struct player_s
     // For screen flashing (red or bright).
     int			damagecount;
     int			bonuscount;
+    // [kg] for healing 'damage'
+    int			healcount;
 
     // So gun flashes light up areas.
     int			extralight;

@@ -458,7 +458,7 @@ ST_Responder (event_t* ev)
 			mo = (mobj_t *)think;
 			if(!mo->player && mo->flags & MF_SHOOTABLE && mo->health > 0 && P_CheckSight(plyr->mo, mo))
 			{
-				P_DamageMobj(mo, plyr->mo, plyr->mo, INSTANTKILL);
+				P_DamageMobj(mo, plyr->mo, plyr->mo, INSTANTKILL, NUMDAMAGETYPES);
 			}
 		}
 	} else

@@ -145,6 +145,7 @@ static int LUA_lineAttack(lua_State *L);
 static int LUA_thrustFromMobj(lua_State *L);
 static int LUA_sightCheckFromMobj(lua_State *L);
 static int LUA_radiusDamageFromMobj(lua_State *L);
+static int LUA_damageScaleFromMobj(lua_State *L);
 
 static int LUA_soundFromMobj(lua_State *L);
 
@@ -179,6 +180,7 @@ static int LUA_scrollFromLine(lua_State *L);
 static int LUA_animationFromMobj(lua_State *L);
 
 static int func_set_states(lua_State *L, void *dst, void *o);
+static int func_set_damagescale(lua_State *L, void *dst, void *o);
 static int func_set_fixedt(lua_State *L, void *dst, void *o);
 static int func_get_fixedt(lua_State *L, void *dst, void *o);
 static int func_set_short(lua_State *L, void *dst, void *o);
@@ -216,6 +218,7 @@ static int func_get_lineattack(lua_State *L, void *dst, void *o);
 static int func_get_thrustmobj(lua_State *L, void *dst, void *o);
 static int func_get_checkmobjsight(lua_State *L, void *dst, void *o);
 static int func_get_mobjradiusdmg(lua_State *L, void *dst, void *o);
+static int func_get_mobjdmgscale(lua_State *L, void *dst, void *o);
 
 static int func_get_mobjsound_body(lua_State *L, void *dst, void *o);
 static int func_get_mobjsound_weapon(lua_State *L, void *dst, void *o);
@@ -231,6 +234,8 @@ static int func_setplayerweapon(lua_State *L, void *dst, void *o);
 static int func_playerrefire(lua_State *L, void *dst, void *o);
 static int func_playerwflash(lua_State *L, void *dst, void *o);
 
+static int func_set_secretsector(lua_State *L, void *dst, void *o);
+static int func_get_secretsector(lua_State *L, void *dst, void *o);
 static int func_get_lowefloorsector(lua_State *L, void *dst, void *o);
 static int func_get_highfloorsector(lua_State *L, void *dst, void *o);
 static int func_get_nextfloorsector(lua_State *L, void *dst, void *o);
@@ -401,6 +406,8 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"activeSound", offsetof(mobjinfo_t, activesound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"deathSound", offsetof(mobjinfo_t, deathsound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"xdeathSound", offsetof(mobjinfo_t, xdeathsound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
+	// damage scales
+	{"damageScale", 0, LUA_TTABLE, func_set_damagescale},
 };
 
 // all mobj values
@@ -452,6 +459,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"Thrust", 0, LUA_TFUNCTION, func_set_readonly, func_get_thrustmobj},
 	{"CheckSight", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkmobjsight},
 	{"RadiusDamage", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjradiusdmg},
+	{"DamageScale", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjdmgscale},
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
@@ -485,6 +493,7 @@ static const lua_table_model_t lua_sector[] =
 	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
+	{"isSecret", offsetof(sector_t, floordata), LUA_TLIGHTUSERDATA, func_set_secretsector, func_get_secretsector},	
 	// action
 	{"funcFloor", offsetof(sector_t, floordata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	{"funcCeiling", offsetof(sector_t, ceilingdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
@@ -495,8 +504,8 @@ static const lua_table_model_t lua_sector[] =
 	{"FindNextFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_nextfloorsector},
 	{"FindLowestCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_loweceilingsector},
 	{"FindHighestCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_highceilingsector},
-	{"FindMinimalLight", 0, LUA_TFUNCTION, func_set_readonly, func_get_highlightsector},
-	{"FindMaximalLight", 0, LUA_TFUNCTION, func_set_readonly, func_get_lowlightsector},
+	{"FindMaximalLight", 0, LUA_TFUNCTION, func_set_readonly, func_get_highlightsector},
+	{"FindMinimalLight", 0, LUA_TFUNCTION, func_set_readonly, func_get_lowlightsector},
 	{"GetShortestTexture", 0, LUA_TFUNCTION, func_set_readonly, func_get_shortexfloorsector},
 	{"GenericFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericfloorsector},
 	{"GenericCeiling", 0, LUA_TFUNCTION, func_set_readonly, func_get_genericceilingsector},
@@ -1008,6 +1017,42 @@ static int func_set_states(lua_State *L, void *dst, void *o)
 	return 0;
 }
 
+static int func_set_damagescale(lua_State *L, void *dst, void *o)
+{
+	size_t i, len;
+	mobjinfo_t *info = o;
+
+	len = lua_rawlen(L, -1);
+	if(len > NUMDAMAGETYPES)
+		len = NUMDAMAGETYPES;
+	for(i = 1; i <= len; i++)
+	{
+		lua_pushinteger(L, i);
+		lua_gettable(L, -2);
+
+		if(lua_type(L, -1) == LUA_TBOOLEAN)
+		{
+			// instant gib
+			info->damagescale[i-1] = 255;
+		} else
+		{
+			int num;
+
+			luaL_checktype(L, -1, LUA_TNUMBER);
+			num = (DEFAULT_DAMAGE_SCALE-10) + (lua_tonumber(L, -1) * (lua_Number)10);
+			if(num < 0)
+				num = 0;
+			if(num > 254)
+				num = 254;
+			info->damagescale[i-1] = num;
+		}
+
+		lua_pop(L, 1);
+	}
+
+	return 0;
+}
+
 //
 // mobj set/get functions
 
@@ -1249,6 +1294,14 @@ static int func_get_mobjradiusdmg(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return damage scale setter / getter
+static int func_get_mobjdmgscale(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_damageScaleFromMobj, 1);
+	return 1;
+}
+
 // return sound playback function
 static int func_get_mobjsound_body(lua_State *L, void *dst, void *o)
 {
@@ -1337,6 +1390,38 @@ static int func_playerwflash(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_playerFlashWeapon, 1);
+	return 1;
+}
+
+// set sector secret status
+static int func_set_secretsector(lua_State *L, void *dst, void *o)
+{
+	sector_t *sec = o;
+	boolean secret;
+
+	luaL_checktype(L, -1, LUA_TBOOLEAN);
+	secret = lua_toboolean(L, -1);
+
+	if(!secret)
+	{
+		if(sec->flags & (SF_SECRET | SF_WAS_SECRET))
+			totalsecret--;
+		sec->flags &= ~(SF_SECRET | SF_WAS_SECRET);
+	} else
+	if(!(sec->flags & SF_WAS_SECRET))
+	{
+		sec->flags |= SF_SECRET;
+		totalsecret++;
+	}
+
+	return 0;
+}
+
+// get sector secret status
+static int func_get_secretsector(lua_State *L, void *dst, void *o)
+{
+	sector_t *sec = o;
+	lua_pushboolean(L, !!(sec->flags & (SF_SECRET | SF_WAS_SECRET)));
 	return 1;
 }
 
@@ -1925,6 +2010,8 @@ static int LUA_createMobjType(lua_State *L)
 
 		// set type defaults
 		memset(&temp, 0, sizeof(mobjinfo_t));
+		memset(&temp.damagescale, DEFAULT_DAMAGE_SCALE, NUMDAMAGETYPES);
+		temp.damagetype = NUMDAMAGETYPES;
 		temp.lua_action = LUA_REFNIL;
 		temp.lua_arg = LUA_REFNIL;
 		// get states
@@ -2976,17 +3063,17 @@ static int LUA_mobjDistance(lua_State *L)
 
 static int LUA_damageFromMobj(lua_State *L)
 {
-	int damage;
+	int damage, type;
 	mobj_t *dest;
 	mobj_t *inflictor = NULL;
 	mobj_t *source = NULL;
 	int top = lua_gettop(L);
 
-	// damage
+	// damage; required
 	if(lua_type(L, 1) == LUA_TBOOLEAN)
 	{
 		if(lua_toboolean(L, 1))
-			damage = 1000000;
+			damage = INSTANTGIB;
 		else
 			damage = INSTANTKILL;
 	} else
@@ -2997,17 +3084,23 @@ static int LUA_damageFromMobj(lua_State *L)
 			damage = ((P_Random()%(-damage))+1)*3;
 	}
 
+	// damage type; required
+	luaL_checktype(L, 2, LUA_TNUMBER);
+	type = lua_tointeger(L, 1) - 1;
+	if(type < 0)
+		type = NUMDAMAGETYPES;
+
 	// optional source
-	if(top > 1)
-		source = LUA_GetMobjParam(L, 2, true);
+	if(top > 2)
+		source = LUA_GetMobjParam(L, 3, true);
 
 	// optional inflictor
-	if(top > 2)
-		inflictor = LUA_GetMobjParam(L, 3, true);
+	if(top > 3)
+		inflictor = LUA_GetMobjParam(L, 4, true);
 
 	dest = lua_touserdata(L, lua_upvalueindex(1));
 
-	P_DamageMobj(dest, inflictor, source, damage);
+	P_DamageMobj(dest, inflictor, source, damage, type);
 
 	if(dest->health > 0)
 		lua_pushboolean(L, false);
@@ -3143,7 +3236,7 @@ static int LUA_sightCheckFromMobj(lua_State *L)
 static int LUA_radiusDamageFromMobj(lua_State *L)
 {
 	mobj_t *source;
-	int damage;
+	int damage, type;
 	fixed_t range;
 	mobj_t *from = NULL;
 	boolean hurt = true;
@@ -3157,22 +3250,78 @@ static int LUA_radiusDamageFromMobj(lua_State *L)
 	luaL_checktype(L, 2, LUA_TNUMBER);
 	damage = lua_tointeger(L, 2);
 
+	// damage type; required
+	luaL_checktype(L, 3, LUA_TNUMBER);
+	type = lua_tointeger(L, 3) - 1;
+	if(type < 0)
+		type = NUMDAMAGETYPES;
+
 	// attacker; optional
-	if(top > 2)
-		from = LUA_GetMobjParam(L, 3, true);
+	if(top > 3)
+		from = LUA_GetMobjParam(L, 4, true);
 
 	// hurt flag; optional
-	if(top > 3)
+	if(top > 4)
 	{
-		luaL_checktype(L, 4, LUA_TBOOLEAN);
-		hurt = lua_toboolean(L, 4);
+		luaL_checktype(L, 5, LUA_TBOOLEAN);
+		hurt = lua_toboolean(L, 5);
 	}
 
 	source = lua_touserdata(L, lua_upvalueindex(1));
 
-	P_RadiusAttack(source, from, range, damage, hurt);
+	P_RadiusAttack(source, from, range, damage, hurt, type);
 
 	return 0;
+}
+
+static int LUA_damageScaleFromMobj(lua_State *L)
+{
+	mobj_t *mo;
+	int type;
+	int num;
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	// damage type; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	type = lua_tointeger(L, 1) - 1;
+	if(type < 0)
+		type = NUMDAMAGETYPES;
+
+	// damage scaler; optional
+	if(lua_gettop(L) > 1)
+	{
+		// set
+		if(type >= NUMDAMAGETYPES)
+			return luaL_error(L, "invalid damage type");
+
+		if(lua_type(L, 2) == LUA_TBOOLEAN)
+		{
+			// instant gib
+			mo->damagescale[type] = 255;
+		} else
+		{
+			luaL_checktype(L, 2, LUA_TNUMBER);
+			num = (DEFAULT_DAMAGE_SCALE-10) + (lua_tonumber(L, -1) * (lua_Number)10);
+			if(num < 0)
+				num = 0;
+			if(num > 254)
+				num = 254;
+			mo->damagescale[type] = num;
+		}
+
+		return 0;
+	} else
+	{
+		// get
+		if(type >= NUMDAMAGETYPES)
+			num = DEFAULT_DAMAGE_SCALE;
+		else
+			num = mo->damagescale[type];
+
+		lua_pushnumber(L, (lua_Number)(num - (DEFAULT_DAMAGE_SCALE-10)) / 10);
+		return 1;
+	}
 }
 
 static int LUA_soundFromMobj(lua_State *L)
@@ -3612,31 +3761,40 @@ static int LUA_sectorSetDamage(lua_State *L)
 		sector_t *src = LUA_GetSectorParam(L, 1, false);
 		sec->damage = src->damage;
 		sec->damagetick = src->damagetick;
+		sec->damagetype = src->damagetype;
 	} else
 	{
 		int damage;
 		int ticks;
+		int type;
 		boolean in_air = false;
 
 		// damage; required
 		luaL_checktype(L, 1, LUA_TNUMBER);
-		// ticrate; required
+		// damage type; required
 		luaL_checktype(L, 2, LUA_TNUMBER);
+		// ticrate; required
+		luaL_checktype(L, 3, LUA_TNUMBER);
 		// in air; optional
-		if(top > 2)
+		if(top > 3)
 		{
-			luaL_checktype(L, 3, LUA_TBOOLEAN);
-			in_air = lua_toboolean(L, 3);
+			luaL_checktype(L, 4, LUA_TBOOLEAN);
+			in_air = lua_toboolean(L, 4);
 		}
 
 		damage = lua_tointeger(L, 1);
-		ticks = lua_tointeger(L, 2);
+		type = lua_tointeger(L, 2) - 1;
+		ticks = lua_tointeger(L, 3);
+
+		if(type < 0)
+			type = NUMDAMAGETYPES;
 
 		if(in_air)
 			ticks |= 0x8000;
 
 		sec->damage = damage;
 		sec->damagetick = ticks;
+		sec->damagetype = type;
 	}
 
 	return 0;
@@ -3950,7 +4108,7 @@ static int LUA_shortTexFromSector(lua_State *L)
 	{
 		for(i = 0; i < sec->linecount; i++)
 		{
-			if(sec->lines[i]->flags & ML_TWOSIDED)
+			if(sec->lines[i]->flags & LF_TWOSIDED)
 			{
 				side = &sides[sec->lines[i]->sidenum[0]];
 				if(side->toptexture >= 0)
@@ -3966,7 +4124,7 @@ static int LUA_shortTexFromSector(lua_State *L)
 	{
 		for(i = 0; i < sec->linecount; i++)
 		{
-			if(sec->lines[i]->flags & ML_TWOSIDED)
+			if(sec->lines[i]->flags & LF_TWOSIDED)
 			{
 				side = &sides[sec->lines[i]->sidenum[0]];
 				if(side->bottomtexture >= 0)

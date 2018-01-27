@@ -36,8 +36,9 @@
 // follow a player exlusively for 3 seconds
 #define	BASETHRESHOLD	 	100
 
-// [kg] instat kill damage value, no thrust, no gib
+// [kg] instat kill damage values, no thrust
 #define INSTANTKILL	12345678
+#define INSTANTGIB	12345679
 
 // [kg] some levelinfo used for server -> client stuff
 extern int level_lump;
@@ -230,7 +231,8 @@ P_RadiusAttack
   mobj_t*	source,
   fixed_t	range,
   int		damage,
-  boolean	hurtsource );
+  boolean	hurtsource,
+  int		damagetype );
 
 
 
@@ -257,7 +259,8 @@ P_DamageMobj
 ( mobj_t*	target,
   mobj_t*	inflictor,
   mobj_t*	source,
-  int		damage );
+  int		damage,
+  int		damagetype );
 
 
 //

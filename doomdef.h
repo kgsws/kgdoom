@@ -201,6 +201,11 @@ typedef uint16_t weapontype_t;
 #define wp_nochange	0
 #define MAXWEAPONS	64 // limited by uint64_t bit field
 
+// [kg] custom damage types
+// damage is scaled before armor effects
+#define NUMDAMAGETYPES	32
+#define DEFAULT_DAMAGE_SCALE	50	// 10% steps ;50 = 100%; 255 = kill; 254 = 2140%; 0 = -400% (healing)
+
 //
 // Power up durations,
 //  how many seconds till expiration,
