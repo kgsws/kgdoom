@@ -533,7 +533,8 @@ void P_UpdateSpecials (void)
 	    {
 		int wnum = i >> 24;
 		pic &= 0xFFFFFF;
-		flattranslation[wnum][(i & 0xFFFFFF)-firstflat[wnum]] = pic;
+		if(flattranslation[wnum])
+		    flattranslation[wnum][(i & 0xFFFFFF)-firstflat[wnum]] = pic;
 	    }
 	}
     }

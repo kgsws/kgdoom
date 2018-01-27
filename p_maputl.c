@@ -273,7 +273,8 @@ void P_LineOpening (line_t* linedef)
     sector_t*	front;
     sector_t*	back;
 	
-    if (linedef->sidenum[1] == -1)
+//    if (linedef->sidenum[1] == -1)
+    if(!linedef->backsector)
     {
 	// single sided line
 	openrange = 0;
@@ -457,7 +458,7 @@ P_BlockLinesIterator
   boolean(*func)(line_t*) )
 {
     int			offset;
-    short*		list;
+    uint16_t*		list;
     line_t*		ld;
 	
     if (x<0
@@ -472,7 +473,7 @@ P_BlockLinesIterator
 	
     offset = *(blockmap+offset);
 
-    for ( list = blockmaplump+offset ; *list != -1 ; list++)
+    for ( list = blockmaplump+offset ; *list != 0xFFFF ; list++)
     {
 	ld = &lines[*list];
 

@@ -64,10 +64,9 @@ int isHexen;
 // Blockmap size.
 int		bmapwidth;
 int		bmapheight;	// size in mapblocks
-short*		blockmap;	// int for larger maps
+uint16_t 	*blockmap;	// int for larger maps
 // offsets in blockmap are from here
-short*		blockmaplump;		
-// origin of block map
+uint16_t 	*blockmaplump;
 fixed_t		bmaporgx;
 fixed_t		bmaporgy;
 // for thing chains
@@ -143,7 +142,7 @@ void P_LoadSegs (int lump)
     seg_t*		li;
     line_t*		ldef;
     int			linedef;
-    int			side;
+    uint16_t		side;
 	
     numsegs = W_LumpLength (lump) / sizeof(mapseg_t);
     segs = Z_Malloc (numsegs*sizeof(seg_t),PU_LEVEL,0);	
@@ -154,18 +153,30 @@ void P_LoadSegs (int lump)
     li = segs;
     for (i=0 ; i<numsegs ; i++, li++, ml++)
     {
-	li->v1 = &vertexes[SHORT(ml->v1)];
-	li->v2 = &vertexes[SHORT(ml->v2)];
+	uint16_t v1, v2;
+
+	v1 = SHORT(ml->v1);
+	v2 = SHORT(ml->v2);
+
+	if(v1 > numvertexes || v2 > numvertexes)
+	    I_Error("P_LoadSegs: seg %i uses invalid vertex %i or %i", i, v1, v2);
+
+	li->v1 = &vertexes[v1];
+	li->v2 = &vertexes[v2];
 					
 	li->angle = (SHORT(ml->angle))<<16;
 	li->offset = (SHORT(ml->offset))<<16;
 	linedef = SHORT(ml->linedef);
+	if(linedef > numlines)
+	    I_Error("P_LoadSegs: seg %i uses invalid linedef %i", i, linedef);
 	ldef = &lines[linedef];
 	li->linedef = ldef;
 	side = SHORT(ml->side);
+	if(side > 1)
+	    I_Error("P_LoadSegs: seg %i uses invalid side idx %i", i, side);
 	li->sidedef = &sides[ldef->sidenum[side]];
 	li->frontsector = sides[ldef->sidenum[side]].sector;
-	if (ldef-> flags & ML_TWOSIDED)
+	if (ldef->flags & ML_TWOSIDED)
 	    li->backsector = sides[ldef->sidenum[side^1]].sector;
 	else
 	    li->backsector = 0;
@@ -197,6 +208,8 @@ void P_LoadSubsectors (int lump)
     {
 	ss->numlines = SHORT(ms->numsegs);
 	ss->firstline = SHORT(ms->firstseg);
+	if(ss->firstline + ss->numlines > numsegs)
+	    I_Error("P_LoadSubsectors: subsector %i uses bad seg range %i + %i", i, ss->firstline, ss->numlines);
     }
 	
 //    Z_Free (data);
@@ -309,31 +322,6 @@ void P_LoadThings (int lump)
     mt = (mapthing_t *)data;
     for (i=0 ; i<numthings ; i++, mt++)
     {
-	spawn = true;
-
-	// Do not spawn cool, new monsters if !commercial
-	if ( gamemode != commercial)
-	{
-	    switch(mt->type)
-	    {
-	      case 68:	// Arachnotron
-	      case 64:	// Archvile
-	      case 88:	// Boss Brain
-	      case 89:	// Boss Shooter
-	      case 69:	// Hell Knight
-	      case 67:	// Mancubus
-	      case 71:	// Pain Elemental
-	      case 65:	// Former Human Commando
-	      case 66:	// Revenant
-	      case 84:	// Wolf SS
-		spawn = false;
-		break;
-	    }
-	}
-	if (spawn == false)
-	    break;
-
-	// Do spawn all other stuff. 
 	tmt.x = SHORT(mt->x);
 	tmt.y = SHORT(mt->y);
 	tmt.angle = SHORT(mt->angle);
@@ -343,22 +331,6 @@ void P_LoadThings (int lump)
 	P_SpawnMapThing (&tmt);
     }
 
-#ifndef SERVER
-    // [kg] multiplayer spectator spawn
-    if(netgame)
-    {
-	if(!players[consoleplayer].mo)
-	{
-		int count = (int)(deathmatch_p - deathmatchstarts);
-		if(!count)
-			I_Error("P_SpawnPlayer: no spectator spawns");
-		// [kg] alternative spectator spawn
-		P_SpawnPlayer(&deathmatchstarts[rand() % count], -1);
-	}
-	players[consoleplayer].mo->health = 0;
-    }
-#endif
-	
 //    Z_Free (data);
 }
 
@@ -377,31 +349,6 @@ void P_LoadThings_H (int lump)
 	mt = (mapthing_hexen_t *)data;
 	for (i=0 ; i<numthings ; i++, mt++)
 	{
-		spawn = true;
-
-		// Do not spawn cool, new monsters if !commercial
-		if ( gamemode != commercial)
-		{
-			switch(mt->type)
-			{
-				case 68:	// Arachnotron
-				case 64:	// Archvile
-				case 88:	// Boss Brain
-				case 89:	// Boss Shooter
-				case 69:	// Hell Knight
-				case 67:	// Mancubus
-				case 71:	// Pain Elemental
-				case 65:	// Former Human Commando
-				case 66:	// Revenant
-				case 84:	// Wolf SS
-				spawn = false;
-				break;
-			}
-		}
-		if (spawn == false)
-			break;
-
-		// Do spawn all other stuff. 
 		mt->tid = SHORT(mt->tid);
 		mt->x = SHORT(mt->x);
 		mt->y = SHORT(mt->y);
@@ -439,12 +386,17 @@ void P_LoadLineDefs (int lump)
     ld = lines;
     for (i=0 ; i<numlines ; i++, mld++, ld++)
     {
+	uint16_t v1idx, v2idx;
 	ld->soundorg.thinker.lua_type = TT_LINE;
 	ld->flags = SHORT(mld->flags) & 0x01FF;
 	ld->special = SHORT(mld->special);
 	ld->tag = SHORT(mld->tag);
-	v1 = ld->v1 = &vertexes[SHORT(mld->v1)];
-	v2 = ld->v2 = &vertexes[SHORT(mld->v2)];
+	v1idx = SHORT(mld->v1);
+	v2idx = SHORT(mld->v2);
+	if(v1idx > numvertexes || v1idx > numvertexes)
+		I_Error("P_LoadLineDefs: line %i uses bad vertex %i or %i", i, v1idx, v2idx);
+	v1 = ld->v1 = &vertexes[v1idx];
+	v2 = ld->v2 = &vertexes[v2idx];
 	ld->dx = v2->x - v1->x;
 	ld->dy = v2->y - v1->y;
 	
@@ -485,15 +437,20 @@ void P_LoadLineDefs (int lump)
 	ld->sidenum[0] = SHORT(mld->sidenum[0]);
 	ld->sidenum[1] = SHORT(mld->sidenum[1]);
 
-	if (ld->sidenum[0] != -1)
-	    ld->frontsector = sides[ld->sidenum[0]].sector;
-	else
-	    ld->frontsector = 0;
+	if((uint16_t)ld->sidenum[0] > numsides)
+	    I_Error("P_LoadLineDefs: line %i uses invalid front sidedef %i", i, ld->sidenum[0]);
+	ld->frontsector = sides[ld->sidenum[0]].sector;
 
 	if (ld->sidenum[1] != -1)
+	{
+	    if((uint16_t)ld->sidenum[1] > numsides)
+		I_Error("P_LoadLineDefs: line %i uses invalid back sidedef %i", i, ld->sidenum[1]);
 	    ld->backsector = sides[ld->sidenum[1]].sector;
-	else
+	} else
+	{
 	    ld->backsector = 0;
+	    ld->flags &= ~ML_TWOSIDED;
+	}
 
 	// [kg] soundorg
 	ld->soundorg.x = ((v2->x - v1->x) / 2) + v1->x;
@@ -522,12 +479,17 @@ void P_LoadLineDefs_H(int lump)
 	ld = lines;
 	for (i=0 ; i<numlines ; i++, mld++, ld++)
 	{
+		uint16_t v1idx, v2idx;
 		ld->soundorg.thinker.lua_type = TT_LINE;
 		ld->flags = SHORT(mld->flags);
 		ld->special = mld->special;
 		memcpy(ld->arg, mld->arg, 5);
-		v1 = ld->v1 = &vertexes[SHORT(mld->v1)];
-		v2 = ld->v2 = &vertexes[SHORT(mld->v2)];
+		v1idx = SHORT(mld->v1);
+		v2idx = SHORT(mld->v2);
+		if(v1idx > numvertexes || v1idx > numvertexes)
+			I_Error("P_LoadLineDefs: line %i uses bad vertex %i or %i", i, v1idx, v2idx);
+		v1 = ld->v1 = &vertexes[v1idx];
+		v2 = ld->v2 = &vertexes[v2idx];
 		ld->dx = v2->x - v1->x;
 		ld->dy = v2->y - v1->y;
 
@@ -568,15 +530,20 @@ void P_LoadLineDefs_H(int lump)
 		ld->sidenum[0] = SHORT(mld->sidenum[0]);
 		ld->sidenum[1] = SHORT(mld->sidenum[1]);
 
-		if (ld->sidenum[0] != -1)
-			ld->frontsector = sides[ld->sidenum[0]].sector;
-		else
-			ld->frontsector = 0;
+		if((uint16_t)ld->sidenum[0] > numsides)
+			I_Error("P_LoadLineDefs: line %i uses invalid front sidedef %i", i, ld->sidenum[0]);
+		ld->frontsector = sides[ld->sidenum[0]].sector;
 
 		if (ld->sidenum[1] != -1)
+		{
+			if((uint16_t)ld->sidenum[1] > numsides)
+				I_Error("P_LoadLineDefs: line %i uses invalid back sidedef %i", i, ld->sidenum[1]);
 			ld->backsector = sides[ld->sidenum[1]].sector;
-		else
+		} else
+		{
 			ld->backsector = 0;
+			ld->flags &= ~ML_TWOSIDED;
+		}
 
 		// [kg] soundorg
 		ld->soundorg.x = ((v2->x - v1->x) / 2) + v1->x;
@@ -606,12 +573,16 @@ void P_LoadSideDefs (int lump)
     sd = sides;
     for (i=0 ; i<numsides ; i++, msd++, sd++)
     {
+	uint16_t sec;
 	sd->textureoffset = SHORT(msd->textureoffset)<<FRACBITS;
 	sd->rowoffset = SHORT(msd->rowoffset)<<FRACBITS;
 	sd->toptexture = R_TextureNumForName(msd->toptexture);
 	sd->bottomtexture = R_TextureNumForName(msd->bottomtexture);
 	sd->midtexture = R_TextureNumForName(msd->midtexture);
-	sd->sector = &sectors[SHORT(msd->sector)];
+	sec = SHORT(msd->sector);
+	if(sec > numsectors)
+	    I_Error("P_LoadSideDefs: side %i used invalid sector %i", i, sec);
+	sd->sector = &sectors[sec];
     }
 	
 //    Z_Free (data);
@@ -623,25 +594,45 @@ void P_LoadSideDefs (int lump)
 //
 void P_LoadBlockMap (int lump)
 {
-    int		i;
-    int		count;
-	
-    blockmaplump = W_CacheLumpNum (lump);
-    blockmap = blockmaplump+4;
-    count = W_LumpLength (lump)/2;
+	int		i;
+	int		count, numblocks;
+	uint16_t	*tmpblock;
 
-    for (i=0 ; i<count ; i++)
-	blockmaplump[i] = SHORT(blockmaplump[i]);
-		
-    bmaporgx = blockmaplump[0]<<FRACBITS;
-    bmaporgy = blockmaplump[1]<<FRACBITS;
-    bmapwidth = blockmaplump[2];
-    bmapheight = blockmaplump[3];
-	
-    // clear out mobj chains
-    count = sizeof(blocklink_t*) * bmapwidth * bmapheight;
-    blocklinks = Z_Malloc (count,PU_LEVEL, 0);
-    memset (blocklinks, 0, count);
+	tmpblock = W_CacheLumpNum (lump);
+	numblocks = W_LumpLength (lump) / sizeof(uint16_t);
+	blockmaplump = Z_Malloc(numblocks * sizeof(uint16_t), PU_LEVEL, NULL);
+	blockmap = blockmaplump+4;
+
+	for (i=0 ; i < numblocks ; i++)
+		blockmaplump[i] = SHORT(tmpblock[i]);
+
+	bmaporgx = blockmaplump[0]<<FRACBITS;
+	bmaporgy = blockmaplump[1]<<FRACBITS;
+	bmapwidth = blockmaplump[2];
+	bmapheight = blockmaplump[3];
+
+	// clear out mobj chains
+	count = sizeof(blocklink_t*) * bmapwidth * bmapheight;
+	blocklinks = Z_Malloc (count,PU_LEVEL, 0);
+	memset (blocklinks, 0, count);
+
+	// [kg] check blockmap validity
+	count = bmapwidth * bmapheight;
+	tmpblock = blockmap;
+	for(i = 0; i < count; i++)
+	{
+		uint16_t *list;
+		if(*tmpblock > numblocks)
+			I_Error("P_LoadBlockMap: block index %i out of bounds %i", *tmpblock, numblocks);
+		for(list = blockmaplump + *tmpblock; *list != 0xFFFF; list++)
+		{
+			if(list > blockmaplump + numblocks)
+				I_Error("P_LoadBlockMap: line index %i out of bounds %i", (int)(list - blockmaplump), numblocks);
+			if(*list > numlines)
+				I_Error("P_LoadBlockMap: invalid line %i", *list);
+		}
+		tmpblock++;
+	}
 }
 
 
@@ -825,19 +816,19 @@ P_SetupLevel
 	}
 	
     // note: most of this ordering is important	
-    P_LoadBlockMap (lumpnum+ML_BLOCKMAP);
     P_LoadVertexes (lumpnum+ML_VERTEXES);
     P_LoadSectors (lumpnum+ML_SECTORS);
     P_LoadSideDefs (lumpnum+ML_SIDEDEFS);
 
-	if(isHexen)
-		P_LoadLineDefs_H(lumpnum+ML_LINEDEFS);
-	else
-		P_LoadLineDefs(lumpnum+ML_LINEDEFS);
+    if(isHexen)
+	P_LoadLineDefs_H(lumpnum+ML_LINEDEFS);
+    else
+	P_LoadLineDefs(lumpnum+ML_LINEDEFS);
 
-    P_LoadSubsectors (lumpnum+ML_SSECTORS);
+    P_LoadBlockMap (lumpnum+ML_BLOCKMAP);
     P_LoadNodes (lumpnum+ML_NODES);
     P_LoadSegs (lumpnum+ML_SEGS);
+    P_LoadSubsectors (lumpnum+ML_SSECTORS);
 	
     rejectmatrix = W_CacheLumpNum (lumpnum+ML_REJECT);
     P_GroupLines ();
@@ -845,10 +836,10 @@ P_SetupLevel
     bodyqueslot = 0;
     deathmatch_p = deathmatchstarts;
 
-	if(isHexen)
-		P_LoadThings_H(lumpnum+ML_THINGS);
-	else
-		P_LoadThings(lumpnum+ML_THINGS);
+    if(isHexen)
+	P_LoadThings_H(lumpnum+ML_THINGS);
+    else
+	P_LoadThings(lumpnum+ML_THINGS);
     
     // if deathmatch, randomly spawn the active players
     if (sv_deathmatch)
@@ -861,6 +852,22 @@ P_SetupLevel
 	    }
 			
     }
+
+#ifndef SERVER
+    // [kg] multiplayer spectator spawn
+    if(netgame)
+    {
+	if(!players[consoleplayer].mo)
+	{
+		int count = (int)(deathmatch_p - deathmatchstarts);
+		if(!count)
+			I_Error("P_SpawnPlayer: no spectator spawns");
+		// [kg] alternative spectator spawn
+		P_SpawnPlayer(&deathmatchstarts[rand() % count], -1);
+	}
+	players[consoleplayer].mo->health = 0;
+    }
+#endif
 
     // set up world state
     P_SpawnSpecials ();

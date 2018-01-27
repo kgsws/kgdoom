@@ -93,18 +93,18 @@ R_InstallSpriteLump
     if (rotation == 0)
     {
 	// the lump should be used for all rotations
-	if (sprtemp[frame].rotate == false)
+/*	if (sprtemp[frame].rotate == false)
 	{
-		printf("R_InitSprites: Sprite %s frame %c has multip rot=0 lump\n", spritename, 'A'+frame);
+		printf("R_InitSprites: Sprite %.4s frame %c has multip rot=0 lump\n", spritename, 'A'+frame);
 		return;
 	}
 
 	if (sprtemp[frame].rotate == true)
 	{
-		printf("R_InitSprites: Sprite %s frame %c has rotations and a rot=0 lump\n", spritename, 'A'+frame);
+		printf("R_InitSprites: Sprite %.4s frame %c has rotations and a rot=0 lump\n", spritename, 'A'+frame);
 		return;
 	}
-			
+*/
 	sprtemp[frame].rotate = false;
 	for (r=0 ; r<8 ; r++)
 	{
@@ -115,21 +115,21 @@ R_InstallSpriteLump
     }
 	
     // the lump is only used for one rotation
-    if (sprtemp[frame].rotate == false)
+/*    if (sprtemp[frame].rotate == false)
 	{
-		printf("R_InitSprites: Sprite %s frame %c has rotations and a rot=0 lump\n", spritename, 'A'+frame);
+		printf("R_InitSprites: Sprite %.4s frame %c has rotations and a rot=0 lump\n", spritename, 'A'+frame);
 		return;
 	}
-		
+*/
     sprtemp[frame].rotate = true;
 
     // make 0 based
     rotation--;		
-    if (sprtemp[frame].lump[rotation] != -1)
-	I_Error ("R_InitSprites: Sprite %s : %c : %c "
+/*    if (sprtemp[frame].lump[rotation] != -1)
+	I_Error ("R_InitSprites: Sprite %.4s : %c : %c "
 		 "has two lumps mapped to it",
 		 spritename, 'A'+frame, '1'+rotation);
-		
+*/
     sprtemp[frame].lump[rotation] = lump;
     sprtemp[frame].flip[rotation] = (byte)flipped;
 }
@@ -232,7 +232,7 @@ void R_InitSpriteDefs()
 		for (rotation=0 ; rotation<8 ; rotation++)
 		    if (sprtemp[frame].lump[rotation] == -1)
 		    {
-//			I_Error ("R_InitSprites: Sprite %s frame %c is missing rotations", sprnames[i], frame+'A');
+//			I_Error ("R_InitSprites: Sprite %.4s frame %c is missing rotations", sprnames[i], frame+'A');
 			printf("R_InitSprites: Sprite %.4s frame %c is missing rotation %i\n", sprnames[i].t, frame+'A', rotation);
 		    }
 		break;

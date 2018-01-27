@@ -971,8 +971,8 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
     mobj = P_SpawnMobj (x,y,z, i);
     mobj->spawnpoint = *mthing;
 
-	if(z != ONFLOORZ && z != ONCEILINGZ)
-		mobj->z = mobj->subsector->sector->floorheight;
+    if(z != ONFLOORZ && z != ONCEILINGZ)
+	mobj->z = mobj->subsector->sector->floorheight + z;
 
     if (mobj->tics > 0)
 	mobj->tics = 1 + (P_Random () % mobj->tics);
