@@ -19,7 +19,6 @@
 #include "r_local.h"
 
 #include "p_local.h"
-#include "p_inter.h"
 
 #include "am_map.h"
 #include "m_cheat.h"
@@ -77,9 +76,6 @@ static player_t*	plyr;
 
 // lump number for PLAYPAL
 static int		lu_palette;
-
-// 3 key-cards, 3 skulls
-static patch_t*		keys[NUMCARDS];
 
 // backgrounds
 static patch_t*		hp_back;
@@ -199,18 +195,6 @@ unsigned char	cheat_aim_seq[] =
     "kgaim"
 };
 
-unsigned char	cheat_powerup_seq[7][10] =
-{
-    { "idbeholdv" }, 	// beholdv
-    { "idbeholds" }, 	// beholds
-    { "idbeholdi" }, 	// beholdi
-    { "idbeholdr" }, 	// beholdr
-    { "idbeholda" }, 	// beholda
-    { "idbeholdl" }, 	// beholdl
-    { "idbehold" }	// behold
-};
-
-
 unsigned char	cheat_clev_seq[] =
 {
     "idclev\x01\0\0"
@@ -240,17 +224,6 @@ cheatseq_t	cheat_safeaura = { cheat_safeaura_seq, 0 };
 cheatseq_t	cheat_revengeaura = { cheat_revengeaura_seq, 0 };
 cheatseq_t	cheat_slowmo = { cheat_slowmo_seq, 0 };
 cheatseq_t	cheat_aim = { cheat_aim_seq, 0 };
-
-cheatseq_t	cheat_powerup[7] =
-{
-    { cheat_powerup_seq[0], 0 },
-    { cheat_powerup_seq[1], 0 },
-    { cheat_powerup_seq[2], 0 },
-    { cheat_powerup_seq[3], 0 },
-    { cheat_powerup_seq[4], 0 },
-    { cheat_powerup_seq[5], 0 },
-    { cheat_powerup_seq[6], 0 }
-};
 
 cheatseq_t	cheat_choppers = { cheat_choppers_seq, 0 };
 cheatseq_t	cheat_clev = { cheat_clev_seq, 0 };
@@ -506,22 +479,6 @@ ST_Responder (event_t* ev)
 	
 	plyr->message = STSTR_FAADDED;
       }
-      // 'kfa' cheat for key full ammo
-      else if (cht_CheckCheat(&cheat_ammo, ev->data1))
-      {
-	plyr->mo->armorpoints = 200;
-//	plyr->mo->armortype = 2;
-	
-//	plyr->weaponowned = -1;
-	
-//	for (i=0;i<NUMAMMO;i++)
-//	  plyr->ammo[i] = plyr->maxammo[i];
-	
-	for (i=0;i<NUMCARDS;i++)
-	  plyr->cards[i] = true;
-	
-	plyr->message = STSTR_KFAADDED;
-      }
       // 'mus' cheat for changing music
       else if (cht_CheckCheat(&cheat_mus, ev->data1))
       {
@@ -562,27 +519,6 @@ ST_Responder (event_t* ev)
 	  plyr->message = STSTR_NCON;
 	else
 	  plyr->message = STSTR_NCOFF;
-      }
-      // 'behold?' power-up cheats
-      for (i=0;i<6;i++)
-      {
-	if (cht_CheckCheat(&cheat_powerup[i], ev->data1))
-	{
-	  if (!plyr->powers[i])
-	    P_GivePower( plyr, i);
-	  else if (i!=pw_strength)
-	    plyr->powers[i] = 1;
-	  else
-	    plyr->powers[i] = 0;
-	  
-	  plyr->message = STSTR_BEHOLDX;
-	}
-      }
-      
-      // 'behold' power-up menu
-      if (cht_CheckCheat(&cheat_powerup[6], ev->data1))
-      {
-	plyr->message = STSTR_BEHOLD;
       }
     }
     
@@ -647,14 +583,14 @@ static int st_palette = -1;
 void ST_doPaletteStuff(void)
 {
 
-    int		palette;
+    int		palette = 0;
     byte*	pal;
     int		cnt = 0;
     int		bzc;
 
     cnt = plyr->damagecount;
 
-    if (plyr->powers[pw_strength])
+/*    if (plyr->powers[pw_strength])
     {
 	// slowly fade the berzerk out
   	bzc = 12 - (plyr->powers[pw_strength]>>6);
@@ -662,7 +598,7 @@ void ST_doPaletteStuff(void)
 	if (bzc > cnt)
 	    cnt = bzc;
     }
-	
+*/	
     if (cnt)
     {
 	palette = (cnt+7)>>3;
@@ -682,13 +618,13 @@ void ST_doPaletteStuff(void)
 
 	palette += STARTBONUSPALS;
     }
-
+/*
     else if ( plyr->powers[pw_ironfeet] > 4*32
 	      || plyr->powers[pw_ironfeet]&8)
 	palette = RADIATIONPAL;
     else
 	palette = 0;
-
+*/
     if (palette != st_palette)
     {
 	st_palette = palette;
@@ -733,7 +669,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 		deathtime = TICRATE / 2;
 
 	// crosshair
-	if(sv_freeaim)
+	if(sv_freeaim && pointer)
 		V_DrawPatchRemap1((SCREENWIDTH / 2) - 4, SCREENHEIGHT / 2, pointer, imap);
 
 	// health
@@ -790,7 +726,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	}
 */
 	// keys
-	x = STBAR_KEY_X;
+/*	x = STBAR_KEY_X;
 	for(temp = 0; temp < NUMCARDS; temp++)
 	{
 		if(plyr->cards[temp])
@@ -799,7 +735,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 			x -= SHORT(keys[temp]->width) * 3 + 3;
 		}
 	}
-
+*/
 	//
 	// weapon selection menu
 
@@ -870,15 +806,17 @@ void ST_loadGraphics(void)
 	STlib_init();
 
 	// pointer
-	pointer = (patch_t *)W_CacheLumpName("POINTER");
+	i = W_CheckNumForName("POINTER");
+	if(i >= 0)
+		pointer = (patch_t *)W_CacheLumpNum(i);
 
 	// key cards
-	for(i = 0; i < NUMCARDS; i++)
+/*	for(i = 0; i < NUMCARDS; i++)
 	{
 		sprintf(namebuf, "STKEYS%d", i);
 		keys[i] = (patch_t *) W_CacheLumpName(namebuf);
 	}
-
+*/
 	// health
 	hp_back = (patch_t *) W_CacheLumpName("MEDIA0");
 

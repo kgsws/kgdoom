@@ -199,6 +199,9 @@ typedef enum
     // [kg] disable death 'pull'
     MF_NODEATHPULL = 0x100000000,
 
+    // [kg] invulnerability
+    MF_INVULNERABLE = 0x200000000,
+
 } mobjflag_t;
 
 
@@ -295,6 +298,9 @@ typedef struct mobj_s
 
     // [kg] inventory
     struct inventory_s *inventory;
+
+    // [kg] Lua ticker
+    struct generic_ticker_s *generic_ticker;
 
     // [kg] network ID
     int netid;

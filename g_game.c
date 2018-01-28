@@ -650,14 +650,15 @@ void G_PlayerFinishLevel (int player)
 	 
     p = &players[player]; 
 	 
-    memset (p->powers, 0, sizeof (p->powers)); 
-    memset (p->cards, 0, sizeof (p->cards)); 
     p->mo->flags &= ~MF_SHADOW;		// cancel invisibility 
     p->extralight = 0;			// cancel gun flashes 
-    p->fixedcolormap = 0;		// cancel ir gogles 
     p->damagecount = 0;			// no palette changes 
     p->bonuscount = 0;
     p->inventory = NULL;
+    // cancel colormaps
+    p->viewmap.lump = 0;
+    p->viewmap.idx = 0;
+    p->viewmap.data = NULL;
 #ifndef SERVER
     memcpy(&prespawn, p, sizeof(player_t));
     p->inventory = p->mo->inventory; // back up inventory for map load
@@ -1270,7 +1271,7 @@ void G_DoNewGame (void)
 		playeringame[1] = playeringame[2] = playeringame[3] = 0;
 		respawnparm = false;
 		fastparm = false;
-		nomonsters = false;
+//		nomonsters = false;
 		consoleplayer = 0;
 	}
 #ifndef SERVER

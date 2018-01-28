@@ -762,6 +762,7 @@ P_SetupLevel
 	{
 		case TT_MOBJ:
 			P_RemoveInventory((mobj_t*)think);
+			P_RemoveMobjTickers((mobj_t*)think);
 		break;
 		case TT_GENPLANE:
 		case TT_SECCALL:

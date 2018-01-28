@@ -285,3 +285,95 @@ generic_line_t *P_TextureScroller(line_t *line, fixed_t x, fixed_t y, int side)
 	return ga;
 }
 
+//
+// Mobj ticker
+//
+
+void P_AddMobjTicker(mobj_t *mo, int id, int ticrate, int action, int arg)
+{
+	generic_ticker_t *gt = mo->generic_ticker;
+
+	// find last or same
+	while(gt)
+	{
+		if(gt->id == id)
+			break;
+		if(!gt->next)
+			break;
+		gt = gt->next;
+	}
+
+	if(!gt || gt->id != id)
+	{
+		// create new
+		generic_ticker_t *new;
+		new = Z_Malloc(sizeof(generic_ticker_t), PU_LEVEL, 0);
+		new->next = NULL;
+		new->id = id;
+		new->ticrate = ticrate;
+		new->curtics = ticrate;
+		new->lua_action = action;
+		new->lua_arg = arg;
+
+		if(gt)
+			// add to chain
+			gt->next = new;
+		else
+			// new chain
+			mo->generic_ticker = new;
+
+		return;
+	}
+
+	// modify existing
+	L_Unref(&gt->lua_action);
+	L_Unref(&gt->lua_arg);
+	gt->ticrate = ticrate;
+	gt->curtics = ticrate;
+	gt->lua_action = action;
+	gt->lua_arg = arg;
+}
+
+void P_RemoveMobjTicker(mobj_t *mo, int id)
+{
+	generic_ticker_t *gt = mo->generic_ticker;
+	generic_ticker_t **last = &mo->generic_ticker;
+
+	while(gt)
+	{
+		generic_ticker_t *cur = gt;
+		gt = gt->next;
+
+		if(cur->id == id)
+		{
+			// remove this ticker
+			*last = cur->next;
+			// unref
+			L_Unref(&cur->lua_action);
+			L_Unref(&cur->lua_arg);
+			// free
+			Z_Free(cur);
+			// finished
+			break;
+		}
+		// check next
+		last = &cur->next;
+	}
+}
+
+void P_RemoveMobjTickers(mobj_t *mo)
+{
+	generic_ticker_t *gt = mo->generic_ticker;
+	while(gt)
+	{
+		generic_ticker_t *cur = gt;
+		gt = gt->next;
+		// unref
+		L_Unref(&cur->lua_action);
+		L_Unref(&cur->lua_arg);
+		// free
+		Z_Free(cur);
+	}
+	mo->generic_ticker = NULL;
+}
+

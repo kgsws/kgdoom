@@ -72,3 +72,21 @@ typedef struct
 void T_TexScroll(generic_line_t *ga);
 generic_line_t *P_TextureScroller(line_t *line, fixed_t x, fixed_t y, int side);
 
+//
+// mobj
+
+typedef struct generic_ticker_s
+{
+	// it's not a thinker
+	struct generic_ticker_s *next;
+	int id;	// user ID; unique
+	int ticrate;
+	int curtics;
+	int lua_action; // Lua function to call
+	int lua_arg; // Lua, optional argument
+} generic_ticker_t;
+
+void P_AddMobjTicker(mobj_t *mo, int id, int ticrate, int action, int arg);
+void P_RemoveMobjTicker(mobj_t *mo, int id);
+void P_RemoveMobjTickers(mobj_t *mo);
+

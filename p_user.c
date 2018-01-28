@@ -343,54 +343,15 @@ void P_PlayerThink (player_t* player)
     
     // cycle psprites
     P_MovePsprites (player);
-    
-    // Counters, time dependend power ups.
 
-    // Strength counts up to diminish fade.
-    if (player->powers[pw_strength])
-	player->powers[pw_strength]++;	
-		
-    if (player->powers[pw_invulnerability])
-	player->powers[pw_invulnerability]--;
-
-    if (player->powers[pw_invisibility])
-	if (! --player->powers[pw_invisibility] )
-	    player->mo->flags &= ~MF_SHADOW;
-			
-    if (player->powers[pw_infrared])
-	player->powers[pw_infrared]--;
-		
-    if (player->powers[pw_ironfeet])
-	player->powers[pw_ironfeet]--;
-		
     if (player->damagecount)
 	player->damagecount--;
-		
+
     if (player->bonuscount)
 	player->bonuscount--;
 
-    
-    // Handling colormaps.
-    if (player->powers[pw_invulnerability])
-    {
-	if (player->powers[pw_invulnerability] > 4*32
-	    || (player->powers[pw_invulnerability]&8) )
-	    player->fixedcolormap = INVERSECOLORMAP;
-	else
-	    player->fixedcolormap = 0;
-    }
-    else if (player->powers[pw_infrared])	
-    {
-	if (player->powers[pw_infrared] > 4*32
-	    || (player->powers[pw_infrared]&8) )
-	{
-	    // almost full bright
-	    player->fixedcolormap = 1;
-	}
-	else
-	    player->fixedcolormap = 0;
-    }
-    else
-	player->fixedcolormap = 0;
+    if (player->healcount)
+	player->healcount--;
+
 }
 

@@ -755,19 +755,17 @@ void R_SetupFrame (player_t* player)
 	}
     }
 	
-    if (player->fixedcolormap)
+    if (player->viewmap.data)
     {
-	fixedcolormap =
-	    colormaps
-	    + player->fixedcolormap*256*sizeof(lighttable_t);
-	
+	fixedcolormap = player->viewmap.data;
+
 	walllights = scalelightfixed;
 
 	for (i=0 ; i<MAXLIGHTSCALE ; i++)
 	    scalelightfixed[i] = fixedcolormap;
     }
     else
-	fixedcolormap = 0;
+	fixedcolormap = NULL;
 		
     framecount++;
     validcount++;

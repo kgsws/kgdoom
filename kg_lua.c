@@ -5,7 +5,6 @@
 #include "doomstat.h"
 #include "i_system.h"
 #include "p_local.h"
-#include "p_inter.h"
 #include "p_pickup.h"
 #include "p_generic.h"
 
@@ -153,6 +152,9 @@ static int LUA_mobjInventoryGive(lua_State *L);
 static int LUA_mobjInventoryTake(lua_State *L);
 static int LUA_mobjInventoryCheck(lua_State *L);
 static int LUA_mobjInventorySetMax(lua_State *L);
+static int LUA_mobjTickerSet(lua_State *L);
+static int LUA_mobjTickerDel(lua_State *L);
+static int LUA_mobjTickerCheck(lua_State *L);
 
 static int LUA_setPlayerMessage(lua_State *L);
 static int LUA_setPlayerWeapon(lua_State *L);
@@ -228,6 +230,12 @@ static int func_get_mobj_invgive(lua_State *L, void *dst, void *o);
 static int func_get_mobj_invtake(lua_State *L, void *dst, void *o);
 static int func_get_mobj_invcheck(lua_State *L, void *dst, void *o);
 static int func_get_mobj_invsetmax(lua_State *L, void *dst, void *o);
+static int func_get_mobj_tickerset(lua_State *L, void *dst, void *o);
+static int func_get_mobj_tickerdel(lua_State *L, void *dst, void *o);
+static int func_get_mobj_tickerchk(lua_State *L, void *dst, void *o);
+
+static int func_set_colormap(lua_State *L, void *dst, void *o);
+static int func_get_colormap(lua_State *L, void *dst, void *o);
 
 static int func_setplayermessage(lua_State *L, void *dst, void *o);
 static int func_setplayerweapon(lua_State *L, void *dst, void *o);
@@ -331,6 +339,8 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"noZChange", MF_NOZCHANGE},
 	{"troughMobj", MF_TROUGHMOBJ},
 	{"fullVolume", MF_FULLVOLUME},
+	{"noDeathPull", MF_NODEATHPULL},
+	{"invulnerable", MF_INVULNERABLE},
 	// flag combinations
 	{"Monster", MF_ISMONSTER | MF_COUNTKILL | MF_SOLID | MF_SHOOTABLE},
 	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF | MF_NOZCHANGE},
@@ -468,6 +478,10 @@ static const lua_table_model_t lua_mobj[] =
 	{"InventoryTake", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_invtake},
 	{"InventoryCheck", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_invcheck},
 	{"InventorySetMax", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_invsetmax},
+	// generic tickers
+	{"TickerSet", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_tickerset},
+	{"TickerRemove", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_tickerdel},
+	{"TickerCheck", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobj_tickerchk},
 };
 
 // all player values
@@ -475,6 +489,7 @@ static const lua_table_model_t lua_player[] =
 {
 	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
 	{"refire", offsetof(player_t, refire), LUA_TNUMBER},
+	{"colormap", offsetof(player_t, viewmap), LUA_TSTRING, func_set_colormap, func_get_colormap},
 	// functions
 	{"Message", 0, LUA_TFUNCTION, func_set_readonly, func_setplayermessage},
 	{"SetWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},
@@ -493,7 +508,7 @@ static const lua_table_model_t lua_sector[] =
 	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
-	{"isSecret", offsetof(sector_t, floordata), LUA_TLIGHTUSERDATA, func_set_secretsector, func_get_secretsector},	
+	{"isSecret", offsetof(sector_t, floordata), LUA_TBOOLEAN, func_set_secretsector, func_get_secretsector},	
 	// action
 	{"funcFloor", offsetof(sector_t, floordata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	{"funcCeiling", offsetof(sector_t, ceilingdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
@@ -1039,7 +1054,7 @@ static int func_set_damagescale(lua_State *L, void *dst, void *o)
 			int num;
 
 			luaL_checktype(L, -1, LUA_TNUMBER);
-			num = (DEFAULT_DAMAGE_SCALE-10) + (lua_tonumber(L, -1) * (lua_Number)10);
+			num = (DEFAULT_DAMAGE_SCALE-DAMAGE_SCALE) + (lua_tonumber(L, -1) * (lua_Number)DAMAGE_SCALE);
 			if(num < 0)
 				num = 0;
 			if(num > 254)
@@ -1361,6 +1376,106 @@ static int func_get_mobj_invsetmax(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return generic ticker set function
+static int func_get_mobj_tickerset(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_mobjTickerSet, 1);
+	return 1;
+}
+
+// return generic ticker remove function
+static int func_get_mobj_tickerdel(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_mobjTickerDel, 1);
+	return 1;
+}
+
+// return generic ticker check function
+static int func_get_mobj_tickerchk(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_mobjTickerCheck, 1);
+	return 1;
+}
+
+// change colormap
+static int func_set_colormap(lua_State *L, void *dst, void *o)
+{
+	char temp[8];
+	const char *src;
+	int i, lump;
+	uint32_t idx = 0;
+	colormap_t *map = (colormap_t *)dst;
+
+	src = lua_tostring(L, -1);
+
+	if(*src != '-')
+	{
+		for(i = 0; i < sizeof(temp); i++)
+		{
+			if(src[i] == ':')
+			{
+				temp[i] = 0;
+				break;
+			}
+			temp[i] = src[i];
+			if(!src[i])
+				break;
+		}
+		if(src[i] == ':')
+		{
+			if(sscanf(src+i+1, "%u", &idx) != 1 || idx > 1024)
+				return luaL_error(L, "invalid colormap index");
+		}
+	} else
+	{
+		map->lump = 0;
+		map->idx = 0;
+		map->data = NULL;
+		return 0;
+	}
+
+	lump = W_GetNumForName(temp);
+	i = W_LumpLength(lump);
+
+	if(i & 0xFF)
+		return luaL_error(L, "invalid colormap lump");
+
+	if(idx * 256 > i)
+		return luaL_error(L, "invalid colormap index");
+
+	map->lump = lump;
+	map->idx = idx;
+	map->data = W_CacheLumpNum(lump) + idx * 256;
+
+	return 0;
+}
+
+// return colormap
+static int func_get_colormap(lua_State *L, void *dst, void *o)
+{
+	colormap_t *map = (colormap_t *)dst;
+
+	if(map->data)
+	{
+		char temp[16];
+		char *name;
+
+		name = W_LumpNumName(map->lump);
+		if(map->idx)
+			sprintf(temp, "%.8s:%i", name, map->idx);
+		else
+			sprintf(temp, "%.8s", name);
+
+		lua_pushstring(L, temp);
+	} else
+		lua_pushstring(L, "-");
+
+	return 1;
+}
+
 // return message set function
 static int func_setplayermessage(lua_State *L, void *dst, void *o)
 {
@@ -1399,7 +1514,6 @@ static int func_set_secretsector(lua_State *L, void *dst, void *o)
 	sector_t *sec = o;
 	boolean secret;
 
-	luaL_checktype(L, -1, LUA_TBOOLEAN);
 	secret = lua_toboolean(L, -1);
 
 	if(!secret)
@@ -1597,7 +1711,6 @@ static int func_set_flattexture(lua_State *L, void *dst, void *o)
 // set working side
 static int func_set_sideset(lua_State *L, void *dst, void *o)
 {
-	luaL_checktype(L, -1, LUA_TBOOLEAN);
 	linedef_side = !lua_toboolean(L, -1);
 	return 0;
 }
@@ -3080,8 +3193,6 @@ static int LUA_damageFromMobj(lua_State *L)
 	{
 		luaL_checktype(L, 1, LUA_TNUMBER);
 		damage = lua_tointeger(L, 1);
-		if(damage < 0) // Doom random
-			damage = ((P_Random()%(-damage))+1)*3;
 	}
 
 	// damage type; required
@@ -3127,8 +3238,6 @@ static int LUA_lineAttack(lua_State *L)
 	// damage, must be present
 	luaL_checktype(L, 2, LUA_TNUMBER);
 	damage = lua_tointeger(L, 2);
-	if(damage < 0) // Doom random
-		damage = ((P_Random()%(-damage))+1)*3;
 
 	// absolute angle
 	if(top > 2)
@@ -3302,7 +3411,7 @@ static int LUA_damageScaleFromMobj(lua_State *L)
 		} else
 		{
 			luaL_checktype(L, 2, LUA_TNUMBER);
-			num = (DEFAULT_DAMAGE_SCALE-10) + (lua_tonumber(L, -1) * (lua_Number)10);
+			num = (DEFAULT_DAMAGE_SCALE-DAMAGE_SCALE) + (lua_tonumber(L, -1) * (lua_Number)DAMAGE_SCALE);
 			if(num < 0)
 				num = 0;
 			if(num > 254)
@@ -3319,7 +3428,7 @@ static int LUA_damageScaleFromMobj(lua_State *L)
 		else
 			num = mo->damagescale[type];
 
-		lua_pushnumber(L, (lua_Number)(num - (DEFAULT_DAMAGE_SCALE-10)) / 10);
+		lua_pushnumber(L, (lua_Number)(num - (DEFAULT_DAMAGE_SCALE-DAMAGE_SCALE)) / DAMAGE_SCALE);
 		return 1;
 	}
 }
@@ -3468,6 +3577,82 @@ static int LUA_mobjInventorySetMax(lua_State *L)
 
 	lua_pushinteger(L, num);
 
+	return 1;
+}
+
+static int LUA_mobjTickerSet(lua_State *L)
+{
+	mobj_t *mo;
+	int func, id, rate;
+	int arg = LUA_REFNIL;
+
+	// ID; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	// ticrate; required
+	luaL_checktype(L, 2, LUA_TNUMBER);
+	// function; required
+	luaL_checktype(L, 3, LUA_TFUNCTION);
+
+	id = lua_tointeger(L, 1);
+	rate = lua_tointeger(L, 2);
+
+	// argument; optional
+	if(lua_gettop(L) > 3)
+	{
+		arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(arg, false);
+	}
+
+	// set function
+	func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(func, false);
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	P_AddMobjTicker(mo, id, rate, func, arg);
+
+	return 0;
+}
+
+static int LUA_mobjTickerDel(lua_State *L)
+{
+	mobj_t *mo;
+	int id;
+
+	// ID; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	id = lua_tointeger(L, 1);
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+	P_RemoveMobjTicker(mo, id);
+
+	return 0;
+}
+
+static int LUA_mobjTickerCheck(lua_State *L)
+{
+	generic_ticker_t *gt;
+	mobj_t *mo;
+	int id;
+
+	// ID; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	id = lua_tointeger(L, 1);
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+	gt = mo->generic_ticker;
+
+	while(gt)
+	{
+		if(gt->id == id)
+		{
+			lua_pushboolean(L, true);
+			return 1;
+		}
+		gt = gt->next;
+	}
+
+	lua_pushboolean(L, false);
 	return 1;
 }
 
@@ -4511,6 +4696,13 @@ int L_NoRef()
 	return LUA_REFNIL;
 }
 
+void L_Unref(int *ref)
+{
+	LUA_DebugRef(*ref, true);
+	luaL_unref(luaS_game, LUA_REGISTRYINDEX, *ref);
+	*ref = LUA_REFNIL;
+}
+
 void L_Init()
 {
 	int i;
@@ -4743,6 +4935,59 @@ boolean L_CrushThing(mobj_t *th, sector_t *sec, int lfunc, int larg)
 	lua_settop(luaS_game, 0);
 
 	return ret;
+}
+
+void L_RunGenericTickers(mobj_t *mo)
+{
+	generic_ticker_t *gt = mo->generic_ticker;
+	generic_ticker_t **last = &mo->generic_ticker;
+
+	while(gt)
+	{
+		generic_ticker_t *cur = gt;
+		gt = gt->next;
+
+		// tick
+		cur->curtics--;
+		if(cur->curtics)
+		{
+			last = &cur->next;
+			continue;
+		}
+
+		// function to call
+		lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, cur->lua_action);
+		// thing to pass
+		lua_pushlightuserdata(luaS_game, mo);
+		// parameter to pass
+		lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, cur->lua_arg);
+		// do the call
+		if(lua_pcall(luaS_game, 2, 1, 0))
+			// script error
+			I_Error("L_RunGenericTickers: ID %i; %s", cur->id, lua_tostring(luaS_game, -1));
+
+		// check continue
+		if(lua_type(luaS_game, 1) != LUA_TBOOLEAN || !lua_toboolean(luaS_game, 1))
+		{
+			// remove this ticker
+			*last = cur->next;
+			last = &cur->next;
+			// unref
+			LUA_DebugRef(cur->lua_action, true);
+			luaL_unref(luaS_game, LUA_REGISTRYINDEX, cur->lua_action);
+			LUA_DebugRef(cur->lua_arg, true);
+			luaL_unref(luaS_game, LUA_REGISTRYINDEX, cur->lua_arg);
+			// free
+			Z_Free(cur);
+		} else
+		{
+			// reset timer
+			cur->curtics = cur->ticrate;
+			last = &cur->next;
+		}
+
+		lua_settop(luaS_game, 0);
+	}
 }
 
 //

@@ -3,7 +3,6 @@
 #include "doomdef.h"
 #include "doomstat.h"
 #include "p_local.h"
-#include "p_inter.h"
 #include "p_pickup.h"
 
 #include "s_sound.h"

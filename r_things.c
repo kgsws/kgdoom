@@ -711,8 +711,7 @@ void R_DrawPSprite (pspdef_t* psp)
 
     vis->patch = lump;
 
-    if (viewplayer->powers[pw_invisibility] > 4*32
-	|| viewplayer->powers[pw_invisibility] & 8)
+    if (viewplayer->mo->flags & MF_SHADOW)
     {
 	// shadow draw
 	vis->colormap = NULL;

@@ -16,7 +16,6 @@
 #ifdef __GNUG__
 #pragma implementation "p_inter.h"
 #endif
-#include "p_inter.h"
 
 #ifdef SERVER
 #include <netinet/in.h>
@@ -29,58 +28,6 @@
 //
 // GET STUFF
 //
-
-//
-// P_GivePower
-//
-boolean
-P_GivePower
-( player_t*	player,
-  int /*powertype_t*/	power )
-{
-    if (power == pw_invulnerability)
-    {
-	player->powers[power] = INVULNTICS;
-	return true;
-    }
-    
-    if (power == pw_invisibility)
-    {
-	player->powers[power] = INVISTICS;
-	player->mo->flags |= MF_SHADOW;
-	return true;
-    }
-    
-    if (power == pw_infrared)
-    {
-	player->powers[power] = INFRATICS;
-	return true;
-    }
-    
-    if (power == pw_ironfeet)
-    {
-	player->powers[power] = IRONTICS;
-	return true;
-    }
-    
-    if (power == pw_strength)
-    {
-	if(player->mo->health < 100)
-		player->mo->health = 100;
-	player->powers[power] = 1;
-#ifndef SERVER
-//	if (player->readyweapon != wp_fist)
-//	    player->pendingweapon = wp_fist;
-#endif
-	return true;
-    }
-	
-    if (player->powers[power])
-	return false;	// already got it
-		
-    player->powers[power] = 1;
-    return true;
-}
 
 //
 // KillMobj
@@ -178,6 +125,7 @@ P_DamageMobj
     fixed_t	thrust;
     int		temp;
     boolean	isneg = false;
+    int		origdmg;
 
     // [kg] negative damage is still damage
     // however, it pulls into source
@@ -186,6 +134,7 @@ P_DamageMobj
 	isneg = true;
 	damage = -damage;
     }
+    origdmg = damage;
 
 #ifdef SERVER
     // [kg] no damage in overtime, unless it is forced
@@ -204,7 +153,7 @@ P_DamageMobj
 	if(target->damagescale[damagetype] == 255)
 	    damage = INSTANTGIB;
 	else
-	    damage = (damage * (target->damagescale[damagetype] - (DEFAULT_DAMAGE_SCALE-10))) / 10;
+	    damage = (damage * (target->damagescale[damagetype] - (DEFAULT_DAMAGE_SCALE-DAMAGE_SCALE))) / DAMAGE_SCALE;
     }
 
     player = target->player;
@@ -226,23 +175,21 @@ P_DamageMobj
 		// do not mess up screen like damage can
 		player->healcount = 20;
 	}
+	// healing does not push or change state
 	return;
     }
 
-    if(!damage)
-	// no damage
-	return;
-
-    if ( target->flags & MF_SKULLFLY )
+    if ( damage && target->flags & MF_SKULLFLY )
     {
 	target->momx = target->momy = target->momz = 0;
     }
 
     if (player && gameskill == sk_baby && damage < 1000)
+    {
 	damage >>= 1; 	// take half damage in trainer mode
-
-    if(!damage)
-	damage = 1;
+	if(!damage)
+	    damage = 1;
+    }
 
     // push / pull
     if (inflictor
@@ -255,12 +202,13 @@ P_DamageMobj
 				target->x,
 				target->y);
 
-	thrust = damage*(FRACUNIT>>3)*100/target->info->mass;
+	// [kg] use original damage value for pushing
+	thrust = origdmg*(FRACUNIT>>3)*100/target->info->mass;
 
 	// make fall forwards sometimes
 	if ( !(target->flags & MF_NODEATHPULL)
-	     && damage < 40
-	     && damage > target->health
+	     && origdmg < 40
+	     && origdmg > target->health
 	     && target->z - inflictor->z > 64*FRACUNIT
 	     && (P_Random ()&1) )
 	{
@@ -275,6 +223,10 @@ P_DamageMobj
 	target->momx += FixedMul (thrust, finecosine[ang]);
 	target->momy += FixedMul (thrust, finesine[ang]);
     }
+
+    if(!damage || (origdmg < 1000000 && target->flags & MF_INVULNERABLE))
+	// no damage left
+	return;
 
     if(damage == INSTANTKILL)
 	damage = target->health + (target->info->spawnhealth - 1);
@@ -298,18 +250,18 @@ P_DamageMobj
 	}
     }
 
+    if(!damage)
+	// no damage left
+	return;
+
     // player specific
     if (player)
     {
 	// Below certain threshold,
 	// ignore damage in GOD mode, or with INVUL power.
-	if ( damage < 100000
-	     && ( (player->cheats&CF_GODMODE)
-		  || player->powers[pw_invulnerability] ) )
-	{
+	if ( damage < 1000000 && player->cheats & CF_GODMODE )
 	    return;
-	}
-	
+
 	player->damagecount += damage;	// add damage after armor / invuln
 
 	if (player->damagecount > 100)

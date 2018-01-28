@@ -90,14 +90,9 @@ typedef struct player_s
     // bounded/scaled total momentum.
     fixed_t         	bob;	
 
-    // Power ups. invinc and invis are tic counters.
-    int			powers[NUMPOWERS];
-    boolean		cards[NUMCARDS];
-    boolean		backpack;
-    
     // Frags, kills of other players.
     int			frags[MAXPLAYERS];
-    
+
     // Is wp_nochange if not changing.
     weapontype_t	readyweapon;
     weapontype_t	pendingweapon;
@@ -130,13 +125,8 @@ typedef struct player_s
     // So gun flashes light up areas.
     int			extralight;
 
-    // Current PLAYPAL, ???
-    //  can be set to REDCOLORMAP for pain, etc.
-    int			fixedcolormap;
-
-    // Player skin colorshift,
-    //  0-3 for which color to draw player.
-    int			colormap;	
+    // [kg] custom colormaps
+    colormap_t		viewmap;
 
     // Overlay view sprites (gun, etc).
     pspdef_t		psprites[NUMPSPRITES];

@@ -14,6 +14,8 @@
 
 #include "doomstat.h"
 
+#include "p_inventory.h"
+
 // [kg] LUA support
 #include "kg_lua.h"
 
@@ -579,9 +581,13 @@ void P_MobjThinker (mobj_t* mobj)
 	return;
 #endif
 
-	// [kg] new cheat
-	if(mobj->player && mobj->player->cheats & CF_INFHEALTH && mobj->health < 100)
-		mobj->health++;
+    // [kg] run all Lua generic tickers
+    if(mobj->generic_ticker)
+	L_RunGenericTickers(mobj);
+
+    // [kg] new cheat
+    if(mobj->player && mobj->player->cheats & CF_INFHEALTH && mobj->health < 100)
+	mobj->health++;
 
     // cycle through states,
     // calling action functions at transitions
@@ -742,7 +748,13 @@ void P_RemoveMobj (mobj_t* mobj)
 	// stop any playing sound
 	S_StopSound (mobj, SOUND_STOP_ALL);
 
-	// remove all references
+	// [kg] destroy inventory
+	P_RemoveInventory(mobj);
+
+	// [kg] remove all tickers
+	P_RemoveMobjTickers(mobj);
+
+	// [kg] remove all references
 	mobj_t *mo;
 	thinker_t *think;
 
@@ -831,8 +843,11 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     p->damagecount = 0;
     p->bonuscount = 0;
     p->extralight = 0;
-    p->fixedcolormap = 0;
     p->viewheight = mobj->info->viewz;
+
+    p->viewmap.lump = 0;
+    p->viewmap.idx = 0;
+    p->viewmap.data = NULL;
 
 #ifndef SERVER
     if(netgame)
@@ -856,11 +871,6 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 
     // setup gun psprite
     P_SetupPsprites (p);
-
-    // give all cards in death match mode
-    if (sv_deathmatch)
-	for (i=0 ; i<NUMCARDS ; i++)
-	    p->cards[i] = true;
 
 #ifdef SERVER
     // [kg] tell clients about this

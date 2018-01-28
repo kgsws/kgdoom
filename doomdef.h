@@ -164,38 +164,6 @@ typedef enum
 } skill_t;
 
 
-
-
-//
-// Key cards.
-//
-typedef enum
-{
-    it_bluecard,
-    it_yellowcard,
-    it_redcard,
-    it_blueskull,
-    it_yellowskull,
-    it_redskull,
-    
-    NUMCARDS
-    
-} card_t;
-
-// Power up artifacts.
-typedef enum
-{
-    pw_invulnerability,
-    pw_strength,
-    pw_invisibility,
-    pw_ironfeet,
-    pw_allmap,
-    pw_infrared,
-    NUMPOWERS
-    
-} powertype_t;
-
-
 // [kg] new handling for Lua
 typedef uint16_t weapontype_t;
 #define wp_nochange	0
@@ -204,24 +172,16 @@ typedef uint16_t weapontype_t;
 // [kg] custom damage types
 // damage is scaled before armor effects
 #define NUMDAMAGETYPES	32
-#define DEFAULT_DAMAGE_SCALE	50	// 10% steps ;50 = 100%; 255 = kill; 254 = 2140%; 0 = -400% (healing)
+#define DAMAGE_SCALE	20		// 5% steps
+#define DEFAULT_DAMAGE_SCALE	74	// 74 = 100%; 255 = kill; 254 = 900%; 0 = -270% (healing)
 
-//
-// Power up durations,
-//  how many seconds till expiration,
-//  assuming TICRATE is 35 ticks/second.
-//
-typedef enum
+// [kg] custom colormaps
+typedef struct
 {
-    INVULNTICS	= (30*TICRATE),
-    INVISTICS	= (60*TICRATE),
-    INFRATICS	= (120*TICRATE),
-    IRONTICS	= (60*TICRATE)
-    
-} powerduration_t;
-
-
-
+	int lump;	// source lump in WAD; 0 = none
+	int idx;	// selected colormap index
+	uint8_t *data;	// pointer to already ofset colormap data
+} colormap_t;
 
 //
 // DOOM keyboard definition.

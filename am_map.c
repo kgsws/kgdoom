@@ -1148,10 +1148,10 @@ void AM_drawWalls(void)
 		}
 	    }
 	}
-	else if (plr->powers[pw_allmap])
+/*	else if (plr->powers[pw_allmap]) // TODO: all map
 	{
 	    if (!(lines[i].flags & LINE_NEVERSEE)) AM_drawMline(&l, GRAYS+3);
-	}
+	}*/
     }
 }
 
@@ -1260,10 +1260,10 @@ void AM_drawPlayers(void)
 	if (!playeringame[i])
 	    continue;
 
-	if (p->powers[pw_invisibility])
+/*	if (p->powers[pw_invisibility])
 	    color = 246; // *close* to black
 	else
-	    color = their_colors[their_color];
+*/	    color = their_colors[their_color];
 	
 	AM_drawLineCharacter
 	    (player_arrow, NUMPLYRLINES, 0, p->mo->angle,
