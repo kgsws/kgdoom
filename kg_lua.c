@@ -4678,7 +4678,7 @@ void L_LoadScript(int lump)
 	// call (initialize) script
 	if(lua_pcall(luaS_game, 0, 0, 0))
 	{
-		I_Error("L_LoadScript: %s", lua_tostring(luaS_game, -1));
+		I_Error("L_LoadScript: [%s] %s", scriptname, lua_tostring(luaS_game, -1));
 		lua_close(luaS_game);
 		return;
 	}
