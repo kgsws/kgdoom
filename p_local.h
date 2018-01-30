@@ -100,8 +100,8 @@ boolean	P_SetMobjState (mobj_t* mobj, statenum_t state);
 boolean P_SetMobjAnimation(mobj_t *mobj, int anim, int skip);
 void 	P_MobjThinker (mobj_t* mobj);
 
-void	P_SpawnPuff (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin);
-void 	P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin);
+void	P_SpawnPuff (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin, mobj_t *cause);
+void 	P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin, mobj_t *cause);
 
 // [kg] it's different now
 mobj_t *P_SpawnMissile(mobj_t *source, mobjtype_t type, angle_t ango, fixed_t pio, fixed_t zo, fixed_t xo, fixed_t yo);
@@ -277,7 +277,6 @@ boolean P_CheckMeleeRange (mobj_t *actor, mobj_t *target, boolean zCheck);
 // P_MAP
 
 mobjtype_t la_pufftype;
-mobj_t *la_puffmobj;
 
 // [kg] weapons
 void P_BringUpWeapon(player_t* player);

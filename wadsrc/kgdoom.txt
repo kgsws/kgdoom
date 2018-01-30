@@ -35,3 +35,4 @@ UNKNA0=gfx/unkna0.lmp
 UNKNB0=gfx/unknb0.lmp
 S_END
 POINTER=gfx/pointer.lmp
+BLOODMAP=colormap:168-183=192-207,184-191=240-247;168-175=224-231,176-191=112-127

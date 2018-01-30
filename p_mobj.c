@@ -1016,13 +1016,18 @@ P_SpawnPuff
 ( fixed_t	x,
   fixed_t	y,
   fixed_t	z,
-  mobj_t *origin )
+  mobj_t *origin,
+  mobj_t *cause )
 {
     mobj_t *th;
     sector_t *sec;
 
     th = P_SpawnMobj (x,y,z, la_pufftype);
-    th->angle = R_PointToAngle2(th->x, th->y, origin->x, origin->y);
+
+    th->target = cause;
+    th->source = origin;
+
+    th->angle = R_PointToAngle2(th->x, th->y, cause->x, cause->y);
 
     sec = th->subsector->sector;
     if(z < sec->floorheight)
@@ -1035,8 +1040,6 @@ P_SpawnPuff
 	P_SetMobjState(th, th->info->meleestate);
     else
 	P_SetMobjState(th, th->info->spawnstate);
-
-    la_puffmobj = th;
 
 #ifdef SERVER
     // tell clients about this
@@ -1054,19 +1057,22 @@ P_SpawnBlood
 ( fixed_t	x,
   fixed_t	y,
   fixed_t	z,
-  mobj_t *origin )
+  mobj_t *origin,
+  mobj_t *cause )
 {
     mobj_t*	th;
 
     th = P_SpawnMobj (x,y,z, la_pufftype);
+
+    th->target = cause;
+    th->source = origin;
+
     th->angle = R_PointToAngle2(th->x, th->y, origin->x, origin->y);
 
     if(th->info->painstate)
 	P_SetMobjState(th, th->info->painstate);
     else
 	P_SetMobjState(th, th->info->spawnstate);
-
-    la_puffmobj = th;
 
 #ifdef SERVER
     // tell clients about this

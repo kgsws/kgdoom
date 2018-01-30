@@ -3,10 +3,58 @@ import sys
 import os
 from struct import pack
 
-# lump data offset
-loffs = 12
-# lump array
-lumps = []
+# single color map generation
+def split_range(par):
+	par = par.split("-")
+	if len(par) > 2:
+		raise ValueError("invalid colormap range " + par)
+	elif len(par) > 1:
+		return [int(par[0]), int(par[1])]
+	else:
+		return [int(par[0]), int(par[0])]
+
+def colormap_range(data, par):
+	par = par.split("=")
+	if len(par) != 2:
+		raise ValueError("invalid colormap range " + par)
+	dest = split_range(par[0])
+	srce = split_range(par[1])
+	if dest[0] > dest[1]:
+		temp = dest[0]
+		dest[0] = dest[1]
+		dest[1] = temp
+		temp = srce[0]
+		srce[0] = srce[1]
+		srce[1] = temp
+	step = (1 + srce[1] - srce[0]) / (1 + dest[1] - dest[0])
+	idx = srce[0]
+	for i in range(dest[0], dest[1] + 1):
+		# print("map " + str(i) + " as " + str(int(idx)))
+		data[i] = int(idx)
+		idx += step
+
+def colormap_parse(par):
+	data = bytearray(range(0, 256, 1))
+	par = par.split(",")
+	for cmap in par:
+		colormap_range(data, cmap)
+	return data
+
+# special lump generation
+class lump_gen():
+	def colormap(name, par):
+		# generate colormaps
+		global lumps
+		global loffs
+		par = par.split(";")
+		data = bytearray()
+		for cmap in par:
+			data.extend(colormap_parse(cmap))
+		if len(data) > 0:
+			# add this lump
+			lumps.append([name, data, len(data), loffs])
+			# advance offset
+			loffs += len(data)
 
 # add lump from file
 def add_lump(name, path):
@@ -42,6 +90,11 @@ def add_empty(name):
 
 print(" kgsws' WAD packer ")
 
+# lump data offset
+loffs = 12
+# lump array
+lumps = []
+
 basename = sys.argv[1]
 basepath = os.path.split(basename)[0]
 
@@ -52,13 +105,22 @@ for line in f:
 	if len(line) > 0 and line[0] != ";" and line[0] != "#":
 		# split lump name and path
 		line = line.split("=", 1)
+		# check for generated lumps
+		if len(line) > 1:
+			temp = line[1].split(":", 1)
+			if len(temp) > 1:
+				line[1] = temp[0]
+				line.append(temp[1])
 		# always uppercase
 		line[0] = line[0].upper()
 		# check lump name
 		if len(bytearray(line[0], "UTF-8")) > 8:
 			raise ValueError("- too long lump name " + line[0])
 		# check lump type
-		if len(line) > 1:
+		if len(line) > 2:
+			# generate this lump
+			getattr(lump_gen, line[1])(line[0], line[2])
+		elif len(line) > 1:
 			# add lump from file
 			add_lump(line[0], line[1])
 		else:

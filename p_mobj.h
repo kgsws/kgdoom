@@ -296,6 +296,11 @@ typedef struct mobj_s
     // For nightmare respawn.
     mapthing_hexen_t		spawnpoint;
 
+    // [kg] colors
+    // translation is applied first, colormap second
+    colormap_t	translation;
+    colormap_t	colormap;
+
     // [kg] inventory
     struct inventory_s *inventory;
 

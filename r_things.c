@@ -386,8 +386,13 @@ R_DrawVisSprite
     {
 	// [kg] holey draw
 	colfunc = R_DrawColumnHoley;
+    } else
+    if(vis->translation)
+    {
+        colfunc = R_DrawTranslatedColumn;
+	dc_translation = vis->translation;
     }
-	
+
     dc_iscale = abs(vis->xiscale)>>detailshift;
     dc_texturemid = vis->texturemid;
     frac = vis->startfrac;
@@ -547,6 +552,7 @@ void R_ProjectSprite (mobj_t* thing)
     // store information in a vissprite
     vis = R_NewVisSprite ();
     vis->mobjflags = thing->flags;
+    vis->translation = thing->translation.data;
     vis->scale = xscale<<detailshift;
     vis->gx = thing->x;
     vis->gy = thing->y;
@@ -578,6 +584,11 @@ void R_ProjectSprite (mobj_t* thing)
 	// shadow draw
 	vis->colormap = NULL;
     }
+    else if(thing->colormap.data)
+    {
+	// [kg] custom colormap; first
+	vis->colormap = thing->colormap.data;
+    }
     else if (fixedcolormap)
     {
 	// fixed map
@@ -588,7 +599,6 @@ void R_ProjectSprite (mobj_t* thing)
 	// full bright
 	vis->colormap = colormaps;
     }
-    
     else
     {
 	// diminished light
@@ -689,6 +699,7 @@ void R_DrawPSprite (pspdef_t* psp)
     
     // store information in a vissprite
     vis = &avis;
+    vis->translation = NULL;
     vis->mobjflags = 0;
     vis->texturemid = (BASEYCENTER<<FRACBITS)+FRACUNIT/2-(psp->sy-R_GetSpriteTopOffset(lump));
     vis->x1 = x1 < 0 ? 0 : x1;

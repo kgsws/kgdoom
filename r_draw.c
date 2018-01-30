@@ -35,15 +35,6 @@ int		viewwindowy;
 byte*		ylookup[SCREENHEIGHT];
 int		columnofs[SCREENWIDTH];
 
-// Color tables for different players,
-//  translate a limited part to another
-//  (color ramps used for  suit colors).
-//
-byte		translations[3][256];	
- 
- 
-
-
 //
 // R_DrawColumn
 // Source is the top of the column to scale.
@@ -394,8 +385,6 @@ void R_DrawFuzzColumn (void)
 //  identical sprites, kinda brightened up.
 //
 byte*	dc_translation;
-byte*	translationtables;
-byte*	bloodlationtables;
 
 void R_DrawTranslatedColumn (void) 
 { 
@@ -460,65 +449,6 @@ void R_DrawTranslatedColumn (void)
 	frac += fracstep; 
     } while (count--); 
 } 
-
-
-
-
-//
-// R_InitTranslationTables
-// Creates the translation tables to map
-//  the green color ramp to gray, brown, red.
-// Assumes a given structure of the PLAYPAL.
-// Could be read from a lump instead.
-//
-void R_InitTranslationTables (void)
-{
-    int		i;
-	
-    translationtables = Z_Malloc (256*3+255, PU_STATIC, 0);
-//    translationtables = (byte *)(( (int)translationtables + 255 )& ~255);
-
-    bloodlationtables = Z_Malloc (256*3+255, PU_STATIC, 0);
-//    bloodlationtables = (byte *)(( (int)bloodlationtables + 255 )& ~255);
-
-    // translate just the 16 green colors
-    for (i=0 ; i<256 ; i++)
-    {
-	if (i >= 0x70 && i<= 0x7f)
-	{
-	    // map green ramp to gray, brown, red
-	    translationtables[i] = 0x60 + (i&0xf);
-	    translationtables [i+256] = 0x40 + (i&0xf);
-	    translationtables [i+512] = 0x20 + (i&0xf);
-	}
-	else
-	{
-	    // Keep all other colors as is.
-	    translationtables[i] = translationtables[i+256] 
-		= translationtables[i+512] = i;
-	}
-        if(i >= 176 && i <= 191)
-        {
-            // map most of red ramp to green, blue, yellow
-            bloodlationtables[i] = 120 + ((i&0xf) >> 1);
-            if(i < 184)
-            {
-                bloodlationtables[i+256] = i + 24;
-                bloodlationtables[i+512] = i - 16;
-            } else {
-                bloodlationtables[i+256] = i + 56;
-                bloodlationtables[i+512] = i + 48;
-            }
-        } else {
-	    // Keep all other colors as is.
-	    bloodlationtables[i] = bloodlationtables[i+256] 
-		= bloodlationtables[i+512] = i;
-        }
-    }
-}
-
-
-
 
 //
 // R_DrawSpan 

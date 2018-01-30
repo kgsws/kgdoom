@@ -675,8 +675,6 @@ void R_Init (void)
     printf ("\nR_InitLightTables");
     R_InitSkyMap ();
     printf ("\nR_InitSkyMap");
-    R_InitTranslationTables ();
-    printf ("\nR_InitTranslationsTables");
 #endif
     framecount = 0;
 }

@@ -453,6 +453,9 @@ static const lua_table_model_t lua_mobj[] =
 	{"player", offsetof(mobj_t, player), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	{"sector", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_sector},
 	{"info", offsetof(mobj_t, info), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
+	// colors
+	{"translation", offsetof(mobj_t, translation), LUA_TSTRING, func_set_colormap, func_get_colormap},
+	{"colormap", offsetof(mobj_t, colormap), LUA_TSTRING, func_set_colormap, func_get_colormap},
 	// functions
 	{"Remove", 0, LUA_TFUNCTION, func_set_readonly, func_get_removemobj},
 	{"Flag", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkflagmobj},

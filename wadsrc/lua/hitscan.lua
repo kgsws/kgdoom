@@ -8,9 +8,16 @@ end
 
 a.BloodStuff =
 function(mobj)
+	local source
+	source = mobj.source
 	mobj.flags = mf.noBlockmap | mf.missile | mf.dropOff | mf.troughMobj
 	mobj.momz = -0.5
 	mobj.Thrust(0.25 + doomRandom() / 512, (doomRandom() - 128)*2)
+	if source.info == MT_HEAD then
+		mobj.translation = "BLOODMAP:0"
+	elseif source.info == MT_BRUISER or source.info == MT_KNIGHT then
+		mobj.translation = "BLOODMAP:1"
+	end
 end
 
 -- MT_PUFF

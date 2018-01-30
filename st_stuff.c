@@ -677,10 +677,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	if(plyr->cheats & CF_GODMODE)
 		cmap = imap;
 	else
-	if(plyr->cheats & CF_INFHEALTH)
-		cmap = bloodlationtables + 256;
-	else
-		cmap = v_colormap_normal;
+	cmap = v_colormap_normal;
 	STlib_drawNum(STBAR_HEALTH_X, STBAR_HEALTH_Y + 8, plyr->mo->health < 0 ? 0 : plyr->mo->health, cmap);
 
 	// armor

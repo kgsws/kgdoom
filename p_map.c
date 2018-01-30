@@ -756,7 +756,6 @@ fixed_t		attackrange;
 
 // [kg] custom puffs
 mobjtype_t	la_pufftype;
-mobj_t		*la_puffmobj;
 
 fixed_t		aimslope;
 
@@ -968,7 +967,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	y = trace.y + FixedMul (trace.dy, frac);
 
 	// Spawn bullet puffs.
-	P_SpawnPuff (x,y,z, shootthing);
+	P_SpawnPuff (x,y,z, NULL, shootthing);
 	
 	// don't go any farther
 	return false;	
@@ -1013,9 +1012,9 @@ boolean PTR_ShootTraverse (intercept_t* in)
     // Spawn bullet puffs or blod spots,
     // depending on target type.
     if (th->flags & MF_NOBLOOD)
-	P_SpawnPuff (x,y,z, shootthing);
+	P_SpawnPuff (x,y,z, th, shootthing);
     else
-	P_SpawnBlood (x,y,z, shootthing);
+	P_SpawnBlood (x,y,z, th, shootthing);
 
     if (la_damage)
 	P_DamageMobj (th, shootthing, shootthing, la_damage, mobjinfo[la_pufftype].damagetype);
@@ -1104,19 +1103,11 @@ P_LineAttack
     aimslope = slope;
 
     linetarget = NULL;
-    la_puffmobj = NULL;
 		
     P_PathTraverse ( x1, y1,
 		     x2, y2,
 		     PT_ADDLINES|PT_ADDTHINGS,
 		     PTR_ShootTraverse );
-
-    if(la_puffmobj)
-    {
-	la_puffmobj->target = t1;
-	la_puffmobj->source = linetarget;
-	la_puffmobj->health = damage;
-    }
 }
  
 
