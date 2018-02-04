@@ -12,6 +12,8 @@
 #include "doomstat.h"
 #include "r_state.h"
 
+#include "kg_3dfloor.h"
+
 //#include "r_local.h"
 
 
@@ -26,13 +28,8 @@ drawseg_t	drawsegs[MAXDRAWSEGS];
 drawseg_t*	ds_p;
 
 
-void
-R_StoreWallRange
-( int	start,
-  int	stop );
-
-
-
+void R_StoreWallRange(int start, int stop);
+void R_StoreWallRangeFake(int start, int stop);
 
 //
 // R_ClearDrawSegs
@@ -156,7 +153,55 @@ R_ClipSolidWallSegment
     newend = start+1;
 }
 
+// [kg] this one is for fake rendering
+void
+R_ClipSolidWallSegmentFake
+( int			first,
+  int			last )
+{
+    cliprange_t*	next;
+    cliprange_t*	start;
 
+    // Find the first range that touches the range
+    //  (adjacent pixels are touching).
+    start = solidsegs;
+    while (start->last < first-1)
+	start++;
+
+    if (first < start->first)
+    {
+	if (last < start->first-1)
+	{
+	    // Post is entirely visible (above start),
+	    //  so insert a new clippost.
+	    R_StoreWallRangeFake (first, last);
+	    return;
+	}
+	// There is a fragment above *start.
+	R_StoreWallRangeFake (first, start->first - 1);
+    }
+
+    // Bottom contained in start?
+    if (last <= start->last)
+	return;			
+
+    next = start;
+    while (last >= (next+1)->first-1)
+    {
+	// There is a fragment between two posts.
+	R_StoreWallRangeFake (next->last + 1, (next+1)->first - 1);
+	next++;
+	
+	if (last <= next->last)
+	{
+	    // Bottom is contained in next.
+	    return;
+	}
+    }
+
+    // There is a fragment after *next.
+    R_StoreWallRangeFake (next->last + 1, last);
+}
 
 //
 // R_ClipPassWallSegment
@@ -287,23 +332,29 @@ void R_AddLine (seg_t*	line)
 
     // Does not cross a pixel?
     if (x1 >= x2)
-	return;				
+	return;
+
+    if(fakeplane || fakeclip)
+    {
+	R_ClipSolidWallSegmentFake(x1, x2-1);
+	return;
+    }
 	
     backsector = line->backsector;
 
     // Single sided line?
     if (!backsector)
-	goto clipsolid;		
+	goto clipsolid;
 
     // Closed door.
     if (backsector->ceilingheight <= frontsector->floorheight
 	|| backsector->floorheight >= frontsector->ceilingheight)
-	goto clipsolid;		
+	goto clipsolid;
 
     // Window.
     if (backsector->ceilingheight != frontsector->ceilingheight
 	|| backsector->floorheight != frontsector->floorheight)
-	goto clippass;	
+	goto clippass;
 		
     // Reject empty lines used for triggers
     //  and special events.
@@ -313,7 +364,11 @@ void R_AddLine (seg_t*	line)
     if (backsector->ceilingpic == frontsector->ceilingpic
 	&& backsector->floorpic == frontsector->floorpic
 	&& backsector->lightlevel == frontsector->lightlevel
-	&& curline->sidedef->midtexture == 0)
+	&& curline->sidedef->midtexture == 0
+	// [kg] 3D floor check
+	&& !backsector->exfloor && !frontsector->exfloor
+	&& !backsector->exceiling && !frontsector->exceiling
+    )
     {
 	return;
     }
@@ -468,52 +523,171 @@ boolean R_CheckBBox (fixed_t*	bspcoord)
 //
 void R_Subsector (int num)
 {
-    int			count;
-    seg_t*		line;
-    subsector_t*	sub;
+	static sector_t fakeback;
+	int		count;
+	seg_t*		line;
+	subsector_t*	sub;
+	extraplane_t	*pl;
 	
 #ifdef RANGECHECK
-    if (num>=numsubsectors)
-	I_Error ("R_Subsector: ss %i with numss = %i",
-		 num,
-		 numsubsectors);
+	if(num >= numsubsectors)
+		I_Error ("R_Subsector: ss %i with numss = %i", num, numsubsectors);
 #endif
 
-    sscount++;
-    sub = &subsectors[num];
-    frontsector = sub->sector;
-    count = sub->numlines;
-    line = &segs[sub->firstline];
+	sscount++;
+	sub = &subsectors[num];
+	frontsector = sub->sector;
 
-    if (frontsector->floorheight < viewz)
-    {
-	floorplane = R_FindPlane (frontsector->floorheight,
-				  frontsector->floorpic,
-				  frontsector->lightlevel);
-    }
-    else
-	floorplane = NULL;
-    
-    if (frontsector->ceilingheight > viewz 
-	|| frontsector->ceilingpic == skyflatnum)
-    {
-	ceilingplane = R_FindPlane (frontsector->ceilingheight,
-				    frontsector->ceilingpic,
-				    frontsector->lightlevel);
-    }
-    else
+	// [kg] add 3D floors now
 	ceilingplane = NULL;
-		
-    R_AddSprites (frontsector);	
+	pl = frontsector->exfloor;
+	while(pl)
+	{
+		fixed_t lightlevel;
+		if(*pl->height >= viewz)
+			break;
+		if(pl->next)
+			lightlevel = *pl->next->lightlevel;
+		else
+			lightlevel = frontsector->lightlevel;
+		fakeplane = pl;
+		floorplane = R_FindPlane(*pl->height, *pl->pic, lightlevel);
+		if(floorplane)
+		{
+			count = sub->numlines;
+			line = &segs[sub->firstline];
+			if(pl->validcount != validcount)
+				fakeclipbot = floorclip;
+			else
+				fakeclipbot = pl->clip;
+			while(count--)
+			{
+				R_AddLine(line);
+				line++;
+			}
+		}
+		pl = pl->next;
+	}
+	fakeclipbot = NULL;
+	// [kg] add 3D ceilings now
+	floorplane = NULL;
+	pl = frontsector->exceiling;
+	while(pl)
+	{
+		if(*pl->height <= viewz)
+			break;
+		fakeplane = pl;
+		ceilingplane = R_FindPlane(*pl->height, *pl->pic, *pl->lightlevel);
+		if(ceilingplane)
+		{
+			count = sub->numlines;
+			line = &segs[sub->firstline];
+			if(pl->validcount != validcount)
+				fakecliptop = ceilingclip;
+			else
+				fakecliptop = pl->clip;
+			while(count--)
+			{
+				R_AddLine(line);
+				line++;
+			}
+		}
+		pl = pl->next;
+	}
+	fakecliptop = NULL;
 
-    while (count--)
-    {
-	R_AddLine (line);
-	line++;
-    }
+	// [kg] add normal planes now
+	fakeplane = NULL;
+	count = sub->numlines;
+	line = &segs[sub->firstline];
+
+	if(frontsector->floorheight < viewz)
+	{
+		// [kg] go trough 3D floors to find correct light level
+		fixed_t lightlevel = frontsector->lightlevel;
+		pl = frontsector->exfloor;
+
+		while(pl)
+		{
+			if(frontsector->floorheight > *pl->height)
+				break;
+			lightlevel = *pl->lightlevel;
+			pl = pl->next;
+		}
+
+		floorplane = R_FindPlane (frontsector->floorheight, frontsector->floorpic, lightlevel);
+	} else
+		floorplane = NULL;
+
+
+	if(frontsector->ceilingheight > viewz || frontsector->ceilingpic == skyflatnum)
+	{
+		ceilingplane = R_FindPlane (frontsector->ceilingheight, frontsector->ceilingpic, frontsector->lightlevel);
+	} else
+		ceilingplane = NULL;
+
+	R_AddSprites (frontsector);
+
+	while(count--)
+	{
+		sector_t *lbs = line->backsector;
+		if(lbs && (lbs->exfloor || lbs->exceiling))
+		{
+			visplane_t *bfp, *bcp;
+			// [kg] fake bounding lines
+			bfp = floorplane;
+			bcp = ceilingplane;
+			fakeclip = true;
+			floorplane = NULL;
+			ceilingplane = NULL;
+			// [kg] for each floor
+			pl = lbs->exfloor;
+			while(pl)
+			{
+				if(*pl->height >= viewz)
+					break;
+				if(pl->validcount != validcount)
+				{
+					pl->clip = e3d_NewClip(floorclip);
+					pl->validcount = validcount;
+				}
+				fakeclipbot = pl->clip;
+				fakeback.ceilingheight = *pl->height + 1;
+				fakeback.floorheight = *pl->height;
+				backsector = &fakeback;
+				R_AddLine(line);
+				pl = pl->next;
+			}
+			// [kg] for each ceiling
+			pl = lbs->exceiling;
+			while(pl)
+			{
+				if(*pl->height <= viewz)
+					break;
+				if(pl->validcount != validcount)
+				{
+					pl->clip = e3d_NewClip(ceilingclip);
+					pl->validcount = validcount;
+				}
+				fakecliptop = pl->clip;
+				fakeback.floorheight = *pl->height - 1;
+				fakeback.ceilingheight = *pl->height;
+				backsector = &fakeback;
+				R_AddLine(line);
+				pl = pl->next;
+			}
+			// done
+			fakeclipbot = NULL;
+			fakecliptop = NULL;
+			floorplane = bfp;
+			ceilingplane = bcp;
+			fakeclip = false;
+		}
+		// [kg] normal lines
+		R_AddLine(line);
+		line++;
+	}
 }
-
-
 
 
 //

@@ -12,7 +12,9 @@
 #include "r_local.h"
 #include "r_sky.h"
 
+#include "p_local.h"
 
+#include "kg_3dfloor.h"
 
 planefunction_t		floorfunc;
 planefunction_t		ceilingfunc;
@@ -201,30 +203,33 @@ R_FindPlane
   int		lightlevel )
 {
     visplane_t*	check;
-	
+    int is3d = !!fakeplane;
+
     if (picnum == skyflatnum)
     {
 	height = 0;			// all skys map together
 	lightlevel = 0;
     }
-	
+
     for (check=visplanes; check<lastvisplane; check++)
     {
 	if (height == check->height
 	    && picnum == check->picnum
-	    && lightlevel == check->lightlevel)
+	    && lightlevel == check->lightlevel
+	    // [kg] 3D planes
+	    && is3d == check->is3d
+	)
 	{
 	    break;
 	}
     }
-    
-			
+
     if (check < lastvisplane)
 	return check;
-		
+
     if (lastvisplane - visplanes == MAXVISPLANES)
 	I_Error ("R_FindPlane: no more visplanes");
-		
+
     lastvisplane++;
 
     check->height = height;
@@ -232,10 +237,11 @@ R_FindPlane
     check->lightlevel = lightlevel;
     check->minx = SCREENWIDTH;
     check->maxx = -1;
-    
+    check->is3d = is3d;
+
 //    memset (check->top,0xff,sizeof(check->top));
-	R_ClearPlane(check);
-		
+    R_ClearPlane(check);
+
     return check;
 }
 
@@ -289,19 +295,23 @@ R_CheckPlane
 	// use the same one
 	return pl;		
     }
-	
+
     // make a new visplane
     lastvisplane->height = pl->height;
     lastvisplane->picnum = pl->picnum;
     lastvisplane->lightlevel = pl->lightlevel;
-    
+    lastvisplane->is3d = pl->is3d;
+
+    if (lastvisplane - visplanes == MAXVISPLANES)
+	I_Error ("R_FindPlane: no more visplanes");
+
     pl = lastvisplane++;
     pl->minx = start;
     pl->maxx = stop;
 
 //    memset (pl->top,0xff,sizeof(pl->top));
-	R_ClearPlane(pl);
-		
+    R_ClearPlane(pl);
+
     return pl;
 }
 
@@ -345,8 +355,9 @@ R_MakeSpans
 //
 // R_DrawPlanes
 // At the end of each frame.
+// [kg] draw solid and 3D separately
 //
-void R_DrawPlanes (void)
+void R_DrawPlanes(fixed_t height)
 {
     visplane_t*		pl;
     int			light;
@@ -374,6 +385,12 @@ void R_DrawPlanes (void)
 	    continue;
 
 	if(!pl->picnum)
+	    continue;
+
+	if(pl->is3d && height) // TODO: check height
+	    continue;
+
+	if(!pl->is3d && height != ONFLOORZ)
 	    continue;
 
 	// sky flat

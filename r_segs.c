@@ -7,9 +7,12 @@
 #include "doomdef.h"
 #include "doomstat.h"
 
+#include "p_local.h"
+
 #include "r_local.h"
 #include "r_sky.h"
 
+#include "kg_3dfloor.h"
 
 // OPTIMIZE: closed two sided lines as single sided
 
@@ -60,12 +63,30 @@ fixed_t		topstep;
 fixed_t		bottomfrac;
 fixed_t		bottomstep;
 
+// [kg] for wall stripes
+fixed_t	stripebot;
+fixed_t	stripebotstep;
+fixed_t	stripetop;
+fixed_t	stripetopstep;
+fixed_t stripetexturemid;
+int stripetexture;
 
 lighttable_t**	walllights;
 
 short*		maskedtexturecol;
 
+// [kg] dummy colfunc
+void dummy_draw()
+{
+}
 
+// [kg] for stripe calculation
+void R_GetHeightFrac(fixed_t height, fixed_t *frac, fixed_t *step)
+{
+	fixed_t tmphigh = (height - viewz) >> 4;
+	*frac = (centeryfrac>>4) - FixedMul (tmphigh, rw_scale);
+	*step = -FixedMul (rw_scalestep,tmphigh);
+}
 
 //
 // R_RenderMaskedSegRange
@@ -191,15 +212,16 @@ void R_RenderSegLoop (int horizon)
 
     //texturecolumn = 0;				// shut up compiler warning
 
-	// [kg] line horizon
+	// [kg] line horizon or fake line
 	if(horizon)
 	{
 		segtextured = 0;
 		midtexture = 0;
 		toptexture = 0;
 		bottomtexture = 0;
+		maskedtexture = 0;
 	}
-	
+
     for ( ; rw_x < rw_stopx ; rw_x++)
     {
 	// mark floor / ceiling areas
@@ -354,7 +376,181 @@ void R_RenderSegLoop (int horizon)
     }
 }
 
+// [kg] this one renders stripe of wall
+void R_RenderSegLoopStripe()
+{
+    angle_t		angle;
+    unsigned		index;
+    int			yl;
+    int			yh;
+    int			midT, midB;
+    fixed_t		texturecolumn;
+    int			top;
+    int			bottom;
 
+    int	old_rwx = rw_x;
+    int	old_rwscale = rw_scale;
+    fixed_t extra_topfrac = topfrac;
+    fixed_t extra_bottomfrac = bottomfrac;
+    fixed_t extra_stripetop = stripetop;
+    fixed_t extra_stripebot = stripebot;
+
+    //texturecolumn = 0;				// shut up compiler warning
+
+    for ( ; rw_x < rw_stopx ; rw_x++)
+    {
+	yl = (extra_topfrac+HEIGHTUNIT-1)>>HEIGHTBITS;
+
+	if (yl < ceilingclip[rw_x]+1)
+	    yl = ceilingclip[rw_x]+1;
+	
+	yh = extra_bottomfrac>>HEIGHTBITS;
+
+	if (yh >= floorclip[rw_x])
+	    yh = floorclip[rw_x]-1;
+
+	// texturecolumn and lighting are independent of wall tiers
+	{
+	    // calculate texture offset
+	    angle = (rw_centerangle + xtoviewangle[rw_x])>>ANGLETOFINESHIFT;
+	    texturecolumn = rw_offset-FixedMul(finetangent[angle],rw_distance);
+	    texturecolumn >>= FRACBITS;
+	    // calculate lighting
+	    index = rw_scale>>LIGHTSCALESHIFT;
+
+	    if (index >=  MAXLIGHTSCALE )
+		index = MAXLIGHTSCALE-1;
+
+	    dc_colormap = walllights[index];
+	    dc_x = rw_x;
+	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
+	}
+
+	// draw wall
+	midT = extra_stripebot>>HEIGHTBITS;
+	extra_stripebot += stripebotstep;
+	midB = (extra_stripetop+HEIGHTUNIT-1)>>HEIGHTBITS;
+	extra_stripetop += stripetopstep;
+
+	if(midT >= floorclip[rw_x])
+	    midT = floorclip[rw_x]-1;
+
+	if (midB <= ceilingclip[rw_x])
+	    midB = ceilingclip[rw_x]+1;
+
+	if(midT >= yl && midB <= yh)
+	{
+	    dc_yl = midB;
+	    dc_yh = midT;
+	    dc_texturemid = stripetexturemid;
+	    dc_source = R_GetColumn(stripetexture,texturecolumn);
+	    colfunc ();
+	}
+
+	rw_scale += rw_scalestep;
+	extra_topfrac += topstep;
+	extra_bottomfrac += bottomstep;
+    }
+
+    rw_x = old_rwx;
+    rw_scale = old_rwscale;
+}
+
+// [kg] this one is for fake rendering
+void R_RenderSegLoopFake()
+{
+    int			yl;
+    int			yh;
+    int			mid;
+    int			top;
+    int			bottom;
+    short *useclipbot = floorclip;
+    short *usecliptop = ceilingclip;
+
+    if(!fakeclip)
+    {
+	if(fakecliptop)
+	    usecliptop = fakecliptop;
+	if(fakeclipbot)
+	    useclipbot = fakeclipbot;
+    }
+
+    for ( ; rw_x < rw_stopx ; rw_x++)
+    {
+	// mark floor / ceiling areas
+	yl = (topfrac+HEIGHTUNIT-1)>>HEIGHTBITS;
+
+	// no space above wall?
+	if (yl < usecliptop[rw_x]+1)
+	    yl = usecliptop[rw_x]+1;
+	
+	if (markceiling)
+	{
+	    top = usecliptop[rw_x]+1;
+	    bottom = yl-1;
+
+	    if (bottom >= useclipbot[rw_x])
+		bottom = useclipbot[rw_x]-1;
+
+	    if (top <= bottom)
+	    {
+		ceilingplane->top[rw_x] = top;
+		ceilingplane->bottom[rw_x] = bottom;
+	    }
+	}
+		
+	yh = bottomfrac>>HEIGHTBITS;
+
+	if (yh >= useclipbot[rw_x])
+	    yh = useclipbot[rw_x]-1;
+
+	if (markfloor)
+	{
+	    top = yh+1;
+	    bottom = useclipbot[rw_x]-1;
+	    if (top <= usecliptop[rw_x])
+		top = usecliptop[rw_x]+1;
+	    if (top <= bottom)
+	    {
+		floorplane->top[rw_x] = top;
+		floorplane->bottom[rw_x] = bottom;
+	    }
+	}
+
+	// top wall
+	if(fakeclip && fakecliptop)
+	{
+	    mid = pixhigh >> HEIGHTBITS;
+	    pixhigh += pixhighstep;
+
+	    if(mid >= floorclip[rw_x])
+		mid = floorclip[rw_x]-1;
+
+	    if(mid >= yl)
+		fakecliptop[rw_x] = mid;
+	    else
+		fakecliptop[rw_x] = yl-1;
+	}
+
+	// bottom wall
+	if(fakeclip && fakeclipbot)
+	{
+	    mid = (pixlow+HEIGHTUNIT-1)>>HEIGHTBITS;
+	    pixlow += pixlowstep;
+
+	    if(mid <= ceilingclip[rw_x])
+		mid = ceilingclip[rw_x]+1;
+
+	    if(mid <= yh)
+		fakeclipbot[rw_x] = mid;
+	    else
+		fakeclipbot[rw_x] = yh+1;
+	}
+
+	topfrac += topstep;
+	bottomfrac += bottomstep;
+    }
+}
 
 
 //
@@ -418,21 +614,6 @@ R_StoreWallRange
     }
     else
     {
-	// UNUSED: try to fix the stretched line bug
-#if 0
-	if (rw_distance < FRACUNIT/2)
-	{
-	    fixed_t		trx,try;
-	    fixed_t		gxt,gyt;
-
-	    trx = curline->v1->x - viewx;
-	    try = curline->v1->y - viewy;
-			
-	    gxt = FixedMul(trx,viewcos); 
-	    gyt = -FixedMul(try,viewsin); 
-	    ds_p->scale1 = FixedDiv(projection, gxt-gyt)<<detailshift;
-	}
-#endif
 	ds_p->scale2 = ds_p->scale1;
     }
     
@@ -527,7 +708,10 @@ R_StoreWallRange
 			
 	if (worldlow != worldbottom 
 	    || backsector->floorpic != frontsector->floorpic
-	    || backsector->lightlevel != frontsector->lightlevel)
+	    || backsector->lightlevel != frontsector->lightlevel
+	    // [kg] 3D floor check
+	    || backsector->exfloor || frontsector->exfloor
+	)
 	{
 	    markfloor = true;
 	}
@@ -540,7 +724,10 @@ R_StoreWallRange
 			
 	if (worldhigh != worldtop 
 	    || backsector->ceilingpic != frontsector->ceilingpic
-	    || backsector->lightlevel != frontsector->lightlevel)
+	    || backsector->lightlevel != frontsector->lightlevel
+	    // [kg] 3D floor check
+	    || backsector->exceiling || frontsector->exceiling
+	)
 	{
 	    markceiling = true;
 	}
@@ -669,7 +856,6 @@ R_StoreWallRange
 	// below view plane
 	markceiling = false;
     }
-
     
     // calculate incremental stepping values for texture edges
     worldtop >>= 4;
@@ -698,17 +884,132 @@ R_StoreWallRange
 	    pixlowstep = -FixedMul (rw_scalestep,worldlow);
 	}
     }
+
+    // [kg] fake check
+    if(!ceilingplane)
+	markceiling = false;
+    if(!floorplane)
+	markfloor = false;
     
     // render it
     if (markceiling)
 	ceilingplane = R_CheckPlane (ceilingplane, rw_x, rw_stopx-1);
-    
+
     if (markfloor)
 	floorplane = R_CheckPlane (floorplane, rw_x, rw_stopx-1);
 
-    // [kg] line horizon check
-    R_RenderSegLoop(curline->linedef && curline->linedef->sidenum[1] == -2);
-    
+    // [kg] fake check
+    if(fakeclip)
+    {
+	R_RenderSegLoopFake();
+	return;
+    } else
+    {
+	void *ocolfunc = colfunc;
+	boolean is_horizon = curline->linedef && curline->linedef->sidenum[1] == -2;
+	if(segtextured && !fixedcolormap && !is_horizon && frontsector->exfloor)
+	{
+		fixed_t check_bot = ONCEILINGZ;
+		fixed_t check_top = ONFLOORZ;
+		extraplane_t *pl = frontsector->exfloor;
+
+		if(backsector)
+		{
+			stripetexture = bottomtexture;
+			stripetexturemid = rw_bottomtexturemid;
+			check_bot = backsector->floorheight;
+			check_top = backsector->ceilingheight;
+		} else
+		{
+			stripetexture = midtexture;
+			stripetexturemid = rw_midtexturemid;
+		}
+
+		stripetop = bottomfrac;
+		stripetopstep = bottomstep;
+
+		while(1)
+		{
+			fixed_t height;
+			int lightlevel;
+			boolean repeat = false;
+
+			if(pl)
+			{
+				// take values from correct plane
+				height = *pl->height;
+				lightlevel = *pl->lightlevel;
+			} else
+			{
+				// topmost level; take values from sector
+				height = frontsector->ceilingheight;
+				lightlevel = frontsector->lightlevel;
+			}
+
+			// check for ceiling
+			if(height > frontsector->ceilingheight)
+				height = frontsector->ceilingheight;
+
+			// check for backsector floor
+			if(height > check_bot)
+			{
+				height = check_bot;
+				check_bot = ONCEILINGZ;
+				repeat = true;
+			}
+
+			// checks
+			if(	height >= frontsector->floorheight // hidden planes
+			) {
+				// set bottom to previous top
+				stripebot = stripetop;
+				stripebotstep = stripetopstep;
+
+				// set new top
+				R_GetHeightFrac(height, &stripetop, &stripetopstep);
+
+				// pick new light
+				lightnum = (lightlevel >> LIGHTSEGSHIFT)+extralight;
+				if(r_fakecontrast)
+				{
+					if (curline->v1->y == curline->v2->y)
+						lightnum--;
+					else if (curline->v1->x == curline->v2->x)
+						lightnum++;
+
+					if (lightnum < 0)		
+						walllights = scalelight[0];
+					else if (lightnum >= LIGHTLEVELS)
+						walllights = scalelight[LIGHTLEVELS-1];
+					else
+						walllights = scalelight[lightnum];
+				} else
+					walllights = scalelight[lightnum];
+
+				// draw this stripe
+				R_RenderSegLoopStripe();
+			}
+
+			// next range
+			if((!pl || height == frontsector->ceilingheight) && !repeat)
+				// done
+				break;
+			if(repeat)
+			{
+				// change texture, check this range again
+				stripetexture = toptexture;
+				stripetexturemid = rw_toptexturemid;
+				// move to top edge
+				R_GetHeightFrac(check_top, &stripetop, &stripetopstep);
+			} else
+				pl = pl->next;
+		}
+		colfunc = dummy_draw;
+	}
+	R_RenderSegLoop(is_horizon); // [kg] line horizon check
+	colfunc = ocolfunc;
+    }
+
     // save sprite clipping info
     if ( ((ds_p->silhouette & SIL_TOP) || maskedtexture)
 	 && !ds_p->sprtopclip)
@@ -737,5 +1038,107 @@ R_StoreWallRange
 	ds_p->bsilheight = MAXINT;
     }
     ds_p++;
+}
+
+// [kg] this one is for fake rendering
+void
+R_StoreWallRangeFake
+( int	start,
+  int	stop )
+{
+    fixed_t		hyp;
+    fixed_t		sineval;
+    angle_t		distangle, offsetangle;
+    fixed_t		vtop;
+    int			lightnum;
+
+    if(fakeclip)
+    {
+	R_StoreWallRange(start, stop);
+	return;
+    }
+
+    // don't overflow and crash
+    if (ds_p == &drawsegs[MAXDRAWSEGS])
+	return;		
+		
+#ifdef RANGECHECK
+    if (start >=viewwidth || start > stop)
+	I_Error ("Bad R_RenderWallRange: %i to %i", start , stop);
+#endif
+    
+    sidedef = curline->sidedef;
+    linedef = curline->linedef;
+
+    // mark the segment as visible for auto map
+    linedef->flags |= LF_MAPPED;
+    
+    // calculate rw_distance for scale calculation
+    rw_normalangle = curline->angle + ANG90;
+    offsetangle = abs(rw_normalangle-rw_angle1);
+    
+    if (offsetangle > ANG90)
+	offsetangle = ANG90;
+
+    distangle = ANG90 - offsetangle;
+    hyp = R_PointToDist (curline->v1->x, curline->v1->y);
+    sineval = finesine[distangle>>ANGLETOFINESHIFT];
+    rw_distance = FixedMul (hyp, sineval);
+		
+	
+    ds_p->x1 = rw_x = start;
+    ds_p->x2 = stop;
+    ds_p->curline = curline;
+    rw_stopx = stop+1;
+    
+    // calculate scale at both ends and step
+    ds_p->scale1 = rw_scale = 
+	R_ScaleFromGlobalAngle (viewangle + xtoviewangle[start]);
+    
+    if (stop > start )
+    {
+	ds_p->scale2 = R_ScaleFromGlobalAngle (viewangle + xtoviewangle[stop]);
+	ds_p->scalestep = rw_scalestep = 
+	    (ds_p->scale2 - rw_scale) / (stop-start);
+    }
+    else
+    {
+	ds_p->scale2 = ds_p->scale1;
+    }
+    
+    // calculate texture boundaries
+    //  and decide if floor / ceiling marks are needed
+    worldtop = *fakeplane->height - viewz;
+    worldbottom = worldtop;
+
+    midtexture = toptexture = bottomtexture = maskedtexture = 0;
+    ds_p->maskedtexturecol = NULL;
+
+    // calculate incremental stepping values for texture edges
+    worldtop >>= 4;
+    worldbottom >>= 4;
+	
+    topstep = -FixedMul (rw_scalestep, worldtop);
+    topfrac = (centeryfrac>>4) - FixedMul (worldtop, rw_scale);
+
+    bottomstep = -FixedMul (rw_scalestep,worldbottom);
+    bottomfrac = (centeryfrac>>4) - FixedMul (worldbottom, rw_scale);
+
+    // render it
+    if(ceilingplane)
+    {
+	ceilingplane = R_CheckPlane (ceilingplane, rw_x, rw_stopx-1);
+	markceiling = true;
+    } else
+	markceiling = false;
+    
+    if(floorplane)
+    {
+	floorplane = R_CheckPlane (floorplane, rw_x, rw_stopx-1);
+	markfloor = true;
+    } else
+	markfloor = false;
+
+    R_RenderSegLoopFake();
 }
 

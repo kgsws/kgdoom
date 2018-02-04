@@ -41,7 +41,7 @@ R_MakeSpans
   int		t2,
   int		b2 );
 
-void R_DrawPlanes (void);
+void R_DrawPlanes (fixed_t height);
 
 visplane_t*
 R_FindPlane

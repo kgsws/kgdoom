@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-
 #include "doomdef.h"
 #include "d_net.h"
 
@@ -10,7 +9,9 @@
 #include "r_local.h"
 #include "r_sky.h"
 
+#include "p_local.h"
 
+#include "kg_3dfloor.h"
 
 // Fineangles in the SCREENWIDTH wide window.
 #define FIELDOFVIEW		2048	
@@ -783,6 +784,8 @@ void R_RenderPlayerView (player_t* player)
     R_ClearDrawSegs ();
     R_ClearPlanes ();
     R_ClearSprites ();
+    // [kg] reset 3D floors
+    e3d_Reset();
     
     // check for new console commands.
     NetUpdate ();
@@ -792,12 +795,15 @@ void R_RenderPlayerView (player_t* player)
     
     // Check for new console commands.
     NetUpdate ();
-    
-    R_DrawPlanes ();
+
+    // [kg] draw solid planes only
+    R_DrawPlanes(ONFLOORZ);
     
     // Check for new console commands.
     NetUpdate ();
-    
+
+    // TODO: draw with ordering for 3D
+    R_DrawPlanes(0);
     R_DrawMasked ();
 
     // Check for new console commands.

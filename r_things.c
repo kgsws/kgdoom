@@ -628,7 +628,7 @@ void R_AddSprites (sector_t* sec)
     //  subsectors during BSP building.
     // Thus we check whether its already added.
     if (sec->validcount == validcount)
-	return;		
+	return;
 
     // Well, now it will be done.
     sec->validcount = validcount;

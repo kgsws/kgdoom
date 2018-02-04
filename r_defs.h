@@ -121,6 +121,10 @@ typedef	struct
     // [kg] new flags
     uint32_t flags;
 
+    // [kg] 3D floors
+    struct extraplane_s *exfloor;
+    struct extraplane_s *exceiling;
+
 } sector_t;
 
 
@@ -465,7 +469,10 @@ typedef struct
   int			lightlevel;
   int			minx;
   int			maxx;
-  
+
+  // [kg] mark 3D ones
+  int is3d;
+
   // leave pads for [minx-1]/[maxx+1]
   
   unsigned short		pad1;

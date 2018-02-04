@@ -29,6 +29,7 @@
 #include "lua5.3.4/lualib.h"
 #endif
 
+#include "kg_3dfloor.h"
 #include "kg_lua.h"
 
 #ifdef SERVER
@@ -169,6 +170,7 @@ static int LUA_genericCallFromSector(lua_State *L);
 static int LUA_sectorThingIterator(lua_State *L);
 static int LUA_sectorLineIterator(lua_State *L);
 static int LUA_sectorSetDamage(lua_State *L);
+static int LUA_sectorAdd3DFloor(lua_State *L);
 
 static int LUA_stopFromGeneric(lua_State *L);
 static int LUA_sleepFromGeneric(lua_State *L);
@@ -260,6 +262,7 @@ static int func_get_genericcallsector(lua_State *L, void *dst, void *o);
 static int func_get_thingitersector(lua_State *L, void *dst, void *o);
 static int func_get_lineitersector(lua_State *L, void *dst, void *o);
 static int func_get_setdamagesector(lua_State *L, void *dst, void *o);
+static int func_get_add3dfloorsector(lua_State *L, void *dst, void *o);
 
 static int func_set_sectorheight(lua_State *L, void *dst, void *o);
 static int func_set_flattexture(lua_State *L, void *dst, void *o);
@@ -533,6 +536,7 @@ static const lua_table_model_t lua_sector[] =
 	{"ThingIterator", 0, LUA_TFUNCTION, func_set_readonly, func_get_thingitersector},
 	{"LineIterator", 0, LUA_TFUNCTION, func_set_readonly, func_get_lineitersector},
 	{"SetDamage", 0, LUA_TFUNCTION, func_set_readonly, func_get_setdamagesector},
+	{"AddFloor", 0, LUA_TFUNCTION, func_set_readonly, func_get_add3dfloorsector},
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
@@ -1682,6 +1686,14 @@ static int func_get_setdamagesector(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// return 3D floor add function
+static int func_get_add3dfloorsector(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_sectorAdd3DFloor, 1);
+	return 1;
+}
+
 // change sector heights
 static int func_set_sectorheight(lua_State *L, void *dst, void *o)
 {
@@ -2614,11 +2626,14 @@ static int LUA_sectorTagIterator(lua_State *L)
 	if(top > 3)
 		return luaL_error(L, "sectorTagIterator: incorrect number of arguments");
 
+	// tag; required
 	luaL_checktype(L, 1, LUA_TNUMBER);
+	// function; required
 	luaL_checktype(L, 2, LUA_TFUNCTION);
 
 	tag = lua_tointeger(L, 1);
 
+	// arg; optional
 	if(top > 2)
 	{
 		arg = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -3283,17 +3298,12 @@ static int LUA_lineAttack(lua_State *L)
 	la_pufftype = type;
 	P_LineAttack(mo, a, r, s, damage, z, x);
 
-	if(la_puffmobj)
-		lua_pushlightuserdata(L, la_puffmobj);
-	else
-		lua_pushnil(L);
-
 	if(linetarget)
 		lua_pushlightuserdata(L, linetarget);
 	else
 		lua_pushnil(L);
 
-	return 2;
+	return 1;
 }
 
 static int LUA_thrustFromMobj(lua_State *L)
@@ -3988,6 +3998,19 @@ static int LUA_sectorSetDamage(lua_State *L)
 	return 0;
 }
 
+static int LUA_sectorAdd3DFloor(lua_State *L)
+{
+	sector_t *dst;
+	sector_t *src = LUA_GetSectorParam(L, 1, false);
+
+	dst = lua_touserdata(L, lua_upvalueindex(1));
+
+	e3d_AddFloorPlane(&dst->exfloor, src);
+	e3d_AddCeilingPlane(&dst->exceiling, src);
+
+	return 0;
+}
+
 static int LUA_sectorThingIterator(lua_State *L)
 {
 	mobj_t *mobj;
@@ -4622,11 +4645,8 @@ void L_ExportFunctions(lua_State *L, int mask)
 	}
 }
 
-void L_LoadScript(int lump)
+void L_InitState()
 {
-	char scriptname[32];
-	char *scriptdata;
-
 	// new lua state
 	if(!luaS_game)
 	{
@@ -4657,6 +4677,13 @@ void L_LoadScript(int lump)
 		// done
 		lua_settop(luaS_game, 0);
 	}
+}
+
+void L_LoadScript(int lump)
+{
+	char scriptname[32];
+	char *scriptdata;
+
 	// setup script name
 	scriptdata = W_CacheLumpNum(lump);
 	if(scriptdata[0] == '-' && scriptdata[1] == '-' && scriptdata[2] == '-')
@@ -4711,6 +4738,9 @@ void L_Init()
 	int i;
 
 	lua_setup = 1;
+
+	// init Lua state
+	L_InitState();
 
 	// clear line functions
 	for(i = 0; i < 256; i++)

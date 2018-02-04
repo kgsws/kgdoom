@@ -443,50 +443,60 @@ void D_DoomMain (void)
 
     printf ("W_Init: Init WADfiles.\n");
 
-	// common wad
-	W_LoadWad("kgdoom.wad");
-
 	// pick an IWAD
 	gamemode = shareware;
 	iwad = "doom1.wad";
 
-	if(M_CheckParm ("-doom"))
+	if(M_CheckParm("-custom"))
+	{
+		// custom game; all wads added using '-file'
+		gamemode = commercial;
+		iwad = NULL;
+	} else
+	if(M_CheckParm("-doom"))
 	{
 		gamemode = registered;
 		iwad = "doom.wad";
 	} else
-	if(M_CheckParm ("-doomu"))
+	if(M_CheckParm("-doomu"))
 	{
 		gamemode = retail;
 		iwad = "doomu.wad";
 	} else
-	if(M_CheckParm ("-tnt"))
+	if(M_CheckParm("-tnt"))
 	{
 		gamemode = commercial;
 		iwad = "tnt.wad";
 	} else
-	if(M_CheckParm ("-plutonia"))
+	if(M_CheckParm("-plutonia"))
 	{
 		gamemode = commercial;
 		iwad = "plutonia.wad";
 	} else
-	if(M_CheckParm ("-doom2"))
+	if(M_CheckParm("-doom2"))
 	{
 		gamemode = commercial;
 		iwad = "doom2.wad";
 	} else
-	if(M_CheckParm ("-freedoom"))
+	if(M_CheckParm("-freedoom"))
 	{
 		gamemode = retail;
 		iwad = "freedoom1.wad";
 	} else
-	if(M_CheckParm ("-freedoom2"))
+	if(M_CheckParm("-freedoom2"))
 	{
 		gamemode = commercial;
 		iwad = "freedoom2.wad";
 	}
 
-	W_LoadWad(iwad);
+	if(iwad)
+	{
+		// one of original games picked
+		// load common wad first
+		W_LoadWad("kgdoom.wad");
+		// load main IWAD
+		W_LoadWad(iwad);
+	}
 
 	// add PWADs
 	p = M_CheckParm ("-file");
