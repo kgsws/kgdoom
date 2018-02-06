@@ -74,6 +74,7 @@ typedef struct
 	int	height;
 	int	mass;
 	int	damage;
+	int	stepheight;
 	uint64_t	flags;
 
 	// [kg] inventory stuff

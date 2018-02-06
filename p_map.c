@@ -18,6 +18,7 @@
 #include "p_pickup.h"
 
 #include "p_generic.h"
+#include "kg_3dfloor.h"
 #include "kg_lua.h"
 
 #ifdef SERVER
@@ -75,6 +76,8 @@ int		numspechit;
 //
 boolean PIT_CheckLine (line_t* ld)
 {
+    extraplane_t *pl;
+
     if (tmbbox[BOXRIGHT] <= ld->bbox[BOXLEFT]
 	|| tmbbox[BOXLEFT] >= ld->bbox[BOXRIGHT]
 	|| tmbbox[BOXTOP] <= ld->bbox[BOXBOTTOM]
@@ -108,8 +111,73 @@ boolean PIT_CheckLine (line_t* ld)
     }
 
     // set openrange, opentop, openbottom
-    P_LineOpening (ld);	
-	
+    P_LineOpening (ld);
+
+    // [kg] 3D floors check
+    if(P_PointOnLineSide(tmthing->x, tmthing->y, ld))
+    {
+	pl = ld->frontsector->exfloor;
+	while(pl)
+	{
+	    if(	pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
+		pl->source->floorheight < tmthing->z + tmthing->height
+	    )
+		goto nocross;
+	    if(*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
+		openbottom = *pl->height;
+	    pl = pl->next;
+	}
+	// other side
+	pl = ld->backsector->exfloor;
+	while(pl)
+	{
+	    if(*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
+		openbottom = *pl->height;
+	    pl = pl->next;
+	}
+    } else
+    {
+	pl = ld->backsector->exfloor;
+	while(pl)
+	{
+	    if(	pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
+		pl->source->floorheight < tmthing->z + tmthing->height
+	    )
+		goto nocross;
+	    if(*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
+		openbottom = *pl->height;
+	    pl = pl->next;
+	}
+	// other side
+	pl = ld->frontsector->exfloor;
+	while(pl)
+	{
+	    if(*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
+		openbottom = *pl->height;
+	    pl = pl->next;
+	}
+    }
+
+    // [kg] 3D ceilings check
+    pl = ld->frontsector->exceiling;
+    while(pl)
+    {
+	if(*pl->height <= tmthing->z)
+	    break;
+	if(*pl->height < opentop)
+	    opentop = *pl->height;
+	pl = pl->next;
+    }
+    pl = ld->backsector->exceiling;
+    while(pl)
+    {
+	if(*pl->height <= tmthing->z)
+	    break;
+	if(*pl->height < opentop)
+	    opentop = *pl->height;
+	pl = pl->next;
+    }
+
     // adjust floor / ceiling heights
     if (opentop < tmceilingz)
     {
@@ -305,6 +373,7 @@ P_CheckPosition
     int			bx;
     int			by;
     subsector_t*	newsubsec;
+    extraplane_t	*pl;
 
     tmthing = thing;
     tmflags = thing->flags;
@@ -327,7 +396,28 @@ P_CheckPosition
     // will adjust them.
     tmfloorz = tmdropoffz = newsubsec->sector->floorheight;
     tmceilingz = newsubsec->sector->ceilingheight;
-			
+
+    // [kg] 3D floors check
+    pl = newsubsec->sector->exfloor;
+    while(pl)
+    {
+	if(*pl->height > tmthing->z)
+	    break;
+	if(*pl->height > tmfloorz)
+	    tmfloorz = *pl->height;
+	pl = pl->next;
+    }
+    // [kg] 3D ceilings check
+    pl = newsubsec->sector->exceiling;
+    while(pl)
+    {
+	if(*pl->height <= tmthing->z)
+	    break;
+	if(*pl->height < tmfloorz)
+	    tmfloorz = *pl->height;
+	pl = pl->next;
+    }
+
     validcount++;
     numspechit = 0;
 
@@ -390,11 +480,11 @@ P_TryMove
 	    goto nocross;	// mobj must lower itself to fit
 
 	if ( !(thing->flags&MF_TELEPORT)
-	     && tmfloorz - thing->z > 24*FRACUNIT )
+	     && tmfloorz - thing->z > thing->info->stepheight )
 	    goto nocross;	// too big a step up
 
 	if ( !(thing->flags&(MF_DROPOFF|MF_FLOAT))
-	     && tmfloorz - tmdropoffz > 24*FRACUNIT )
+	     && tmfloorz - tmdropoffz > thing->info->stepheight )
 	    goto nocross;	// don't stand over a dropoff
     }
     
@@ -587,6 +677,7 @@ void P_HitSlideLine (line_t* ld)
 boolean PTR_SlideTraverse (intercept_t* in)
 {
     line_t*	li;
+    extraplane_t *pl;
 	
     if (!in->isaline)
 	I_Error ("PTR_SlideTraverse: not a line?");
@@ -614,8 +705,33 @@ boolean PTR_SlideTraverse (intercept_t* in)
     if (opentop - slidemo->z < slidemo->height)
 	goto isblocking;		// mobj is too high
 
-    if (openbottom - slidemo->z > 24*FRACUNIT )
+    if (openbottom - slidemo->z > slidemo->info->stepheight )
 	goto isblocking;		// too big a step up
+
+    // [kg] 3D floors check
+    if(P_PointOnLineSide(slidemo->x, slidemo->y, li))
+    {
+	pl = li->frontsector->exfloor;
+	while(pl)
+	{
+	    if(	pl->source->ceilingheight > slidemo->z + slidemo->info->stepheight &&
+		pl->source->floorheight < slidemo->z + slidemo->height
+	    )
+		goto isblocking;
+	    pl = pl->next;
+	}
+    } else
+    {
+	pl = li->backsector->exfloor;
+	while(pl)
+	{
+	    if(	pl->source->ceilingheight > slidemo->z + slidemo->info->stepheight &&
+		pl->source->floorheight < slidemo->z + slidemo->height
+	    )
+		goto isblocking;
+	    pl = pl->next;
+	}
+    }
 
     // this line doesn't block movement
     return true;		
@@ -811,7 +927,7 @@ PTR_AimTraverse (intercept_t* in)
 		
 	if (topslope <= bottomslope)
 	    return false;		// stop
-			
+
 	return true;			// shot continues
     }
 
@@ -879,8 +995,10 @@ boolean PTR_ShootTraverse (intercept_t* in)
     fixed_t		thingtopslope;
     fixed_t		thingbottomslope;
 
-    sector_t *frontsector;
-    sector_t *backsector;
+    sector_t *frontsector = NULL;
+    sector_t *backsector = NULL;
+
+    extraplane_t *pl;
 
     if (in->isaline)
     {
@@ -890,39 +1008,25 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	    P_ExtraLineSpecial(shootthing, li, P_PointOnLineSide(shootthing->x, shootthing->y, li), EXTRA_HITSCAN);
 
 	if ( !(li->flags & LF_TWOSIDED) )
-	    goto hitline;
-	
+	{
+	    frontsector = li->frontsector;
+	    goto hitline_check3d;
+	}
+
 	// crosses a two sided line
 	P_LineOpening (li);
-		
+
 	dist = FixedMul (attackrange, in->frac);
 
-	if (li->frontsector->floorheight != li->backsector->floorheight)
-	{
-	    slope = FixedDiv (openbottom - shootz , dist);
-	    if (slope > aimslope)
-		goto hitline;
-	}
-		
-	if (li->frontsector->ceilingheight != li->backsector->ceilingheight)
-	{
-	    slope = FixedDiv (opentop - shootz , dist);
-	    if (slope < aimslope)
-		goto hitline;
-	}
+	slope = FixedDiv (openbottom - shootz , dist);
+	if (slope > aimslope)
+	    goto hitline;
 
-	// shot continues
-	return true;
-	
-	
-	// hit line
-      hitline:
+	slope = FixedDiv (opentop - shootz , dist);
+	if (slope < aimslope)
+	    goto hitline;
 
-#ifndef SERVER
-	if(netgame)
-	    return false;
-#endif
-
+	// [kg] position check
 	if(P_PointOnLineSide(trace.x, trace.y, li))
 	{
 		backsector = li->frontsector;
@@ -931,6 +1035,107 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	{
 		frontsector = li->frontsector;
 		backsector = li->backsector;
+	}
+
+	// [kg] 3D sides check
+	pl = backsector->exfloor;
+	if(pl)
+	{
+		boolean block = false;
+		dz = FixedMul(aimslope, FixedMul(in->frac, attackrange));
+		z = shootz + dz;
+		while(pl)
+		{
+			if(z >= pl->source->floorheight && z <= pl->source->ceilingheight)
+				block = true;
+			if(z < *pl->height)
+				pl->validcount = validcount;
+			pl = pl->next;
+		}
+		pl = backsector->exceiling;
+		while(pl)
+		{
+			if(z > *pl->height)
+				pl->validcount = validcount;
+			pl = pl->next;
+		}
+		if(block)
+			goto hitline;
+	}
+
+      hitline_check3d:
+
+	// [kg] 3D floor planes check
+	if(aimslope < 0)
+	{
+		pl = frontsector->exfloor;
+		if(pl)
+		{
+			dz = FixedMul(aimslope, FixedMul(in->frac, attackrange));
+			z = shootz + dz;
+			while(pl)
+			{
+				if(pl->validcount != validcount && *pl->height > z && *pl->height <= shootz && (!pl->next || *pl->next->height > shootz))
+				{
+					// position a bit closer
+					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
+					dz = FixedMul (aimslope, FixedMul(frac, attackrange));
+					z = *pl->height;
+					frac = -FixedDiv( FixedMul(frac, shootz - *pl->height), dz);
+					goto hit3dplane;
+				}
+				pl = pl->next;
+			}
+		}
+	}
+	// [kg] 3D ceiling planes check
+	if(aimslope > 0)
+	{
+		pl = frontsector->exceiling;
+		if(pl)
+		{
+			dz = FixedMul(aimslope, FixedMul(in->frac, attackrange));
+			z = shootz + dz;
+			while(pl)
+			{
+				if(pl->validcount != validcount && *pl->height < z && *pl->height >= shootz && (!pl->next || *pl->next->height < shootz))
+				{
+					// position a bit closer
+					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
+					dz = FixedMul (aimslope, FixedMul(frac, attackrange));
+					z = *pl->height;
+					frac = -FixedDiv( FixedMul(frac, shootz - *pl->height), dz);
+					goto hit3dplane;
+				}
+				pl = pl->next;
+			}
+		}
+	}
+
+	if(li->flags & LF_TWOSIDED)
+	    // shot continues
+	    return true;
+
+	// hit line
+      hitline:
+
+#ifndef SERVER
+	if(netgame)
+	    return false;
+#endif
+
+	// [kg] position check
+	if(!frontsector)
+	{
+		if(P_PointOnLineSide(trace.x, trace.y, li))
+		{
+			backsector = li->frontsector;
+			frontsector = li->backsector;
+		} else
+		{
+			frontsector = li->frontsector;
+			backsector = li->backsector;
+		}
 	}
 
 	// position a bit closer
@@ -962,6 +1167,8 @@ boolean PTR_ShootTraverse (intercept_t* in)
 			return false;		
 		}
 	}
+
+      hit3dplane:
 
 	x = trace.x + FixedMul (trace.dx, frac);
 	y = trace.y + FixedMul (trace.dy, frac);
@@ -1092,6 +1299,8 @@ P_LineAttack
 	x1 += FixedMul(xo, finecosine[(angle+ANG90)>>ANGLETOFINESHIFT]);
 	y1 += FixedMul(xo, finesine[(angle+ANG90)>>ANGLETOFINESHIFT]);
     }
+
+    validcount++;
 
     angle >>= ANGLETOFINESHIFT;
     shootthing = t1;

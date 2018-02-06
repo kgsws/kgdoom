@@ -389,7 +389,8 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"viewz", offsetof(mobjinfo_t, viewz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"shootz", offsetof(mobjinfo_t, shootz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"bobz", offsetof(mobjinfo_t, bobz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
-	{"species", offsetof(mobjinfo_t, species), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"stepheight", offsetof(mobjinfo_t, stepheight), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"species", offsetof(mobjinfo_t, species), LUA_TNUMBER},
 	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
 	{"flags", offsetof(mobjinfo_t, flags), LUA_TNUMBER},
 	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
@@ -2142,6 +2143,7 @@ static int LUA_createMobjType(lua_State *L)
 		temp.damagetype = NUMDAMAGETYPES;
 		temp.lua_action = LUA_REFNIL;
 		temp.lua_arg = LUA_REFNIL;
+		temp.stepheight = 24 * FRACUNIT;
 		// get states
 		state_mobjt = numstates;
 		LUA_StructFromTable(L, lua_mobjtype, sizeof(lua_mobjtype)/sizeof(lua_table_model_t), &temp);
@@ -4005,8 +4007,7 @@ static int LUA_sectorAdd3DFloor(lua_State *L)
 
 	dst = lua_touserdata(L, lua_upvalueindex(1));
 
-	e3d_AddFloorPlane(&dst->exfloor, src);
-	e3d_AddCeilingPlane(&dst->exceiling, src);
+	e3d_AddExtraFloor(dst, src, NULL);
 
 	return 0;
 }

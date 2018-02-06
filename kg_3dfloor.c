@@ -40,9 +40,11 @@ extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec)
 	new = Z_Malloc(sizeof(extraplane_t), PU_LEVEL, NULL);
 	*dest = new;
 	new->next = pl;
+	new->source = sec;
 	new->height = &sec->ceilingheight;
 	new->pic = &sec->ceilingpic;
 	new->lightlevel = &sec->lightlevel;
+	new->validcount = 0;
 
 	return new;
 }
@@ -63,11 +65,19 @@ extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec)
 	new = Z_Malloc(sizeof(extraplane_t), PU_LEVEL, NULL);
 	*dest = new;
 	new->next = pl;
+	new->source = sec;
 	new->height = &sec->floorheight;
 	new->pic = &sec->floorpic;
 	new->lightlevel = &sec->lightlevel;
+	new->validcount = 0;
 
 	return new;
+}
+
+void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line)
+{
+	e3d_AddFloorPlane(&dst->exfloor, src);
+	e3d_AddCeilingPlane(&dst->exceiling, src);
 }
 
 void e3d_Reset()
