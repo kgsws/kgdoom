@@ -520,30 +520,38 @@ void R_RenderSegLoopFake()
 	// top wall
 	if(fakeclip && fakecliptop)
 	{
-	    mid = pixhigh >> HEIGHTBITS;
-	    pixhigh += pixhighstep;
+	    if(worldhigh < worldtop)
+	    {
+		mid = pixhigh >> HEIGHTBITS;
+		pixhigh += pixhighstep;
 
-	    if(mid >= floorclip[rw_x])
-		mid = floorclip[rw_x]-1;
+		if(mid >= floorclip[rw_x])
+		    mid = floorclip[rw_x]-1;
 
-	    if(mid >= yl)
-		fakecliptop[rw_x] = mid;
-	    else
+		if(mid >= yl)
+		    fakecliptop[rw_x] = mid;
+		else
+		    fakecliptop[rw_x] = yl-1;
+	    } else
 		fakecliptop[rw_x] = yl-1;
 	}
 
 	// bottom wall
 	if(fakeclip && fakeclipbot)
 	{
-	    mid = (pixlow+HEIGHTUNIT-1)>>HEIGHTBITS;
-	    pixlow += pixlowstep;
+	    if(worldlow > worldbottom)
+	    {
+		mid = (pixlow+HEIGHTUNIT-1)>>HEIGHTBITS;
+		pixlow += pixlowstep;
 
-	    if(mid <= ceilingclip[rw_x])
-		mid = ceilingclip[rw_x]+1;
+		if(mid <= ceilingclip[rw_x])
+		    mid = ceilingclip[rw_x]+1;
 
-	    if(mid <= yh)
-		fakeclipbot[rw_x] = mid;
-	    else
+		if(mid <= yh)
+		    fakeclipbot[rw_x] = mid;
+		else
+		    fakeclipbot[rw_x] = yh+1;
+	    } else
 		fakeclipbot[rw_x] = yh+1;
 	}
 
@@ -710,7 +718,7 @@ R_StoreWallRange
 	    || backsector->floorpic != frontsector->floorpic
 	    || backsector->lightlevel != frontsector->lightlevel
 	    // [kg] 3D floor check
-	    || backsector->exfloor || frontsector->exfloor
+	    || backsector->exfloor
 	)
 	{
 	    markfloor = true;
@@ -726,7 +734,7 @@ R_StoreWallRange
 	    || backsector->ceilingpic != frontsector->ceilingpic
 	    || backsector->lightlevel != frontsector->lightlevel
 	    // [kg] 3D floor check
-	    || backsector->exceiling || frontsector->exceiling
+	    || backsector->exceiling
 	)
 	{
 	    markceiling = true;
@@ -794,7 +802,7 @@ R_StoreWallRange
     // calculate rw_offset (only needed for textured lines)
     segtextured = midtexture | toptexture | bottomtexture | maskedtexture;
 
-    if (segtextured)
+    if (segtextured && !fakeclip)
     {
 	offsetangle = rw_normalangle-rw_angle1;
 	
@@ -907,6 +915,7 @@ R_StoreWallRange
     {
 	void *ocolfunc = colfunc;
 	boolean is_horizon = curline->linedef && curline->linedef->sidenum[1] == -2;
+	// [kg] sides split rendering from 3D light
 	if(segtextured && !fixedcolormap && !is_horizon && frontsector->exfloor)
 	{
 		fixed_t check_bot = ONCEILINGZ;
@@ -950,6 +959,13 @@ R_StoreWallRange
 			if(height > frontsector->ceilingheight)
 				height = frontsector->ceilingheight;
 
+			// check for skip
+			if(pl && check_bot == ONCEILINGZ && height <= check_top)
+			{
+				pl = pl->next;
+				continue;
+			}
+
 			// check for backsector floor
 			if(height > check_bot)
 			{
@@ -959,7 +975,7 @@ R_StoreWallRange
 			}
 
 			// checks
-			if(	height >= frontsector->floorheight // hidden planes
+			if(	height >= frontsector->floorheight || frontsector->floorpic == skyflatnum // hidden planes
 			) {
 				// set bottom to previous top
 				stripebot = stripetop;

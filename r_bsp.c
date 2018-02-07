@@ -544,6 +544,11 @@ void R_Subsector (int num)
 	while(pl)
 	{
 		fixed_t lightlevel;
+		if(*pl->height < frontsector->floorheight && frontsector->floorpic != skyflatnum)
+		{
+			pl = pl->next;
+			continue;
+		}
 		if(*pl->height >= viewz)
 			break;
 		if(pl->next)
@@ -634,6 +639,7 @@ void R_Subsector (int num)
 		if(lbs && (lbs->exfloor || lbs->exceiling))
 		{
 			visplane_t *bfp, *bcp;
+			boolean is_sky;
 			// [kg] fake bounding lines
 			bfp = floorplane;
 			bcp = ceilingplane;
@@ -641,6 +647,7 @@ void R_Subsector (int num)
 			floorplane = NULL;
 			ceilingplane = NULL;
 			// [kg] for each floor
+			is_sky = lbs->floorpic == frontsector->floorpic && lbs->floorpic == skyflatnum;
 			pl = lbs->exfloor;
 			while(pl)
 			{
@@ -655,11 +662,19 @@ void R_Subsector (int num)
 				fakeback.ceilingheight = *pl->height + 1;
 				fakeback.floorheight = *pl->height;
 				backsector = &fakeback;
-				R_AddLine(line);
+				if(is_sky)
+				{
+					fixed_t hhh = frontsector->floorheight;
+					frontsector->floorheight = *pl->height;
+					R_AddLine(line);
+					frontsector->floorheight = hhh;
+				} else
+					R_AddLine(line);
 				pl = pl->next;
 			}
 			// [kg] for each ceiling
 			pl = lbs->exceiling;
+			is_sky = lbs->ceilingpic == frontsector->ceilingpic && lbs->ceilingpic == skyflatnum;
 			while(pl)
 			{
 				if(*pl->height <= viewz)
@@ -673,7 +688,14 @@ void R_Subsector (int num)
 				fakeback.floorheight = *pl->height - 1;
 				fakeback.ceilingheight = *pl->height;
 				backsector = &fakeback;
-				R_AddLine(line);
+				if(is_sky)
+				{
+					fixed_t hhh = frontsector->ceilingheight;
+					frontsector->ceilingheight = *pl->height;
+					R_AddLine(line);
+					frontsector->ceilingheight = hhh;
+				} else
+					R_AddLine(line);
 				pl = pl->next;
 			}
 			// done

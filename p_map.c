@@ -77,6 +77,7 @@ int		numspechit;
 boolean PIT_CheckLine (line_t* ld)
 {
     extraplane_t *pl;
+    boolean is_blocking = false;
 
     if (tmbbox[BOXRIGHT] <= ld->bbox[BOXLEFT]
 	|| tmbbox[BOXLEFT] >= ld->bbox[BOXRIGHT]
@@ -104,14 +105,79 @@ boolean PIT_CheckLine (line_t* ld)
     if (!(tmthing->flags & MF_MISSILE) )
     {
 	if ( ld->flags & LF_BLOCKING )
-	    goto nocross;	// explicitly blocking everything
+	    is_blocking = true;	// explicitly blocking everything
 
 	if ( !tmthing->player && ld->flags & LF_BLOCKMONSTERS )
-	    goto nocross;	// block monsters only
+	    is_blocking = true;	// block monsters only
     }
+
+    // [kg] 3D midtex check
+    if(is_blocking && !sides[ld->sidenum[0]].midtexture && !sides[ld->sidenum[1]].midtexture)
+	goto nocross;
 
     // set openrange, opentop, openbottom
     P_LineOpening (ld);
+
+    // [kg] 3D midtex check
+    if(is_blocking)
+    {
+	fixed_t z0, z1;
+	side_t *side;
+
+	// front side
+	side = &sides[ld->sidenum[0]];
+	if(side->midtexture)
+	{
+	    if(ld->flags & LF_DONTPEGBOTTOM)
+	    {
+		z1 = ld->frontsector->floorheight + side->rowoffset;
+		z0 = z1 + textureheight[side->midtexture];
+	    } else
+	    {
+		z0 = ld->frontsector->ceilingheight + side->rowoffset;
+		z1 = z0 - textureheight[side->midtexture];
+	    }
+
+	    if(	z0 > tmthing->z + tmthing->info->stepheight &&
+		z1 < tmthing->z + tmthing->height
+	    )
+		goto nocross;
+
+	    // floor
+	    if(z0 > openbottom && z0 <= tmthing->z + tmthing->info->stepheight)
+		openbottom = z0;
+	    // ceiling
+	    if(z1 < opentop && z1 > tmthing->z)
+		opentop = z1;
+	}
+
+	// back side
+	side = &sides[ld->sidenum[1]];
+	if(side->midtexture)
+	{
+	    if(ld->flags & LF_DONTPEGBOTTOM)
+	    {
+		z1 = ld->frontsector->floorheight + side->rowoffset;
+		z0 = z1 + textureheight[side->midtexture];
+	    } else
+	    {
+		z0 = ld->frontsector->ceilingheight + side->rowoffset;
+		z1 = z0 - textureheight[side->midtexture];
+	    }
+
+	    if(	z0 > tmthing->z + tmthing->info->stepheight &&
+		z1 < tmthing->z + tmthing->height
+	    )
+		goto nocross;
+
+	    // floor
+	    if(z0 > openbottom && z0 <= tmthing->z + tmthing->info->stepheight)
+		openbottom = z0;
+	    // ceiling
+	    if(z1 < opentop && z1 > tmthing->z)
+		opentop = z1;
+	}
+    }
 
     // [kg] 3D floors check
     if(P_PointOnLineSide(tmthing->x, tmthing->y, ld))
@@ -1002,6 +1068,8 @@ boolean PTR_ShootTraverse (intercept_t* in)
 
     if (in->isaline)
     {
+	boolean is_hit = true;
+
 	li = in->d.line;
 	
 	if (li->special)
@@ -1016,16 +1084,6 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	// crosses a two sided line
 	P_LineOpening (li);
 
-	dist = FixedMul (attackrange, in->frac);
-
-	slope = FixedDiv (openbottom - shootz , dist);
-	if (slope > aimslope)
-	    goto hitline;
-
-	slope = FixedDiv (opentop - shootz , dist);
-	if (slope < aimslope)
-	    goto hitline;
-
 	// [kg] position check
 	if(P_PointOnLineSide(trace.x, trace.y, li))
 	{
@@ -1036,6 +1094,18 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		frontsector = li->frontsector;
 		backsector = li->backsector;
 	}
+
+	dist = FixedMul (attackrange, in->frac);
+
+	slope = FixedDiv (openbottom - shootz , dist);
+	if (slope > aimslope)
+	    goto hitline_check3d;
+
+	slope = FixedDiv (opentop - shootz , dist);
+	if (slope < aimslope)
+	    goto hitline_check3d;
+
+	is_hit = false;
 
 	// [kg] 3D sides check
 	pl = backsector->exfloor;
@@ -1075,7 +1145,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 			z = shootz + dz;
 			while(pl)
 			{
-				if(pl->validcount != validcount && *pl->height > z && *pl->height <= shootz && (!pl->next || *pl->next->height > shootz))
+				if(*pl->height > frontsector->floorheight && pl->validcount != validcount && *pl->height > z && *pl->height <= shootz && (!pl->next || *pl->next->height > shootz))
 				{
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
@@ -1098,7 +1168,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 			z = shootz + dz;
 			while(pl)
 			{
-				if(pl->validcount != validcount && *pl->height < z && *pl->height >= shootz && (!pl->next || *pl->next->height < shootz))
+				if(*pl->height < frontsector->ceilingheight && pl->validcount != validcount && *pl->height < z && *pl->height >= shootz && (!pl->next || *pl->next->height < shootz))
 				{
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
@@ -1112,7 +1182,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		}
 	}
 
-	if(li->flags & LF_TWOSIDED)
+	if(!is_hit)
 	    // shot continues
 	    return true;
 
