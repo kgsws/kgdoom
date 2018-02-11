@@ -559,6 +559,7 @@ void R_Subsector (int num)
 		floorplane = R_FindPlane(*pl->height, *pl->pic, lightlevel);
 		if(floorplane)
 		{
+			e3d_NewHeight(*pl->height);
 			count = sub->numlines;
 			line = &segs[sub->firstline];
 			if(pl->validcount != validcount)
@@ -585,6 +586,7 @@ void R_Subsector (int num)
 		ceilingplane = R_FindPlane(*pl->height, *pl->pic, *pl->lightlevel);
 		if(ceilingplane)
 		{
+			e3d_NewHeight(*pl->height);
 			count = sub->numlines;
 			line = &segs[sub->firstline];
 			if(pl->validcount != validcount)

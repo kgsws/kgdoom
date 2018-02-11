@@ -101,7 +101,7 @@ R_RenderMaskedSegRange
     column_t*	col;
     int		lightnum;
     int		texnum;
-    
+
     // Calculate light table.
     // Use different light tables
     //   for horizontal / vertical / diagonal. Diagonal?
@@ -110,6 +110,9 @@ R_RenderMaskedSegRange
     frontsector = curline->frontsector;
     backsector = curline->backsector;
     texnum = texturetranslation[curline->sidedef->midtexture];
+
+    if(!texnum)
+	return;
 	
     lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
 
@@ -718,7 +721,7 @@ R_StoreWallRange
 	    || backsector->floorpic != frontsector->floorpic
 	    || backsector->lightlevel != frontsector->lightlevel
 	    // [kg] 3D floor check
-	    || backsector->exfloor
+	    || backsector->exfloor || frontsector->exfloor
 	)
 	{
 	    markfloor = true;
@@ -734,7 +737,7 @@ R_StoreWallRange
 	    || backsector->ceilingpic != frontsector->ceilingpic
 	    || backsector->lightlevel != frontsector->lightlevel
 	    // [kg] 3D floor check
-	    || backsector->exceiling
+	    || backsector->exceiling || frontsector->exceiling
 	)
 	{
 	    markceiling = true;
@@ -790,7 +793,7 @@ R_StoreWallRange
 	rw_bottomtexturemid += sidedef->rowoffset;
 	
 	// allocate space for masked texture tables
-	if (sidedef->midtexture)
+	if (sidedef->midtexture || (!fakeclip && backsector && backsector->exfloor))
 	{
 	    // masked midtexture
 	    maskedtexture = true;

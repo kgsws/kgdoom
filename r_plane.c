@@ -387,7 +387,7 @@ void R_DrawPlanes(fixed_t height)
 	if(!pl->picnum)
 	    continue;
 
-	if(pl->is3d && height) // TODO: check height
+	if(pl->is3d && pl->height != height)
 	    continue;
 
 	if(!pl->is3d && height != ONFLOORZ)

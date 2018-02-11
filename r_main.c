@@ -802,8 +802,6 @@ void R_RenderPlayerView (player_t* player)
     // Check for new console commands.
     NetUpdate ();
 
-    // TODO: draw with ordering for 3D
-    R_DrawPlanes(0);
     R_DrawMasked ();
 
     // Check for new console commands.

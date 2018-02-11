@@ -24,7 +24,10 @@ extraplane_t *fakeplane;
 
 clip_t *topclip;
 
-extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec)
+height3d_t height3top = {.height = ONCEILINGZ};
+height3d_t height3bot = {.height = ONFLOORZ};
+
+extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec, line_t *line)
 {
 	extraplane_t *pl = *dest;
 	extraplane_t *new;
@@ -40,6 +43,7 @@ extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec)
 	new = Z_Malloc(sizeof(extraplane_t), PU_LEVEL, NULL);
 	*dest = new;
 	new->next = pl;
+	new->line = line;
 	new->source = sec;
 	new->height = &sec->ceilingheight;
 	new->pic = &sec->ceilingpic;
@@ -49,7 +53,7 @@ extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec)
 	return new;
 }
 
-extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec)
+extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec, line_t *line)
 {
 	extraplane_t *pl = *dest;
 	extraplane_t *new;
@@ -65,6 +69,7 @@ extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec)
 	new = Z_Malloc(sizeof(extraplane_t), PU_LEVEL, NULL);
 	*dest = new;
 	new->next = pl;
+	new->line = line;
 	new->source = sec;
 	new->height = &sec->floorheight;
 	new->pic = &sec->floorpic;
@@ -76,8 +81,8 @@ extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec)
 
 void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line)
 {
-	e3d_AddFloorPlane(&dst->exfloor, src);
-	e3d_AddCeilingPlane(&dst->exceiling, src);
+	e3d_AddFloorPlane(&dst->exfloor, src, line);
+	e3d_AddCeilingPlane(&dst->exceiling, src, line);
 }
 
 void e3d_Reset()
@@ -90,8 +95,19 @@ void e3d_Reset()
 		cl = cl->next;
 		Z_Free(ff);
 	}
-
 	topclip = NULL;
+
+	height3d_t *hh = height3bot.next;
+
+	while(hh && hh != &height3top)
+	{
+		height3d_t *hf = hh;
+		hh = hh->next;
+		Z_Free(hf);
+	}
+
+	height3top.prev = &height3bot;
+	height3bot.next = &height3top;
 }
 
 short *e3d_NewClip(short *source)
@@ -105,5 +121,27 @@ short *e3d_NewClip(short *source)
 	topclip = new;
 
 	return new->clip;
+}
+
+void e3d_NewHeight(fixed_t height)
+{
+	height3d_t *hh = &height3bot;
+	height3d_t *new;
+
+	while(hh)
+	{
+		if(hh->height == height)
+			return;
+		if(hh->height > height)
+			break;
+		hh = hh->next;
+	}
+
+	new = Z_Malloc(sizeof(height3d_t), PU_STATIC, NULL);
+	new->next = hh;
+	new->prev = hh->prev;
+	hh->prev->next = new;
+	hh->prev = new;
+	new->height = height;
 }
 

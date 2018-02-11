@@ -13,7 +13,8 @@
 
 #include "doomstat.h"
 
-
+#include "p_local.h"
+#include "kg_3dfloor.h"
 
 #define MINZ				(FRACUNIT*4)
 #define BASEYCENTER			109
@@ -67,8 +68,12 @@ spriteframe_t	sprtemp[29];
 int		maxframe;
 char*		spritename;
 
-
-
+// [kg] 3D floor clipping
+fixed_t height_top;
+fixed_t height_bot;
+int clip_top;
+int clip_bot;
+extern fixed_t rw_scale;
 
 //
 // R_InstallSpriteLump
@@ -339,6 +344,12 @@ void R_DrawMaskedColumn (column_t* column)
 	if (dc_yl <= mceilingclip[dc_x])
 	    dc_yl = mceilingclip[dc_x]+1;
 
+	if(clip_bot >= 0 && dc_yh >= clip_bot)
+	    dc_yh = clip_bot;
+
+	if(clip_top >= 0 && dc_yl <= clip_top)
+	    dc_yl = clip_top;
+
 	if (dc_yl <= dc_yh)
 	{
 	    dc_source = (byte *)column + 3;
@@ -399,10 +410,18 @@ R_DrawVisSprite
     spryscale = vis->scale;
     sprtopscreen = centeryfrac - FixedMul(dc_texturemid,spryscale);
 
+    clip_bot = -1;
+    clip_top = -1;
     if(vis->psp)
     {
 	dc_texturemid += FixedMul(((centery-viewheight/2)<<FRACBITS), vis->xiscale);
 	sprtopscreen += (viewheight/2-centery)<<FRACBITS;
+    } else
+    {
+	if(height_bot != ONFLOORZ)
+	    clip_bot = (centeryfrac - FixedMul(height_bot - viewz, spryscale)) / FRACUNIT;
+	if(height_top != ONCEILINGZ)
+	    clip_top = ((centeryfrac - FixedMul(height_top - viewz, spryscale)) / FRACUNIT) - 1;
     }
 
     for (dc_x=vis->x1 ; dc_x<=vis->x2 ; dc_x++, frac += vis->xiscale)
@@ -982,12 +1001,10 @@ void R_DrawSprite (vissprite_t* spr)
 //
 // R_DrawMasked
 //
-void R_DrawMasked (void)
+void R_DrawMaskedClip (void)
 {
-    vissprite_t*	spr;
-    drawseg_t*		ds;
-	
-    R_SortVisSprites ();
+    vissprite_t *spr;
+    drawseg_t *ds;
 
     if (vissprite_p > vissprites)
     {
@@ -1000,16 +1017,52 @@ void R_DrawMasked (void)
 	    R_DrawSprite (spr);
 	}
     }
-    
+
     // render any remaining masked mid textures
     for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
 	if (ds->maskedtexturecol)
 	    R_RenderMaskedSegRange (ds, ds->x1, ds->x2);
-    
-    // draw the psprites on top of everything
-    //  but does not draw on side views
-    if (!viewangleoffset)		
-	R_DrawPlayerSprites ();
+}
+
+void R_DrawMasked (void)
+{
+	height3d_t *hh;
+
+	R_SortVisSprites ();
+
+	// [kg] draw from top to viewz
+	height_top = ONCEILINGZ;
+	hh = height3top.prev;
+	while(1)
+	{
+		if(hh->height < viewz)
+			break;
+		height_bot = hh->height;
+		R_DrawMaskedClip();
+		height_top = height_bot;
+		R_DrawPlanes(hh->height);
+		hh = hh->prev;
+	}
+
+	// [kg] draw from bottom to viewz
+	hh = &height3bot;
+	while(1)
+	{
+		height_bot = hh->height;
+		height_top = hh->next->height;
+		R_DrawMaskedClip();
+		if(hh->next->height >= viewz)
+			break;
+		R_DrawPlanes(hh->next->height);
+		hh = hh->next;
+	}
+
+	// draw the psprites on top of everything
+	//  but does not draw on side views
+	clip_bot = -1;
+	clip_top = -1;
+	if (!viewangleoffset)		
+		R_DrawPlayerSprites ();
 }
 
 #endif

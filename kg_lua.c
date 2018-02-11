@@ -2115,6 +2115,43 @@ sector_t *LUA_GetSectorParam(lua_State *L, int idx, boolean allownull)
 	return dest;
 }
 
+line_t *LUA_GetLineParam(lua_State *L, int idx, boolean allownull)
+{
+	line_t *dest;
+
+	if(allownull && lua_type(L, idx) == LUA_TNIL)
+		return NULL;
+
+	luaL_checktype(L, idx, LUA_TLIGHTUSERDATA);
+
+	if(!lua_getmetatable(L, idx))
+	{
+		luaL_error(L, "line expected");
+		return 0;
+	}
+
+	lua_pushstring(L, "__index");
+	lua_rawget(L, -2);
+
+	if(lua_tocfunction(L, -1) != LUA_ThinkerIndex)
+	{
+		luaL_error(L, "line expected");
+		return 0;
+	}
+
+	lua_pop(L, 2);
+
+	dest = lua_touserdata(L, idx);
+
+	if(dest->soundorg.thinker.lua_type != TT_LINE)
+	{
+		luaL_error(L, "line expected");
+		return 0;
+	}
+
+	return dest;
+}
+
 //
 // LUA functions
 
@@ -4004,10 +4041,11 @@ static int LUA_sectorAdd3DFloor(lua_State *L)
 {
 	sector_t *dst;
 	sector_t *src = LUA_GetSectorParam(L, 1, false);
+	line_t *line = LUA_GetLineParam(L, 2, false);
 
 	dst = lua_touserdata(L, lua_upvalueindex(1));
 
-	e3d_AddExtraFloor(dst, src, NULL);
+	e3d_AddExtraFloor(dst, src, line);
 
 	return 0;
 }
