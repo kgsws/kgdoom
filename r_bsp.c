@@ -550,7 +550,12 @@ void R_Subsector (int num)
 			continue;
 		}
 		if(*pl->height >= viewz)
-			break;
+		{
+			// out of sight; but must add height for light effects and sides
+			e3d_NewHeight(*pl->height);
+			pl = pl->next;
+			continue;
+		}
 		if(pl->next)
 			lightlevel = *pl->next->lightlevel;
 		else
@@ -581,7 +586,12 @@ void R_Subsector (int num)
 	while(pl)
 	{
 		if(*pl->height <= viewz)
-			break;
+		{
+			// out of sight; but must add height for sides
+			e3d_NewHeight(*pl->height);
+			pl = pl->next;
+			continue;
+		}
 		fakeplane = pl;
 		ceilingplane = R_FindPlane(*pl->height, *pl->pic, *pl->lightlevel);
 		if(ceilingplane)

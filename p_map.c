@@ -1173,7 +1173,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
 					dz = FixedMul (aimslope, FixedMul(frac, attackrange));
-					z = *pl->height;
+					z = *pl->height-1;
 					frac = -FixedDiv( FixedMul(frac, shootz - *pl->height), dz);
 					goto hit3dplane;
 				}

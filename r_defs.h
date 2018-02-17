@@ -406,10 +406,11 @@ typedef struct vissprite_s
     lighttable_t*	translation;
 
     // [kg] rendering info
-    int			mobjflags;
+    // NULL if psprite
+    mobj_t *mo;
 
-    // [kg] always centered
-    boolean psp;
+    // [kg] 3D rendering info
+    boolean was_hidden;
 
 } vissprite_t;
 

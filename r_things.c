@@ -69,6 +69,7 @@ int		maxframe;
 char*		spritename;
 
 // [kg] 3D floor clipping
+int height_count;
 fixed_t height_top;
 fixed_t height_bot;
 int clip_top;
@@ -366,8 +367,6 @@ void R_DrawMaskedColumn (column_t* column)
     dc_texturemid = basetexturemid;
 }
 
-
-
 //
 // R_DrawVisSprite
 //  mfloorclip and mceilingclip should also be set.
@@ -382,8 +381,23 @@ R_DrawVisSprite
     int			texturecolumn;
     fixed_t		frac;
     patch_t*		patch;
-	
-	
+    boolean bot_clip = true;
+
+    // TODO: translucent floors
+    if(vis->mo)
+    {
+	if(height_top < viewz && vis->mo->z >= height_top)
+	{
+	    vis->was_hidden = true;
+	    return;
+	}
+	if(vis->was_hidden)
+	{
+	    vis->was_hidden = false;
+	    bot_clip = false;
+	}
+    }
+
     patch = W_CacheLumpNum (vis->patch);
 
     dc_colormap = vis->colormap;
@@ -393,7 +407,7 @@ R_DrawVisSprite
 	// NULL colormap = shadow draw
 	colfunc = fuzzcolfunc;
     } else
-    if(vis->mobjflags & MF_HOLEY)
+    if(vis->mo && vis->mo->flags & MF_HOLEY)
     {
 	// [kg] holey draw
 	colfunc = R_DrawColumnHoley;
@@ -412,16 +426,24 @@ R_DrawVisSprite
 
     clip_bot = -1;
     clip_top = -1;
-    if(vis->psp)
+    if(!vis->mo)
     {
 	dc_texturemid += FixedMul(((centery-viewheight/2)<<FRACBITS), vis->xiscale);
 	sprtopscreen += (viewheight/2-centery)<<FRACBITS;
     } else
     {
-	if(height_bot != ONFLOORZ)
+	if(height_bot != ONFLOORZ && bot_clip)
+	{
 	    clip_bot = (centeryfrac - FixedMul(height_bot - viewz, spryscale)) / FRACUNIT;
+	    if(clip_bot < 0)
+		return;
+	}
 	if(height_top != ONCEILINGZ)
+	{
 	    clip_top = ((centeryfrac - FixedMul(height_top - viewz, spryscale)) / FRACUNIT) - 1;
+	    if(clip_top >= SCREENHEIGHT)
+		return;
+	}
     }
 
     for (dc_x=vis->x1 ; dc_x<=vis->x2 ; dc_x++, frac += vis->xiscale)
@@ -570,7 +592,8 @@ void R_ProjectSprite (mobj_t* thing)
     
     // store information in a vissprite
     vis = R_NewVisSprite ();
-    vis->mobjflags = thing->flags;
+    vis->mo = thing;
+    vis->was_hidden = false;
     vis->translation = thing->translation.data;
     vis->scale = xscale<<detailshift;
     vis->gx = thing->x;
@@ -719,7 +742,7 @@ void R_DrawPSprite (pspdef_t* psp)
     // store information in a vissprite
     vis = &avis;
     vis->translation = NULL;
-    vis->mobjflags = 0;
+    vis->mo = NULL;
     vis->texturemid = (BASEYCENTER<<FRACBITS)+FRACUNIT/2-(psp->sy-R_GetSpriteTopOffset(lump));
     vis->x1 = x1 < 0 ? 0 : x1;
     vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;	
@@ -762,7 +785,6 @@ void R_DrawPSprite (pspdef_t* psp)
 	vis->colormap = spritelights[MAXLIGHTSCALE-1];
     }
 
-    vis->psp = true;
     R_DrawVisSprite (vis, vis->x1, vis->x2);
 }
 
@@ -1022,6 +1044,9 @@ void R_DrawMaskedClip (void)
     for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
 	if (ds->maskedtexturecol)
 	    R_RenderMaskedSegRange (ds, ds->x1, ds->x2);
+
+    // toggle clip for midtex
+    height_count ^= 0x8000;
 }
 
 void R_DrawMasked (void)
@@ -1029,6 +1054,9 @@ void R_DrawMasked (void)
 	height3d_t *hh;
 
 	R_SortVisSprites ();
+
+	// [kg] reset toggle for midtex
+	height_count = 0x8000;
 
 	// [kg] draw from top to viewz
 	height_top = ONCEILINGZ;

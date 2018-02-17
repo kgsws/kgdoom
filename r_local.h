@@ -10,7 +10,9 @@
 // Include the refresh/render data structs.
 #include "r_data.h"
 
-
+// [kg] moved here
+#define HEIGHTBITS		12
+#define HEIGHTUNIT		(1<<HEIGHTBITS)
 
 //
 // Separate header file for each module.

@@ -75,6 +75,13 @@ lighttable_t**	walllights;
 
 short*		maskedtexturecol;
 
+// [kg] for 3D midtex stage
+extern int height_count;
+extern fixed_t height_top;
+extern fixed_t height_bot;
+extern int clip_top;
+extern int clip_bot;
+
 // [kg] dummy colfunc
 void dummy_draw()
 {
@@ -88,6 +95,58 @@ void R_GetHeightFrac(fixed_t height, fixed_t *frac, fixed_t *step)
 	*step = -FixedMul (rw_scalestep,tmphigh);
 }
 
+// [kg] single masked texture run
+void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int botc, int bots)
+{
+    unsigned	index;
+    column_t*	col;
+
+    for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
+    {
+	// [kg] add 3D clip
+	if(height_top != ONCEILINGZ)
+	{
+	    clip_top = (topc+HEIGHTUNIT-1)>>HEIGHTBITS;
+	    topc += tops;
+	    if(clip_top < 0)
+		clip_top = 0;
+	} else
+	    clip_top = -1;
+	if(height_bot != ONFLOORZ)
+	{
+	    clip_bot = ((botc+HEIGHTUNIT-1)>>HEIGHTBITS)-1;
+	    botc += bots;
+	    if(clip_bot < 0)
+		goto skip;
+	} else
+	    clip_bot = -1;
+	// calculate lighting
+	if(height_count ^ (maskedtexturecol[dc_x] & 0x8000))
+	{
+	    if (!fixedcolormap)
+	    {
+		index = spryscale>>LIGHTSCALESHIFT;
+
+		if (index >=  MAXLIGHTSCALE )
+		    index = MAXLIGHTSCALE-1;
+
+		dc_colormap = walllights[index];
+	    }
+			
+	    sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
+	    dc_iscale = 0xffffffffu / (unsigned)spryscale;
+
+	    // draw the texture
+	    col = (column_t *)( 
+		(byte *)R_GetColumn(texnum,maskedtexturecol[dc_x]) -3);
+			
+	    R_DrawMaskedColumn (col);
+	}
+skip:
+	spryscale += rw_scalestep;
+    }
+}
+
 //
 // R_RenderMaskedSegRange
 //
@@ -97,10 +156,11 @@ R_RenderMaskedSegRange
   int		x1,
   int		x2 )
 {
-    unsigned	index;
-    column_t*	col;
     int		lightnum;
     int		texnum;
+    int botc, topc;
+    int bots, tops;
+    extraplane_t *pl;
 
     // Calculate light table.
     // Use different light tables
@@ -109,12 +169,22 @@ R_RenderMaskedSegRange
     curline = ds->curline;
     frontsector = curline->frontsector;
     backsector = curline->backsector;
-    texnum = texturetranslation[curline->sidedef->midtexture];
 
-    if(!texnum)
-	return;
-	
+    // [kg] get correct light
     lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+    if(height_top != ONCEILINGZ)
+    {
+	pl = frontsector->exfloor;
+	while(pl)
+	{
+	    if(height_top <= *pl->height)
+	    {
+		lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
+		break;
+	    }
+	    pl = pl->next;
+	}
+    }
 
     if(r_fakecontrast)
     {
@@ -135,57 +205,82 @@ R_RenderMaskedSegRange
     maskedtexturecol = ds->maskedtexturecol;
 
     rw_scalestep = ds->scalestep;		
-    spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
     mfloorclip = ds->sprbottomclip;
     mceilingclip = ds->sprtopclip;
-    
-    // find positioning
-    if (curline->linedef->flags & LF_DONTPEGBOTTOM)
+
+    // [kg] 3D clip
+    if(height_bot != ONFLOORZ)
     {
-	dc_texturemid = frontsector->floorheight > backsector->floorheight
-	    ? frontsector->floorheight : backsector->floorheight;
-	dc_texturemid = dc_texturemid + textureheight[texnum] - viewz;
+	int temp = height_bot - viewz;
+	temp >>= 4;
+	botc = (centeryfrac>>4) - FixedMul (temp, ds->scale1);
+	bots = -FixedMul (rw_scalestep,temp);
     }
-    else
+    if(height_top != ONCEILINGZ)
     {
-	dc_texturemid =frontsector->ceilingheight<backsector->ceilingheight
-	    ? frontsector->ceilingheight : backsector->ceilingheight;
-	dc_texturemid = dc_texturemid - viewz;
+	int temp = height_top - viewz;
+	temp >>= 4;
+	topc = (centeryfrac>>4) - FixedMul (temp, ds->scale1);
+	tops = -FixedMul (rw_scalestep,temp);
     }
-    dc_texturemid += curline->sidedef->rowoffset;
-			
+
     if (fixedcolormap)
 	dc_colormap = fixedcolormap;
-    
-    // draw the columns
-    for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
+
+    // [kg] skip offset, if needed
+    if(ds->x1 != x1)
     {
-	// calculate lighting
-	if (maskedtexturecol[dc_x] != MAXSHORT)
-	{
-	    if (!fixedcolormap)
-	    {
-		index = spryscale>>LIGHTSCALESHIFT;
-
-		if (index >=  MAXLIGHTSCALE )
-		    index = MAXLIGHTSCALE-1;
-
-		dc_colormap = walllights[index];
-	    }
-			
-	    sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
-	    dc_iscale = 0xffffffffu / (unsigned)spryscale;
-	    
-	    // draw the texture
-	    col = (column_t *)( 
-		(byte *)R_GetColumn(texnum,maskedtexturecol[dc_x]) -3);
-			
-	    R_DrawMaskedColumn (col);
-	    maskedtexturecol[dc_x] = MAXSHORT;
-	}
-	spryscale += rw_scalestep;
+	topc += tops * (x1 - ds->x1);
+	botc += bots * (x1 - ds->x1);
     }
-	
+
+    // draw all sides
+    pl = backsector->exfloor;
+    while(pl)
+    {
+	if(height_top > pl->source->floorheight && height_top <= pl->source->ceilingheight)
+	{
+	    spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
+	    // texture
+	    texnum = texturetranslation[sides[pl->line->sidenum[0]].midtexture];
+	    // find positioning
+	    if(pl->line->flags & LF_DONTPEGBOTTOM)
+		dc_texturemid = (*pl->height + textureheight[texnum]) - viewz;
+	    else
+		dc_texturemid = *pl->height - viewz;
+	    dc_texturemid += sides[pl->line->sidenum[0]].rowoffset;
+	    // draw the columns
+	    R_DrawMaskedSegRange(x1, x2, texnum, topc, tops, botc, bots);
+	}
+	// next
+	pl = pl->next;
+    }
+
+    // draw mid texture
+    if(curline->sidedef->midtexture)
+    {
+	spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
+	// texture
+	texnum = texturetranslation[curline->sidedef->midtexture];
+	// find positioning
+	if (curline->linedef->flags & LF_DONTPEGBOTTOM)
+	{
+	    dc_texturemid = frontsector->floorheight > backsector->floorheight ? frontsector->floorheight : backsector->floorheight;
+	    dc_texturemid = dc_texturemid + textureheight[texnum] - viewz;
+	}
+	else
+	{
+	    dc_texturemid =frontsector->ceilingheight<backsector->ceilingheight ? frontsector->ceilingheight : backsector->ceilingheight;
+	    dc_texturemid = dc_texturemid - viewz;
+	}
+	dc_texturemid += curline->sidedef->rowoffset;
+	// draw the columns
+	R_DrawMaskedSegRange(x1, x2, texnum, topc, tops, botc, bots);
+    }
+
+    // do clipping now
+    for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
+	maskedtexturecol[dc_x] = (maskedtexturecol[dc_x] & 0x7FFF) | height_count;
 }
 
 
@@ -199,8 +294,6 @@ R_RenderMaskedSegRange
 //  textures.
 // CALLED: CORE LOOPING ROUTINE.
 //
-#define HEIGHTBITS		12
-#define HEIGHTUNIT		(1<<HEIGHTBITS)
 
 void R_RenderSegLoop (int horizon)
 {
@@ -369,7 +462,7 @@ void R_RenderSegLoop (int horizon)
 	    {
 		// save texturecol
 		//  for backdrawing of masked mid texture
-		maskedtexturecol[rw_x] = texturecolumn;
+		maskedtexturecol[rw_x] = texturecolumn & 0x7FFF; // [kg] update for 3D rendering
 	    }
 	}
 		
@@ -611,6 +704,7 @@ R_StoreWallRange
     ds_p->x1 = rw_x = start;
     ds_p->x2 = stop;
     ds_p->curline = curline;
+    ds_p->scalestep = 0;
     rw_stopx = stop+1;
     
     // calculate scale at both ends and step
