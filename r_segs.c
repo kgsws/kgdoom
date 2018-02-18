@@ -243,14 +243,17 @@ R_RenderMaskedSegRange
 	    spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
 	    // texture
 	    texnum = texturetranslation[sides[pl->line->sidenum[0]].midtexture];
-	    // find positioning
-	    if(pl->line->flags & LF_DONTPEGBOTTOM)
-		dc_texturemid = (*pl->height + textureheight[texnum]) - viewz;
-	    else
-		dc_texturemid = *pl->height - viewz;
-	    dc_texturemid += sides[pl->line->sidenum[0]].rowoffset;
-	    // draw the columns
-	    R_DrawMaskedSegRange(x1, x2, texnum, topc, tops, botc, bots);
+	    if(texnum)
+	    {
+		// find positioning
+		if(pl->line->flags & LF_DONTPEGBOTTOM)
+		    dc_texturemid = (*pl->height + textureheight[texnum]) - viewz;
+		else
+		    dc_texturemid = *pl->height - viewz;
+		dc_texturemid += sides[pl->line->sidenum[0]].rowoffset;
+		// draw the columns
+		R_DrawMaskedSegRange(x1, x2, texnum, topc, tops, botc, bots);
+	    }
 	}
 	// next
 	pl = pl->next;
@@ -891,6 +894,8 @@ R_StoreWallRange
 	{
 	    // masked midtexture
 	    maskedtexture = true;
+	    if(!sidedef->midtexture)
+		ds_p->silhouette = 0xff;
 	    ds_p->maskedtexturecol = maskedtexturecol = lastopening - rw_x;
 	    lastopening += rw_stopx - rw_x;
 	}
@@ -1150,6 +1155,10 @@ R_StoreWallRange
 	ds_p->silhouette |= SIL_BOTTOM;
 	ds_p->bsilheight = MAXINT;
     }
+    // [kg] no clipping for 3D sides
+    if(ds_p->silhouette & 4)
+	ds_p->silhouette = 0;
+
     ds_p++;
 }
 

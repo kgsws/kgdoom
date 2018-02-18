@@ -83,6 +83,13 @@ void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line)
 {
 	e3d_AddFloorPlane(&dst->exfloor, src, line);
 	e3d_AddCeilingPlane(&dst->exceiling, src, line);
+
+	extraplane_t *pl = dst->exfloor;
+	while(pl)
+	{
+		printf("h: %i\n", *pl->height / FRACUNIT);
+		pl = pl->next;
+	}
 }
 
 void e3d_Reset()

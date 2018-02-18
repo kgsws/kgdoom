@@ -400,25 +400,73 @@ R_DrawVisSprite
 
     patch = W_CacheLumpNum (vis->patch);
 
-    dc_colormap = vis->colormap;
-    
-    if (!dc_colormap)
+    if(vis->mo)
     {
-	// NULL colormap = shadow draw
-	colfunc = fuzzcolfunc;
+	// [kg] custom colormap; first
+	if(vis->translation)
+		dc_colormap = vis->mo->colormap.data;
+	else
+	if(fixedcolormap)
+		// forced colormap
+		dc_colormap = fixedcolormap;
+	else
+	if(vis->mo->frame & FF_FULLBRIGHT)
+		// full bright
+		dc_colormap = colormaps;
+	else
+	{
+		// diminished light
+		extraplane_t *pl;
+		int index = vis->scale >> (LIGHTSCALESHIFT);
+		int lightnum = (vis->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+
+		if(index >= MAXLIGHTSCALE) 
+			index = MAXLIGHTSCALE-1;
+
+		// [kg] get correct light
+		if(height_top != ONCEILINGZ)
+		{
+			pl = vis->mo->subsector->sector->exfloor;
+			while(pl)
+			{
+				if(height_top <= *pl->height)
+				{
+					lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
+					break;
+				}
+				pl = pl->next;
+			}
+		}
+
+		if (lightnum < 0)		
+			spritelights = scalelight[0];
+		else if (lightnum >= LIGHTLEVELS)
+			spritelights = scalelight[LIGHTLEVELS-1];
+		else
+			spritelights = scalelight[lightnum];
+		dc_colormap = spritelights[index];
+	}
+
+	if(vis->mo->flags & MF_HOLEY)
+		colfunc = R_DrawColumnHoley;
+	if(vis->mo->flags & MF_SHADOW)
+		colfunc = fuzzcolfunc;
+
+	if(vis->translation)
+	{
+		colfunc = R_DrawTranslatedColumn;
+		dc_translation = vis->translation;
+	}
     } else
-    if(vis->mo && vis->mo->flags & MF_HOLEY)
     {
-	// [kg] holey draw
-	colfunc = R_DrawColumnHoley;
-    } else
-    if(vis->translation)
-    {
-        colfunc = R_DrawTranslatedColumn;
-	dc_translation = vis->translation;
+	// player sprite
+	if(fixedcolormap)
+		dc_colormap = fixedcolormap;
+	else
+		colfunc = fuzzcolfunc;
     }
 
-    dc_iscale = abs(vis->xiscale)>>detailshift;
+    dc_iscale = abs(vis->xiscale);
     dc_texturemid = vis->texturemid;
     frac = vis->startfrac;
     spryscale = vis->scale;
@@ -512,8 +560,6 @@ void R_ProjectSprite (mobj_t* thing)
     unsigned		rot;
     boolean		flip;
     
-    int			index;
-
     vissprite_t*	vis;
     
     angle_t		ang;
@@ -595,7 +641,7 @@ void R_ProjectSprite (mobj_t* thing)
     vis->mo = thing;
     vis->was_hidden = false;
     vis->translation = thing->translation.data;
-    vis->scale = xscale<<detailshift;
+    vis->scale = xscale;
     vis->gx = thing->x;
     vis->gy = thing->y;
     vis->gz = thing->z;
@@ -619,38 +665,7 @@ void R_ProjectSprite (mobj_t* thing)
     if (vis->x1 > x1)
 	vis->startfrac += vis->xiscale*(vis->x1-x1);
     vis->patch = lump;
-    
-    // get light level
-    if (thing->flags & MF_SHADOW)
-    {
-	// shadow draw
-	vis->colormap = NULL;
-    }
-    else if(thing->colormap.data)
-    {
-	// [kg] custom colormap; first
-	vis->colormap = thing->colormap.data;
-    }
-    else if (fixedcolormap)
-    {
-	// fixed map
-	vis->colormap = fixedcolormap;
-    }
-    else if (thing->frame & FF_FULLBRIGHT)
-    {
-	// full bright
-	vis->colormap = colormaps;
-    }
-    else
-    {
-	// diminished light
-	index = xscale>>(LIGHTSCALESHIFT-detailshift);
 
-	if (index >= MAXLIGHTSCALE) 
-	    index = MAXLIGHTSCALE-1;
-
-	vis->colormap = spritelights[index];
-    }	
 }
 
 
@@ -674,15 +689,6 @@ void R_AddSprites (sector_t* sec)
 
     // Well, now it will be done.
     sec->validcount = validcount;
-	
-    lightnum = (sec->lightlevel >> LIGHTSEGSHIFT)+extralight;
-
-    if (lightnum < 0)		
-	spritelights = scalelight[0];
-    else if (lightnum >= LIGHTLEVELS)
-	spritelights = scalelight[LIGHTLEVELS-1];
-    else
-	spritelights = scalelight[lightnum];
 
     // Handle all things in sector.
     for (thing = sec->thinglist ; thing ; thing = thing->snext)
@@ -746,7 +752,7 @@ void R_DrawPSprite (pspdef_t* psp)
     vis->texturemid = (BASEYCENTER<<FRACBITS)+FRACUNIT/2-(psp->sy-R_GetSpriteTopOffset(lump));
     vis->x1 = x1 < 0 ? 0 : x1;
     vis->x2 = x2 >= viewwidth ? viewwidth-1 : x2;	
-    vis->scale = pspritescale<<detailshift;
+    vis->scale = pspritescale;
     
     if (flip)
     {
@@ -767,22 +773,21 @@ void R_DrawPSprite (pspdef_t* psp)
     if (viewplayer->mo->flags & MF_SHADOW)
     {
 	// shadow draw
-	vis->colormap = NULL;
+	fixedcolormap = NULL;
     }
     else if (fixedcolormap)
     {
 	// fixed color
-	vis->colormap = fixedcolormap;
     }
     else if (psp->state->frame & FF_FULLBRIGHT)
     {
 	// full bright
-	vis->colormap = colormaps;
+	fixedcolormap = colormaps;
     }
     else
     {
 	// local light
-	vis->colormap = spritelights[MAXLIGHTSCALE-1];
+	fixedcolormap = spritelights[MAXLIGHTSCALE-1];
     }
 
     R_DrawVisSprite (vis, vis->x1, vis->x2);

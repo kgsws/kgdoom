@@ -399,9 +399,6 @@ typedef struct vissprite_s
     fixed_t		texturemid;
     int			patch;
 
-    // for color translation and shadow draw,
-    //  maxbright frames as well
-    lighttable_t*	colormap;
     // [kg] colors
     lighttable_t*	translation;
 
