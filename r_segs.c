@@ -204,9 +204,15 @@ R_RenderMaskedSegRange
 
     maskedtexturecol = ds->maskedtexturecol;
 
-    rw_scalestep = ds->scalestep;		
-    mfloorclip = ds->sprbottomclip;
-    mceilingclip = ds->sprtopclip;
+    rw_scalestep = ds->scalestep;
+    if(frontsector->floorpic == skyflatnum)
+	mfloorclip = NULL;
+    else
+	mfloorclip = ds->sprbottomclip;
+    if(frontsector->ceilingpic == skyflatnum)
+	mceilingclip = NULL;
+    else
+	mceilingclip = ds->sprtopclip;
 
     // [kg] 3D clip
     if(height_bot != ONFLOORZ)
@@ -895,7 +901,12 @@ R_StoreWallRange
 	    // masked midtexture
 	    maskedtexture = true;
 	    if(!sidedef->midtexture)
-		ds_p->silhouette = 0xff;
+	    {
+		if(backsector->floorheight >= frontsector->floorheight)
+		    ds_p->silhouette |= 4;
+		if(backsector->ceilingheight <= frontsector->ceilingheight)
+		    ds_p->silhouette |= 8;
+	    }
 	    ds_p->maskedtexturecol = maskedtexturecol = lastopening - rw_x;
 	    lastopening += rw_stopx - rw_x;
 	}
@@ -1157,7 +1168,9 @@ R_StoreWallRange
     }
     // [kg] no clipping for 3D sides
     if(ds_p->silhouette & 4)
-	ds_p->silhouette = 0;
+	ds_p->silhouette &= ~(SIL_BOTTOM | 4);
+    if(ds_p->silhouette & 8)
+	ds_p->silhouette &= ~(SIL_TOP | 8);
 
     ds_p++;
 }

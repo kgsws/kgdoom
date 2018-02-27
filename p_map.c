@@ -1116,7 +1116,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		z = shootz + dz;
 		while(pl)
 		{
-			if(z >= pl->source->floorheight && z <= pl->source->ceilingheight)
+			if(z >= pl->source->floorheight && z <= pl->source->ceilingheight && pl->source->floorheight < backsector->ceilingheight && pl->source->ceilingheight > backsector->floorheight)
 				block = true;
 			if(z < *pl->height)
 				pl->validcount = validcount;
@@ -1143,9 +1143,11 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		{
 			dz = FixedMul(aimslope, FixedMul(in->frac, attackrange));
 			z = shootz + dz;
+			if(z < frontsector->floorheight)
+				z = frontsector->floorheight;
 			while(pl)
 			{
-				if(*pl->height > frontsector->floorheight && pl->validcount != validcount && *pl->height > z && *pl->height <= shootz && (!pl->next || *pl->next->height > shootz))
+				if(*pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((z < *pl->height && pl->validcount != validcount) || (z > *pl->height && pl->validcount == validcount)))
 				{
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
@@ -1166,9 +1168,11 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		{
 			dz = FixedMul(aimslope, FixedMul(in->frac, attackrange));
 			z = shootz + dz;
+			if(z > frontsector->ceilingheight)
+				z = frontsector->ceilingheight;
 			while(pl)
 			{
-				if(*pl->height < frontsector->ceilingheight && pl->validcount != validcount && *pl->height < z && *pl->height >= shootz && (!pl->next || *pl->next->height < shootz))
+				if(*pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((z < *pl->height && pl->validcount == validcount) || (z > *pl->height && pl->validcount != validcount)))
 				{
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
@@ -1233,7 +1237,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 			return false;
 		    
 		    // it's a sky hack wall
-		    if	(backsector && backsector->ceilingpic == skyflatnum && backsector->ceilingheight < z)
+		    if	(backsector && backsector->ceilingpic == skyflatnum && backsector->ceilingheight <= z)
 			return false;		
 		}
 	}
@@ -1359,34 +1363,51 @@ P_LineAttack
   fixed_t	zo,
   fixed_t	xo )
 {
-    fixed_t	x1 = t1->x;
-    fixed_t	y1 = t1->y;
-    fixed_t	x2;
-    fixed_t	y2;
+	fixed_t	x1 = t1->x;
+	fixed_t	y1 = t1->y;
+	fixed_t	x2;
+	fixed_t	y2;
+	extraplane_t *pl;
 
-    if(xo)
-    {
-	x1 += FixedMul(xo, finecosine[(angle+ANG90)>>ANGLETOFINESHIFT]);
-	y1 += FixedMul(xo, finesine[(angle+ANG90)>>ANGLETOFINESHIFT]);
-    }
+	if(xo)
+	{
+		x1 += FixedMul(xo, finecosine[(angle+ANG90)>>ANGLETOFINESHIFT]);
+		y1 += FixedMul(xo, finesine[(angle+ANG90)>>ANGLETOFINESHIFT]);
+	}
 
-    validcount++;
+	// validcount++; // it is added in 'P_PathTraverse' !
 
-    angle >>= ANGLETOFINESHIFT;
-    shootthing = t1;
-    la_damage = damage;
-    x2 = x1 + (distance>>FRACBITS)*finecosine[angle];
-    y2 = y1 + (distance>>FRACBITS)*finesine[angle];
-    shootz = t1->z + t1->info->shootz + zo;
-    attackrange = distance;
-    aimslope = slope;
+	angle >>= ANGLETOFINESHIFT;
+	shootthing = t1;
+	la_damage = damage;
+	x2 = x1 + (distance>>FRACBITS)*finecosine[angle];
+	y2 = y1 + (distance>>FRACBITS)*finesine[angle];
+	shootz = t1->z + t1->info->shootz + zo;
+	attackrange = distance;
+	aimslope = slope;
 
-    linetarget = NULL;
-		
-    P_PathTraverse ( x1, y1,
-		     x2, y2,
-		     PT_ADDLINES|PT_ADDTHINGS,
-		     PTR_ShootTraverse );
+	linetarget = NULL;
+
+	// 3D planes check
+	pl = t1->subsector->sector->exfloor;
+	if(pl)
+	{
+		while(pl)
+		{
+			if(shootz < *pl->height)
+				pl->validcount = validcount+1;
+			pl = pl->next;
+		}
+		pl = t1->subsector->sector->exceiling;
+		while(pl)
+		{
+			if(shootz > *pl->height)
+				pl->validcount = validcount+1;
+			pl = pl->next;
+		}
+	}
+
+	P_PathTraverse ( x1, y1, x2, y2, PT_ADDLINES|PT_ADDTHINGS, PTR_ShootTraverse );
 }
  
 

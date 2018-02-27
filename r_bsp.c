@@ -585,6 +585,11 @@ void R_Subsector (int num)
 	pl = frontsector->exceiling;
 	while(pl)
 	{
+		if(*pl->height > frontsector->ceilingheight && frontsector->ceilingpic != skyflatnum)
+		{
+			pl = pl->next;
+			continue;
+		}
 		if(*pl->height <= viewz)
 		{
 			// out of sight; but must add height for sides
@@ -659,6 +664,7 @@ void R_Subsector (int num)
 			floorplane = NULL;
 			ceilingplane = NULL;
 			// [kg] for each floor
+			fakecliptop = NULL;
 			is_sky = lbs->floorpic == frontsector->floorpic && lbs->floorpic == skyflatnum;
 			pl = lbs->exfloor;
 			while(pl)
@@ -685,6 +691,7 @@ void R_Subsector (int num)
 				pl = pl->next;
 			}
 			// [kg] for each ceiling
+			fakeclipbot = NULL;
 			pl = lbs->exceiling;
 			is_sky = lbs->ceilingpic == frontsector->ceilingpic && lbs->ceilingpic == skyflatnum;
 			while(pl)
