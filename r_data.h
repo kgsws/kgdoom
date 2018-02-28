@@ -8,6 +8,9 @@
 #pragma interface
 #endif
 
+// [kg] default white color, black fog
+int colormap_lump;
+
 // A single patch from a texture definition,
 //  basically a rectangular area within
 //  the texture rectangle.

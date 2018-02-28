@@ -414,18 +414,24 @@ R_DrawVisSprite
 		dc_colormap = vis->mo->colormap.data;
 	else
 	if(fixedcolormap)
+	{
 		// forced colormap
 		dc_colormap = fixedcolormap;
-	else
+		dc_lightcolor = colormaps;
+	} else
 	if(vis->mo->frame & FF_FULLBRIGHT)
+	{
 		// full bright
 		dc_colormap = colormaps;
-	else
+		dc_lightcolor = colormaps;
+	} else
 	{
 		// diminished light
 		extraplane_t *pl;
 		int index = vis->scale >> (LIGHTSCALESHIFT);
 		int lightnum = (vis->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+
+		dc_lightcolor = vis->mo->subsector->sector->colormap.data;
 
 		if(index >= MAXLIGHTSCALE) 
 			index = MAXLIGHTSCALE-1;
@@ -439,13 +445,14 @@ R_DrawVisSprite
 				if(height_top <= *pl->height)
 				{
 					lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
+					dc_lightcolor = pl->source->colormap.data;
 					break;
 				}
 				pl = pl->next;
 			}
 		}
 
-		if (lightnum < 0)		
+		if (lightnum < 0)
 			spritelights = scalelight[0];
 		else if (lightnum >= LIGHTLEVELS)
 			spritelights = scalelight[LIGHTLEVELS-1];
@@ -514,7 +521,7 @@ R_DrawVisSprite
 	R_DrawMaskedColumn (column);
     }
 
-    colfunc = basecolfunc;
+    colfunc = R_DrawColumn;
 }
 
 // [kg] get sprite values
@@ -785,11 +792,13 @@ void R_DrawPSprite (pspdef_t* psp)
     else if (fixedcolormap)
     {
 	// fixed color
+	dc_lightcolor = colormaps;
     }
     else if (psp->state->frame & FF_FULLBRIGHT)
     {
 	// full bright
 	fixedcolormap = colormaps;
+	dc_lightcolor = colormaps;
     }
     else
     {
@@ -811,6 +820,9 @@ void R_DrawPlayerSprites (void)
     int		lightnum;
     pspdef_t*	psp;
 
+    if(!viewplayer)
+	return;
+
     if(viewplayer->cheats & CF_SPECTATOR)
 	return;
 
@@ -830,9 +842,8 @@ void R_DrawPlayerSprites (void)
 	return;
 
     // get light level
-    lightnum =
-	(viewplayer->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT) 
-	+extralight;
+    lightnum = (viewplayer->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT) + extralight;
+    dc_lightcolor = viewplayer->mo->subsector->sector->colormap.data;
 
     if (lightnum < 0)		
 	spritelights = scalelight[0];

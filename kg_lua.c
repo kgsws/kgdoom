@@ -515,7 +515,9 @@ static const lua_table_model_t lua_sector[] =
 	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
-	{"isSecret", offsetof(sector_t, floordata), LUA_TBOOLEAN, func_set_secretsector, func_get_secretsector},	
+	{"isSecret", offsetof(sector_t, floordata), LUA_TBOOLEAN, func_set_secretsector, func_get_secretsector},
+	{"color", offsetof(sector_t, colormap), LUA_TSTRING, func_set_colormap, func_get_colormap},
+	{"colormap", offsetof(sector_t, fogmap), LUA_TSTRING, func_set_colormap, func_get_colormap},		
 	// action
 	{"funcFloor", offsetof(sector_t, floordata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	{"funcCeiling", offsetof(sector_t, ceilingdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
@@ -1416,10 +1418,11 @@ static int func_set_colormap(lua_State *L, void *dst, void *o)
 	int i, lump;
 	uint32_t idx = 0;
 	colormap_t *map = (colormap_t *)dst;
+	degenthinker_t *th = o;
 
 	src = lua_tostring(L, -1);
 
-	if(*src != '-')
+	if(*src != '-' || th->lua_type == TT_SECTOR)
 	{
 		for(i = 0; i < sizeof(temp); i++)
 		{

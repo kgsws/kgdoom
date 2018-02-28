@@ -737,7 +737,8 @@ void R_InitSpriteLumps (void)
 //
 void R_InitColormaps (void)
 {
-	colormaps = W_CacheLumpName("COLORMAP");
+	colormap_lump = W_GetNumForName("COLORMAP");
+	colormaps = W_CacheLumpNum(colormap_lump);
 }
 
 

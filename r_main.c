@@ -92,7 +92,6 @@ int			extralight;
 
 
 void (*colfunc) (void);
-void (*basecolfunc) (void);
 void (*fuzzcolfunc) (void);
 void (*transcolfunc) (void);
 void (*spanfunc) (void);
@@ -601,20 +600,10 @@ void R_ExecuteSetViewSize (void)
 
     projection = centerxfrac;
 
-    if (!detailshift)
-    {
-	colfunc = basecolfunc = R_DrawColumn;
-	fuzzcolfunc = R_DrawFuzzColumn;
-	transcolfunc = R_DrawTranslatedColumn;
-	spanfunc = R_DrawSpan;
-    }
-    else
-    {
-	colfunc = basecolfunc = R_DrawColumnLow;
-	fuzzcolfunc = R_DrawFuzzColumn;
-	transcolfunc = R_DrawTranslatedColumn;
-	spanfunc = R_DrawSpanLow;
-    }
+    colfunc = R_DrawColumn;
+    fuzzcolfunc = R_DrawFuzzColumn;
+    transcolfunc = R_DrawTranslatedColumn;
+    spanfunc = R_DrawSpan;
 
     R_InitBuffer (scaledviewwidth, viewheight);
 	

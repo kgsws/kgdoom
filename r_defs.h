@@ -118,6 +118,11 @@ typedef	struct
     uint16_t damagetype;
     uint16_t damagetick;
 
+    // [kg] colored light
+    colormap_t colormap;
+    // [kg] custom fog
+    colormap_t fogmap;
+
     // [kg] new flags
     uint32_t flags;
 
@@ -470,6 +475,8 @@ typedef struct
 
   // [kg] mark 3D ones
   int is3d;
+  // [kg] light color
+  void *colormap;
 
   // leave pads for [minx-1]/[maxx+1]
   

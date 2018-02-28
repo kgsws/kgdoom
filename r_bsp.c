@@ -544,6 +544,7 @@ void R_Subsector (int num)
 	while(pl)
 	{
 		fixed_t lightlevel;
+		void *colormap;
 		if(*pl->height < frontsector->floorheight && frontsector->floorpic != skyflatnum)
 		{
 			pl = pl->next;
@@ -557,11 +558,16 @@ void R_Subsector (int num)
 			continue;
 		}
 		if(pl->next)
+		{
 			lightlevel = *pl->next->lightlevel;
-		else
+			colormap = pl->next->source->colormap.data;
+		} else
+		{
 			lightlevel = frontsector->lightlevel;
+			colormap = frontsector->colormap.data;
+		}
 		fakeplane = pl;
-		floorplane = R_FindPlane(*pl->height, *pl->pic, lightlevel);
+		floorplane = R_FindPlane(*pl->height, *pl->pic, lightlevel, colormap);
 		if(floorplane)
 		{
 			e3d_NewHeight(*pl->height);
@@ -598,7 +604,7 @@ void R_Subsector (int num)
 			continue;
 		}
 		fakeplane = pl;
-		ceilingplane = R_FindPlane(*pl->height, *pl->pic, *pl->lightlevel);
+		ceilingplane = R_FindPlane(*pl->height, *pl->pic, *pl->lightlevel, pl->source->colormap.data);
 		if(ceilingplane)
 		{
 			e3d_NewHeight(*pl->height);
@@ -627,24 +633,28 @@ void R_Subsector (int num)
 	{
 		// [kg] go trough 3D floors to find correct light level
 		fixed_t lightlevel = frontsector->lightlevel;
-		pl = frontsector->exfloor;
+		void *colormap = frontsector->colormap.data;
 
+		pl = frontsector->exfloor;
 		while(pl)
 		{
-			if(frontsector->floorheight > *pl->height)
+			if(*pl->height >= frontsector->floorheight)
+			{
+				lightlevel = *pl->lightlevel;
+				colormap = pl->source->colormap.data;
 				break;
-			lightlevel = *pl->lightlevel;
+			}
 			pl = pl->next;
 		}
 
-		floorplane = R_FindPlane (frontsector->floorheight, frontsector->floorpic, lightlevel);
+		floorplane = R_FindPlane (frontsector->floorheight, frontsector->floorpic, lightlevel, colormap);
 	} else
 		floorplane = NULL;
 
 
 	if(frontsector->ceilingheight > viewz || frontsector->ceilingpic == skyflatnum)
 	{
-		ceilingplane = R_FindPlane (frontsector->ceilingheight, frontsector->ceilingpic, frontsector->lightlevel);
+		ceilingplane = R_FindPlane (frontsector->ceilingheight, frontsector->ceilingpic, frontsector->lightlevel, frontsector->colormap.data);
 	} else
 		ceilingplane = NULL;
 

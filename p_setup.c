@@ -249,6 +249,10 @@ void P_LoadSectors (int lump)
 	ss->damagetype = 0;
 	ss->damagetick = 0;
 	ss->flags = 0;
+	// [kg] default color
+	ss->colormap.lump = colormap_lump;
+	ss->colormap.idx = 0;
+	ss->colormap.data = colormaps;
     }
 	
 //    Z_Free (data);

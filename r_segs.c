@@ -172,6 +172,7 @@ R_RenderMaskedSegRange
 
     // [kg] get correct light
     lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+    dc_lightcolor = frontsector->colormap.data;
     if(height_top != ONCEILINGZ)
     {
 	pl = frontsector->exfloor;
@@ -180,6 +181,7 @@ R_RenderMaskedSegRange
 	    if(height_top <= *pl->height)
 	    {
 		lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
+		dc_lightcolor = pl->source->colormap.data;
 		break;
 	    }
 	    pl = pl->next;
@@ -823,6 +825,7 @@ R_StoreWallRange
 	if (worldlow != worldbottom 
 	    || backsector->floorpic != frontsector->floorpic
 	    || backsector->lightlevel != frontsector->lightlevel
+	    || backsector->colormap.data != frontsector->colormap.data
 	    // [kg] 3D floor check
 	    || backsector->exfloor || frontsector->exfloor
 	)
@@ -839,6 +842,7 @@ R_StoreWallRange
 	if (worldhigh != worldtop 
 	    || backsector->ceilingpic != frontsector->ceilingpic
 	    || backsector->lightlevel != frontsector->lightlevel
+	    || backsector->colormap.data != frontsector->colormap.data
 	    // [kg] 3D floor check
 	    || backsector->exceiling || frontsector->exceiling
 	)
@@ -941,6 +945,7 @@ R_StoreWallRange
 	if (!fixedcolormap)
 	{
 	    lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+	    dc_lightcolor = frontsector->colormap.data;
 
 	    if(r_fakecontrast)
 	    {
@@ -1061,11 +1066,13 @@ R_StoreWallRange
 				// take values from correct plane
 				height = *pl->height;
 				lightlevel = *pl->lightlevel;
+				dc_lightcolor = pl->source->colormap.data;
 			} else
 			{
 				// topmost level; take values from sector
 				height = frontsector->ceilingheight;
 				lightlevel = frontsector->lightlevel;
+				dc_lightcolor = frontsector->colormap.data;
 			}
 
 			// check for ceiling

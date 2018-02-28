@@ -140,7 +140,7 @@ R_MapPlane
     ds_yfrac = -viewy - FixedMul(finesine[angle], length);
 
     if (fixedcolormap)
-	ds_colormap = fixedcolormap;
+	dc_colormap = fixedcolormap;
     else
     {
 	index = distance >> LIGHTZSHIFT;
@@ -148,9 +148,9 @@ R_MapPlane
 	if (index >= MAXLIGHTZ )
 	    index = MAXLIGHTZ-1;
 
-	ds_colormap = planezlight[index];
+	dc_colormap = planezlight[index];
     }
-	
+
     ds_y = y;
     ds_x1 = x1;
     ds_x2 = x2;
@@ -200,7 +200,8 @@ visplane_t*
 R_FindPlane
 ( fixed_t	height,
   int		picnum,
-  int		lightlevel )
+  int		lightlevel,
+  void		*colormap)
 {
     visplane_t*	check;
     int is3d = !!fakeplane;
@@ -209,6 +210,7 @@ R_FindPlane
     {
 	height = 0;			// all skys map together
 	lightlevel = 0;
+	colormap = colormaps;
     }
 
     for (check=visplanes; check<lastvisplane; check++)
@@ -216,6 +218,8 @@ R_FindPlane
 	if (height == check->height
 	    && picnum == check->picnum
 	    && lightlevel == check->lightlevel
+	    // [kg] colormap
+	    && colormap == check->colormap
 	    // [kg] 3D planes
 	    && is3d == check->is3d
 	)
@@ -235,6 +239,7 @@ R_FindPlane
     check->height = height;
     check->picnum = picnum;
     check->lightlevel = lightlevel;
+    check->colormap = colormap;
     check->minx = SCREENWIDTH;
     check->maxx = -1;
     check->is3d = is3d;
@@ -300,6 +305,7 @@ R_CheckPlane
     lastvisplane->height = pl->height;
     lastvisplane->picnum = pl->picnum;
     lastvisplane->lightlevel = pl->lightlevel;
+    lastvisplane->colormap = pl->colormap;
     lastvisplane->is3d = pl->is3d;
 
     if (lastvisplane - visplanes == MAXVISPLANES)
@@ -397,7 +403,8 @@ void R_DrawPlanes(fixed_t height)
 	if (pl->picnum == skyflatnum)
 	{
 	    dc_iscale = pspriteiscale>>detailshift;
-	    
+
+	    dc_lightcolor = colormaps;
 	    if(!fixedcolormap)
 		dc_colormap = colormaps;
 	    dc_texturemid = skytexturemid;
@@ -422,9 +429,9 @@ void R_DrawPlanes(fixed_t height)
 		int wnum = pl->picnum >> 24;
 		int pic = pl->picnum & 0xFFFFFF;
 		if(flattranslation[wnum])
-		    ds_source = W_CacheLumpNum((wnum << 24) | flattranslation[wnum][pic-firstflat[wnum]]);
+		    dc_source = W_CacheLumpNum((wnum << 24) | flattranslation[wnum][pic-firstflat[wnum]]);
 		else
-		    ds_source = W_CacheLumpNum(pl->picnum);
+		    dc_source = W_CacheLumpNum(pl->picnum);
 	}
 
 	planeheight = abs(pl->height-viewz);
@@ -437,6 +444,8 @@ void R_DrawPlanes(fixed_t height)
 	    light = 0;
 
 	planezlight = zlight[light];
+
+	dc_lightcolor = pl->colormap;
 
 	pl->top[pl->maxx+1] = 0x7fff;
 	pl->top[pl->minx-1] = 0x7fff;
