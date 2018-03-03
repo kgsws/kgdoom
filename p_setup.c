@@ -20,7 +20,7 @@
 #include "p_generic.h"
 #include "p_inventory.h"
 #include "kg_lua.h"
-
+#include "kg_3dfloor.h"
 
 void	P_SpawnMapThing (mapthing_hexen_t*	mthing);
 
@@ -774,6 +774,9 @@ P_SetupLevel
 		break;
 	}
     }
+
+    // [kg] cleanup any 3D planes
+    e3d_CleanPlanes();
 
     Z_FreeTags (PU_LEVEL, PU_PURGELEVEL-1);
 

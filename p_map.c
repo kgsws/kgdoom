@@ -131,10 +131,14 @@ boolean PIT_CheckLine (line_t* ld)
 	    if(ld->flags & LF_DONTPEGBOTTOM)
 	    {
 		z1 = ld->frontsector->floorheight + side->rowoffset;
+		if(ld->backsector->floorheight > z1)
+			z1 = ld->backsector->floorheight;
 		z0 = z1 + textureheight[side->midtexture];
 	    } else
 	    {
 		z0 = ld->frontsector->ceilingheight + side->rowoffset;
+		if(ld->backsector->ceilingheight < z0)
+			z0 = ld->backsector->ceilingheight;
 		z1 = z0 - textureheight[side->midtexture];
 	    }
 

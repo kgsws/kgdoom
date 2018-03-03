@@ -207,14 +207,8 @@ R_RenderMaskedSegRange
     maskedtexturecol = ds->maskedtexturecol;
 
     rw_scalestep = ds->scalestep;
-    if(frontsector->floorpic == skyflatnum)
-	mfloorclip = NULL;
-    else
-	mfloorclip = ds->sprbottomclip;
-    if(frontsector->ceilingpic == skyflatnum)
-	mceilingclip = NULL;
-    else
-	mceilingclip = ds->sprtopclip;
+    mfloorclip = ds->sprbottomclip;
+    mceilingclip = ds->sprtopclip;
 
     // [kg] 3D clip
     if(height_bot != ONFLOORZ)
@@ -1008,6 +1002,29 @@ R_StoreWallRange
 	{
 	    pixlow = (centeryfrac>>4) - FixedMul (worldlow, rw_scale);
 	    pixlowstep = -FixedMul (rw_scalestep,worldlow);
+	}
+    }
+
+    // [kg] sky check
+    if(backsector)
+    {
+	if(	frontsector->ceilingpic == skyflatnum && backsector->ceilingpic == skyflatnum &&
+		backsector->ceilingheight > backsector->floorheight
+	)
+	{
+	    pixhigh = 0;
+	    pixhighstep = 0;
+	    topstep = 0;
+	    topfrac = 0;
+	}
+	if(	frontsector->floorpic == skyflatnum && backsector->floorpic == skyflatnum &&
+		backsector->ceilingheight > backsector->floorheight
+	)
+	{
+	    pixhigh = 0;
+	    pixhighstep = 0;
+	    topstep = 0;
+	    topfrac = 0;
 	}
     }
 

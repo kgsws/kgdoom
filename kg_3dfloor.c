@@ -81,8 +81,45 @@ extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec, line_t *li
 
 void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line)
 {
+	// check
+	extraplane_t *pl = dst->exfloor;
+	while(pl)
+	{
+		if(pl->source == src)
+			// already added
+			return;
+		pl = pl->next;
+	}
+	// add planes
 	e3d_AddFloorPlane(&dst->exfloor, src, line);
 	e3d_AddCeilingPlane(&dst->exceiling, src, line);
+}
+
+void e3d_CleanPlanes()
+{
+	int i;
+
+	for(i = 0; i < numsectors; i++)
+	{
+		extraplane_t *pl;
+		sector_t *sec = sectors + i;
+
+		pl = sec->exfloor;
+		while(pl)
+		{
+			extraplane_t *fr = pl;
+			pl = pl->next;
+			free(fr);
+		}
+
+		pl = sec->exceiling;
+		while(pl)
+		{
+			extraplane_t *fr = pl;
+			pl = pl->next;
+			free(fr);
+		}
+	}
 }
 
 void e3d_Reset()

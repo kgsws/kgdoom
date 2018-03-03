@@ -340,15 +340,9 @@ void R_DrawMaskedColumn (column_t* column)
 	dc_yl = (topscreen+FRACUNIT-1)>>FRACBITS;
 	dc_yh = (bottomscreen-1)>>FRACBITS;
 
-	if(!mfloorclip)
-	    dc_yh = SCREENHEIGHT;
-	else
 	if (dc_yh >= mfloorclip[dc_x])
 	    dc_yh = mfloorclip[dc_x]-1;
 
-	if(!mceilingclip)
-	    dc_yl = 0;
-	else
 	if (dc_yl <= mceilingclip[dc_x])
 	    dc_yl = mceilingclip[dc_x]+1;
 
