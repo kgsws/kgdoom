@@ -9,11 +9,14 @@
 #include "info.h"
 #include "p_mobj.h"
 #include "p_inventory.h"
+#include "st_stuff.h"
 
 static inventory_t *ret_inv;
 
 void P_RemoveInventory(mobj_t *mo)
 {
+	if(mo->player == &players[consoleplayer])
+		ST_ClearWeapons();
 	P_DestroyInventory(mo->inventory);
 	mo->inventory = NULL;
 }
@@ -56,7 +59,7 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)
 				// can't add over maximum
 				count -= max - cur->count; // return leftover amount
 				cur->count = max;
-				return count;
+				goto weapon_check;
 			}
 			cur->count += count;
 			if(cur->count < 0)
@@ -77,17 +80,23 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)
 					mo->inventory = inv;
 				Z_Free(cur);
 			}
-			return count;
+			goto weapon_check;
 		}
 	}
 
 	// is it take inventory?
 	if(count < 0)
-		return -count; // return untaken amount
+	{
+		count = -count; // return untaken amount
+		goto weapon_check;
+	}
 
 	// can give 0?
 	if(!count && type->maxcount >= 0)
-		return 0;
+	{
+		count = 0;
+		goto weapon_check;
+	}
 
 	// add new inventory slot
 	max = type->maxcount;
@@ -114,6 +123,11 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)
 		count = 0;
 
 	ret_inv = inv;
+
+weapon_check:
+	// given weapon?
+	if(ret_inv && mo->player == &players[consoleplayer])
+		ST_CheckWeaponInventory(type - mobjinfo, ret_inv->count);
 
 	return count;
 }

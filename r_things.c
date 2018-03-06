@@ -468,9 +468,7 @@ R_DrawVisSprite
     } else
     {
 	// player sprite
-	if(fixedcolormap)
-		dc_colormap = fixedcolormap;
-	else
+	if(!dc_colormap)
 		colfunc = fuzzcolfunc;
     }
 
@@ -781,23 +779,24 @@ void R_DrawPSprite (pspdef_t* psp)
     if (viewplayer->mo->flags & MF_SHADOW)
     {
 	// shadow draw
-	fixedcolormap = NULL;
+	dc_colormap = NULL;
     }
     else if (fixedcolormap)
     {
 	// fixed color
+	dc_colormap = fixedcolormap;
 	dc_lightcolor = colormaps;
     }
     else if (psp->state->frame & FF_FULLBRIGHT)
     {
 	// full bright
-	fixedcolormap = colormaps;
+	dc_colormap = colormaps;
 	dc_lightcolor = colormaps;
     }
     else
     {
 	// local light
-	fixedcolormap = spritelights[MAXLIGHTSCALE-1];
+	dc_colormap = spritelights[MAXLIGHTSCALE-1];
     }
 
     R_DrawVisSprite (vis, vis->x1, vis->x2);

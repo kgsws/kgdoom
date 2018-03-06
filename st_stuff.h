@@ -34,6 +34,9 @@ void ST_Start (void);
 void ST_Init (void);
 
 // [kg] weapon selection menu
+void ST_AddWeaponType(int type, char *patch);
+void ST_CheckWeaponInventory(int type, int count);
+void ST_ClearWeapons();
 weapontype_t ST_GetNewWeapon();
 void ST_SetNewWeapon(weapontype_t wpn);
 

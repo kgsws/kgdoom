@@ -37,6 +37,8 @@
 // Data.
 #include "dstrings.h"
 
+#include "p_inventory.h"
+
 //
 // STATUS BAR DATA
 //
@@ -68,6 +70,15 @@
 // Radiation suit, green shift.
 #define RADIATIONPAL		13
 
+// [kg] weapon menu
+typedef struct weaponlist_s
+{
+	struct weaponlist_s *next;
+	patch_t *patch;
+	int type;
+	boolean owned;
+} weaponlist_t;
+
 // crosshair
 static patch_t*		pointer;
 
@@ -82,9 +93,6 @@ static patch_t*		hp_back;
 static patch_t*		pack_back;
 //static patch_t*		ammo_back[NUMAMMO];
 
-static patch_t*		weap_back[MAXWEAPONS];
-static patch_t*		empty_back;
-
 // death timeout
 static int deathtime;
 
@@ -95,6 +103,9 @@ static const int weap_offs_x[8] = {0  , 200, 300, 200 , 0   , -200, -300, -200};
 static const int weap_offs_y[8] = {200, 150, 0  , -150, -200, -150, 0   , 150};
 
 // [kg] weapon menu
+static weaponlist_t *weapon_list;
+static weaponlist_t *weapon_last;
+static angle_t weapon_astep;
 boolean in_weapon_menu;
 static weapontype_t weapon_change;
 static weapontype_t weapon_select;
@@ -257,21 +268,21 @@ ST_Responder (event_t* ev)
 			{
 				GrabMouse(1);
 				in_weapon_menu = false;
-//				if(weapon_select < NUMWEAPONS && weapon_select != plr->readyweapon && plr->weaponowned[weapon_select])
-//					weapon_change = weapon_select;
+				if(weapon_select != wp_nochange)
+					weapon_change = weapon_select;
 				return true;
 			}
 		}
-/*		// weapon picker
+		// weapon picker
 #ifdef LINUX
 		if(ev->type == ev_mouse)
 		{
 			int tmx = absmousex - SCREENWIDTH / 2;
 			int tmy = absmousey - SCREENHEIGHT / 2;
 
-			if(abs(tmx) > 100 || abs(tmy) > 100)
+			if(abs(tmx) > 120 || abs(tmy) > 120)
 			{
-				an = R_PointToAngle2(0, 0, tmx * FRACUNIT, tmy * FRACUNIT) + (ANG45 / 2);
+				an = R_PointToAngle2(0, 0, tmx * FRACUNIT, tmy * FRACUNIT);
 #else
 		if(ev->type == ev_joystick)
 		{
@@ -280,53 +291,30 @@ ST_Responder (event_t* ev)
 
 			if(abs(tmx) > 10000 || abs(tmy) > 10000)
 			{
-				an = R_PointToAngle2(0, 0, tmx * 8, tmy * -8) + (ANG45 / 2);
+				an = R_PointToAngle2(0, 0, tmx * 8, tmy * -8);
 #endif
-				if(an < ANG45)
-				{
-					if(gamemode != commercial)
-						weapon_select = wp_shotgun;
-					else
-					if(weapon_select == wp_nochange)
-					{
-						if(weapon_shotgun == wp_shotgun)
-							weapon_shotgun = wp_supershotgun;
-						else
-							weapon_shotgun = wp_shotgun;
-					}
-					weapon_select = weapon_shotgun;
-				} else
-				if(an < ANG45*2)
-				{
-					weapon_select = wp_pistol;
-				} else
-				if(an < ANG45*3)
-				{
-					weapon_select = wp_fist;
-				} else
-				if(an < (angle_t)ANG45*4)
-				{
-					weapon_select = wp_chainsaw;
+				an = (weapon_astep/2) - an + ANG90;
 
-				} else
-				if(an < (angle_t)ANG45*5)
+				angle_t angle = 0;
+				weaponlist_t *list = weapon_list;
+
+				weapon_select = wp_nochange;
+				while(list)
 				{
-					weapon_select = wp_bfg;
-				} else
-				if(an < (angle_t)ANG45*6)
-				{
-					weapon_select = wp_plasma;
-				} else
-				if(an < (angle_t)ANG45*7)
-				{
-					weapon_select = wp_missile;
-				} else
-				{
-					weapon_select = wp_chaingun;
+					if(list->patch)
+					{
+						if(an >= angle && an < angle + weapon_astep && list->owned)
+						{
+							weapon_select = list->type;
+							break;
+						}
+						angle += weapon_astep;
+					}
+					list = list->next;
 				}
 			} else
 				weapon_select = wp_nochange;
-		}*/
+		}
 	} else
 	if(!(plr->cheats & CF_SPECTATOR))
 	{
@@ -338,16 +326,32 @@ ST_Responder (event_t* ev)
 		if(ev->type == ev_joystick && ev->data1 & (1 << i_ctrl_btn[joybweapons]))
 		{
 #endif
+			int weapon_count = 0;
+			weaponlist_t *list = weapon_list;
+
+			// prepare menu
 			GrabMouse(0);
 			in_weapon_menu = true;
 			weapon_change = wp_nochange;
 			weapon_select = wp_nochange;
-/*			if(weapon_shotgun == wp_shotgun && !plr->weaponowned[wp_shotgun])
-				weapon_shotgun = wp_supershotgun;
-			if(weapon_shotgun == wp_supershotgun && !plr->weaponowned[wp_supershotgun])
-				weapon_shotgun = wp_shotgun;
-*/			// cancel all game keys
+
+			// cancel all game keys
 			memset(gamekeydown, 0, sizeof(gamekeydown));
+
+			// scan for current amount
+			while(list)
+			{
+//				if(list->owned)	// TODO: menu option
+				if(list->patch)
+					weapon_count++;
+				list = list->next;
+			}
+
+			if(weapon_count > 0)
+				weapon_astep = (ANG180 / weapon_count)*2;
+			else
+				weapon_astep = 0;
+
 			return true;
 		}
 	}
@@ -476,6 +480,14 @@ ST_Responder (event_t* ev)
 	
 //	for (i=0;i<NUMAMMO;i++)
 //	  plyr->ammo[i] = plyr->maxammo[i];
+
+	weaponlist_t *list = weapon_list;
+	while(list)
+	{
+		if(list->patch)
+			P_GiveInventory(plyr->mo, &mobjinfo[list->type], 1);
+		list = list->next;
+	}
 	
 	plyr->message = STSTR_FAADDED;
       }
@@ -741,45 +753,38 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 
 	if(in_weapon_menu)
 	{
-		cmap = v_colormap_normal + 256 * 24;
-		V_FadeScreen(colormaps, 16);
-/*		for(x = 0; x < 8; x++)
+		weapontype_t wcur;
+		weaponlist_t *list = weapon_list;
+		angle_t angle = 0;
+
+		if(weapon_select != wp_nochange)
+			wcur = weapon_select;
+		else
 		{
-			int scale = 2;
+			wcur = plyr->pendingweapon;
+			if(wcur == wp_nochange)
+				wcur = plyr->readyweapon;
+		}
 
-			if(gamemode == commercial && x == wp_shotgun)
+		cmap = v_colormap_normal + 256 * 14;
+		V_FadeScreen(colormaps, 16);
+
+		while(list)
+		{
+			if(list->patch)
 			{
-				// shotguns handling
-				if(weapon_select == wp_supershotgun)
-				{
-					V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x], STBAR_WEAP_Y + weap_offs_y[x], weap_back[wp_supershotgun], plyr->weaponowned[wp_supershotgun] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 3);
-					V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x] + 150, STBAR_WEAP_Y + weap_offs_y[x], weap_back[wp_shotgun], plyr->weaponowned[wp_shotgun] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 2);
-				} else
-				if(weapon_select == wp_shotgun)
-				{
-					V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x], STBAR_WEAP_Y + weap_offs_y[x], weap_back[wp_shotgun], plyr->weaponowned[wp_shotgun] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 3);
-					V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x] + 150, STBAR_WEAP_Y + weap_offs_y[x], weap_back[wp_supershotgun], plyr->weaponowned[wp_supershotgun] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 2);
-				} else
-				if(weapon_shotgun == wp_shotgun)
-				{
-					V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x], STBAR_WEAP_Y + weap_offs_y[x], weap_back[wp_shotgun], plyr->weaponowned[wp_shotgun] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 2);
-					V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x] + 150, STBAR_WEAP_Y + weap_offs_y[x], weap_back[wp_supershotgun], plyr->weaponowned[wp_supershotgun] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 2);
-				} else
-				{
-					V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x], STBAR_WEAP_Y + weap_offs_y[x], weap_back[wp_supershotgun], plyr->weaponowned[wp_supershotgun] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 2);
-					V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x] + 150, STBAR_WEAP_Y + weap_offs_y[x], weap_back[wp_shotgun], plyr->weaponowned[wp_shotgun] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 2);
-				}
-				continue;
+				fixed_t x, y;
+				angle_t ang;
+
+				ang = angle >> ANGLETOFINESHIFT;
+				x = finesine[ang] / 192;
+				y = finecosine[ang] / 256;
+
+				V_DrawPatchNew(SCREENWIDTH/2 + x, SCREENHEIGHT/2 + y, list->patch, list->owned ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, list->type == wcur ? 3 : 2);
+				angle += weapon_astep;
 			}
-
-			if(weapon_select == x)
-				scale++;
-
-			if(weap_back[x])
-				V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x], STBAR_WEAP_Y + weap_offs_y[x], weap_back[x], plyr->weaponowned[x] ? v_colormap_normal : cmap, V_HALLIGN_CENTER, V_VALLIGN_CENTER, x > 1 ? scale : scale-1);
-			else
-				V_DrawPatchNew(STBAR_WEAP_X + weap_offs_x[x], STBAR_WEAP_Y + weap_offs_y[x], empty_back, v_colormap_normal, V_HALLIGN_CENTER, V_VALLIGN_CENTER, 3);
-		}*/
+			list = list->next;
+		}
 	}
 }
 
@@ -826,16 +831,55 @@ void ST_loadGraphics(void)
 			ammo_back[i] = W_CacheLumpNum(lump);
 	}
 */	pack_back = (patch_t *) W_CacheLumpName("BPAKA0");
+}
 
-	// weapons
-/*	for(i = 0; i < MAXWEAPONS; i++)
+void ST_AddWeaponType(int type, char *patch)
+{
+	int pnum;
+	weaponlist_t *list;
+
+	list = malloc(sizeof(weaponlist_t));
+	if(!list)
+		I_Error("ST_AddWeaponType: memory allocation error");
+
+	pnum = W_CheckNumForName(patch);
+	list->next = NULL;
+	if(pnum >= 0)
+		list->patch = W_CacheLumpNum(pnum);
+	else
+		list->patch = NULL;
+	list->type = type;
+	list->owned = false;
+
+	if(weapon_last)
+		weapon_last->next = list;
+	else
+		weapon_list = list;
+
+	weapon_last = list;
+}
+
+void ST_CheckWeaponInventory(int type, int count)
+{
+	weaponlist_t *list = weapon_list;
+
+	while(list)
 	{
-		// some lumps are not present in shareware
-		int lump = W_CheckNumForName(weap_icon[i]);
-		if(lump >= 0)
-			weap_back[i] = W_CacheLumpNum(lump);
+		if(list->type == type)
+			list->owned = !!count;
+		list = list->next;
 	}
-*/	empty_back = W_CacheLumpName("STPB3");
+}
+
+void ST_ClearWeapons()
+{
+	weaponlist_t *list = weapon_list;
+
+	while(list)
+	{
+		list->owned = 0;
+		list = list->next;
+	}
 }
 
 void ST_Stop (void)

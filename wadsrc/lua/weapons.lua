@@ -17,7 +17,7 @@ function(mobj)
 		damage = doomRandom(1, 10) * 2
 	end
 	an, sl = mobj.AttackAim(true)
-	an, sl = mobj.LineAttack(MT_PUFF_MELEE, damage, an + (doomRandom() - doomRandom()) / 2, sl, 0, 0, 64)
+	sl = mobj.LineAttack(MT_PUFF_MELEE, damage, an + (doomRandom() - doomRandom()) / 2, sl, 0, 0, 64)
 	if sl then
 		mobj.SoundWeapon("dspunch")
 		mobj.Face(sl)
@@ -154,7 +154,7 @@ function(mobj)
 	local an
 	local sl
 	an, sl = mobj.AttackAim(true)
-	an, sl = mobj.LineAttack(MT_PUFF, -12, an + (doomRandom() - doomRandom()) / 2, sl, 0, 0, 64)
+	sl = mobj.LineAttack(MT_PUFF, doomRandom(1, 9) * 2, an + (doomRandom() - doomRandom()) / 2, sl, 0, 0, 64)
 	if sl then
 		mobj.SoundWeapon("dssawhit")
 		mobj.Face(sl)
@@ -641,4 +641,18 @@ mtype = {
 	}
 }
 MT_CHAINSAW = createMobjType(mtype)
+
+--
+-- weapon menu
+--
+
+addWeaponType(MT_FIST, "UNKNA0")
+addWeaponType(MT_PISTOL, "UNKNB0")
+addWeaponType(MT_SHOTGUN, "SHOTA0")
+addWeaponType(MT_SUPERSHOTGUN, "SGN2A0")
+addWeaponType(MT_CHAINGUN, "MGUNA0")
+addWeaponType(MT_LAUNCHER, "LAUNA0")
+addWeaponType(MT_PLASMAGUN, "PLASA0")
+addWeaponType(MT_BFGW, "BFUGA0")
+addWeaponType(MT_CHAINSAW, "CSAWA0")
 
