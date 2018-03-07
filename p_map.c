@@ -112,7 +112,9 @@ boolean PIT_CheckLine (line_t* ld)
     }
 
     // [kg] 3D midtex check
-    if(is_blocking && !sides[ld->sidenum[0]].midtexture && !sides[ld->sidenum[1]].midtexture)
+    if(is_blocking && (!isHexen || (!sides[ld->sidenum[0]].midtexture && !sides[ld->sidenum[1]].midtexture)))
+	// blocking with no textures - use full height
+	// ... or in Doom map format
 	goto nocross;
 
     // set openrange, opentop, openbottom

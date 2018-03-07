@@ -118,3 +118,10 @@ mtype = {
 }
 MT_BLUESKULL = createMobjType(mtype)
 
+addKeyType(MT_BLUECARD, "STKEYS0")
+addKeyType(MT_YELLOWCARD, "STKEYS1")
+addKeyType(MT_REDCARD, "STKEYS2")
+addKeyType(MT_BLUESKULL, "STKEYS3")
+addKeyType(MT_YELLOWSKULL, "STKEYS4")
+addKeyType(MT_REDSKULL, "STKEYS5")
+

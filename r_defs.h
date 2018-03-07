@@ -191,7 +191,7 @@ typedef struct line_s
     // Animation related.
     short	flags;
     short	tag;
-    uint8_t	special;
+    uint16_t	special;
     uint8_t	arg[5];
 
     // Visual appearance: SideDefs.

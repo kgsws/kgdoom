@@ -832,9 +832,7 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 		
     mobj->angle	= ANG45 * (mthing->angle/45);
     mobj->player = p;
-#ifdef SERVER
     mobj->reactiontime = 2;
-#endif
 
     p->mo = mobj;
     p->playerstate = PST_LIVE;	
@@ -862,11 +860,18 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 
     // [kg] call Lua, if spawned
     if(oldst == PST_REBORN)
+    {
+	if(p == &players[consoleplayer])
+	    ST_ClearInventory();
 	L_SpawnPlayer(p);
+    } else
     // [kg] give original inventory
     {
 	p->mo->inventory = p->inventory;
 	p->inventory = NULL;
+	p->mo->armorpoints = p->armorpoints;
+	p->mo->armortype = p->armortype;
+	p->mo->health = p->health;
     }
 
     // setup gun psprite

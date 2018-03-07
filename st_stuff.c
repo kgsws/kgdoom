@@ -70,6 +70,15 @@
 // Radiation suit, green shift.
 #define RADIATIONPAL		13
 
+// [kg] key list
+typedef struct keylist_s
+{
+	struct keylist_s *next;
+	patch_t *patch;
+	int type;
+	boolean owned;
+} keylist_t;
+
 // [kg] weapon menu
 typedef struct weaponlist_s
 {
@@ -109,6 +118,10 @@ static angle_t weapon_astep;
 boolean in_weapon_menu;
 static weapontype_t weapon_change;
 static weapontype_t weapon_select;
+
+// [kg] keys
+keylist_t *key_list;
+keylist_t *key_last;
 
 // [kg] ctrl
 extern int absmousex;
@@ -735,16 +748,21 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	}
 */
 	// keys
-/*	x = STBAR_KEY_X;
-	for(temp = 0; temp < NUMCARDS; temp++)
 	{
-		if(plyr->cards[temp])
+		keylist_t *list = key_list;
+
+		x = STBAR_KEY_X;
+		while(list)
 		{
-			V_DrawPatchNew(x, STBAR_KEY_Y, keys[temp], v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_TOP, 3);
-			x -= SHORT(keys[temp]->width) * 3 + 3;
+			if(list->owned && list->patch)
+			{
+				V_DrawPatchNew(x, STBAR_KEY_Y, list->patch, v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_TOP, 3);
+				x -= SHORT(list->patch->width) * 3 + 3;
+			}
+			list = list->next;
 		}
 	}
-*/
+
 	//
 	// weapon selection menu
 
@@ -812,13 +830,6 @@ void ST_loadGraphics(void)
 	if(i >= 0)
 		pointer = (patch_t *)W_CacheLumpNum(i);
 
-	// key cards
-/*	for(i = 0; i < NUMCARDS; i++)
-	{
-		sprintf(namebuf, "STKEYS%d", i);
-		keys[i] = (patch_t *) W_CacheLumpName(namebuf);
-	}
-*/
 	// health
 	hp_back = (patch_t *) W_CacheLumpName("MEDIA0");
 
@@ -859,26 +870,79 @@ void ST_AddWeaponType(int type, char *patch)
 	weapon_last = list;
 }
 
-void ST_CheckWeaponInventory(int type, int count)
+void ST_CheckInventory(int type, int count)
 {
-	weaponlist_t *list = weapon_list;
-
-	while(list)
+	// check weapons
 	{
-		if(list->type == type)
-			list->owned = !!count;
-		list = list->next;
+		weaponlist_t *list = weapon_list;
+
+		while(list)
+		{
+			if(list->type == type)
+				list->owned = !!count;
+			list = list->next;
+		}
+	}
+	// check keys
+	{
+		keylist_t *list = key_list;
+
+		while(list)
+		{
+			if(list->type == type)
+				list->owned = !!count;
+			list = list->next;
+		}
 	}
 }
 
-void ST_ClearWeapons()
+void ST_AddKeyType(int type, char *patch)
 {
-	weaponlist_t *list = weapon_list;
+	int pnum;
+	keylist_t *list;
 
-	while(list)
+	list = malloc(sizeof(keylist_t));
+	if(!list)
+		I_Error("ST_AddKeyType: memory allocation error");
+
+	pnum = W_CheckNumForName(patch);
+	list->next = NULL;
+	if(pnum >= 0)
+		list->patch = W_CacheLumpNum(pnum);
+	else
+		list->patch = NULL;
+	list->type = type;
+	list->owned = false;
+
+	if(key_last)
+		key_last->next = list;
+	else
+		key_list = list;
+
+	key_last = list;
+}
+
+void ST_ClearInventory()
+{
+	// clear weapons
 	{
-		list->owned = 0;
-		list = list->next;
+		weaponlist_t *list = weapon_list;
+
+		while(list)
+		{
+			list->owned = 0;
+			list = list->next;
+		}
+	}
+	// clear keys
+	{
+		keylist_t *list = key_list;
+
+		while(list)
+		{
+			list->owned = 0;
+			list = list->next;
+		}
 	}
 }
 

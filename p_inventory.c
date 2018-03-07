@@ -16,7 +16,7 @@ static inventory_t *ret_inv;
 void P_RemoveInventory(mobj_t *mo)
 {
 	if(mo->player == &players[consoleplayer])
-		ST_ClearWeapons();
+		ST_ClearInventory();
 	P_DestroyInventory(mo->inventory);
 	mo->inventory = NULL;
 }
@@ -59,7 +59,7 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)
 				// can't add over maximum
 				count -= max - cur->count; // return leftover amount
 				cur->count = max;
-				goto weapon_check;
+				goto hud_check;
 			}
 			cur->count += count;
 			if(cur->count < 0)
@@ -80,7 +80,7 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)
 					mo->inventory = inv;
 				Z_Free(cur);
 			}
-			goto weapon_check;
+			goto hud_check;
 		}
 	}
 
@@ -88,14 +88,14 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)
 	if(count < 0)
 	{
 		count = -count; // return untaken amount
-		goto weapon_check;
+		goto hud_check;
 	}
 
 	// can give 0?
 	if(!count && type->maxcount >= 0)
 	{
 		count = 0;
-		goto weapon_check;
+		goto hud_check;
 	}
 
 	// add new inventory slot
@@ -124,10 +124,10 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)
 
 	ret_inv = inv;
 
-weapon_check:
-	// given weapon?
+hud_check:
+	// given HUD item?
 	if(ret_inv && mo->player == &players[consoleplayer])
-		ST_CheckWeaponInventory(type - mobjinfo, ret_inv->count);
+		ST_CheckInventory(type - mobjinfo, ret_inv->count);
 
 	return count;
 }

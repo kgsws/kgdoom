@@ -96,8 +96,6 @@ player_t        players[MAXPLAYERS];
 // [kg] last slot for local spectator
 boolean         playeringame[MAXPLAYERS+1];
 player_t        players[MAXPLAYERS+1];
-// [kg] singleplayer respawn backup
-player_t        prespawn;
 #endif
 
 int             consoleplayer;          // player taking events and displaying 
@@ -654,16 +652,22 @@ void G_PlayerFinishLevel (int player)
     p->extralight = 0;			// cancel gun flashes 
     p->damagecount = 0;			// no palette changes 
     p->bonuscount = 0;
-    p->inventory = NULL;
+    p->healcount = 0;
     // cancel colormaps
     p->viewmap.lump = 0;
     p->viewmap.idx = 0;
     p->viewmap.data = NULL;
-#ifndef SERVER
-    memcpy(&prespawn, p, sizeof(player_t));
-    p->inventory = p->mo->inventory; // back up inventory for map load
-    p->mo->inventory = NULL; // avoid inventory deletion on map load
-#endif
+
+    if(p->playerstate == PST_LIVE)
+    {
+	p->health = p->mo->health; // backup health
+	p->armorpoints = p->mo->armorpoints; // backup armor
+	p->armortype = p->mo->armortype; // backup armor
+	p->inventory = p->mo->inventory; // back up inventory
+	p->mo->inventory = NULL; // avoid inventory deletion on map load
+    }
+
+    p->mo->player = NULL;
 } 
  
 
@@ -710,7 +714,6 @@ void G_PlayerReborn (int player)
     p->weaponowned[wp_pistol] = true;
     p->ammo[am_clip] = 50;
 #else
-    memcpy(p, &prespawn, sizeof(player_t));
     p->mo = NULL;
 #endif
     p->usedown = p->attackdown = true;	// don't do anything immediately 
@@ -1237,19 +1240,6 @@ skill_t	d_skill;
 int     d_episode; 
 int     d_map;
 
-#ifndef SERVER
-// [kg] reset saved inventory
-void G_ResetPlayer()
-{
-	// [kg] reset saved inventory
-	if(prespawn.inventory)
-		P_DestroyInventory(prespawn.inventory);
-	memset(&prespawn, 0, sizeof(player_t));
-	prespawn.think.lua_type = TT_PLAYER;
-	prespawn.readyweapon = prespawn.pendingweapon = wp_nochange;
-}
-#endif
- 
 void
 G_DeferedInitNew
 ( skill_t	skill,
@@ -1274,9 +1264,13 @@ void G_DoNewGame (void)
 //		nomonsters = false;
 		consoleplayer = 0;
 	}
-#ifndef SERVER
-	G_ResetPlayer();
-#endif
+
+	if(players[consoleplayer].inventory)
+	{
+		P_DestroyInventory(players[consoleplayer].inventory);
+		players[consoleplayer].inventory = NULL;
+	}
+
 	G_InitNew (d_skill, d_episode, d_map); 
 	gameaction = ga_nothing;
 } 

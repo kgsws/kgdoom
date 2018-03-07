@@ -123,6 +123,7 @@ static int LUA_print(lua_State *L);
 static int LUA_createMobjType(lua_State *L);
 static int LUA_setPlayerType(lua_State *L);
 static int LUA_addWeaponType(lua_State *L);
+static int LUA_addKeyType(lua_State *L);
 static int LUA_doomRandom(lua_State *L);
 static int LUA_spawnMobj(lua_State *L);
 static int LUA_blockThingsIterator(lua_State *L);
@@ -304,6 +305,7 @@ static const luafunc_t lua_functions[] =
 	{"createMobjType", LUA_createMobjType, LUA_EXPORT_SETUP},
 	{"setPlayerType", LUA_setPlayerType, LUA_EXPORT_SETUP},
 	{"addWeaponType", LUA_addWeaponType, LUA_EXPORT_SETUP},
+	{"addKeyType", LUA_addKeyType, LUA_EXPORT_SETUP},
 	// map stage
 	{"doomRandom", LUA_doomRandom, LUA_EXPORT_SETUP | LUA_EXPORT_LEVEL},
 	{"spawnMobj", LUA_spawnMobj, LUA_EXPORT_LEVEL},
@@ -2223,6 +2225,23 @@ static int LUA_addWeaponType(lua_State *L)
 
 	type = LUA_GetMobjTypeParam(L, 1);
 	ST_AddWeaponType(type, icon);
+
+	return 0;
+}
+
+static int LUA_addKeyType(lua_State *L)
+{
+	int type;
+	char icon[8];
+	const char *tmp;
+
+	luaL_checktype(L, 2, LUA_TSTRING);
+
+	tmp = lua_tostring(L, 2);
+	strncpy(icon, tmp, 8);
+
+	type = LUA_GetMobjTypeParam(L, 1);
+	ST_AddKeyType(type, icon);
 
 	return 0;
 }
@@ -5133,7 +5152,7 @@ boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)
 	boolean reuse = false;
 
 	// NULL check
-	if(linespec_table[spec] == LUA_REFNIL)
+	if(spec > 255 || linespec_table[spec] == LUA_REFNIL)
 		spec = 0;
 
 	// again

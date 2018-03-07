@@ -136,6 +136,9 @@ typedef struct player_s
 
     // [kg] inventory; only used on level change
     struct inventory_s *inventory;
+    int			health;
+    int			armorpoints;
+    mobjinfo_t*		armortype;
 
 } player_t;
 

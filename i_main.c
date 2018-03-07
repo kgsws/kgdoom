@@ -299,6 +299,12 @@ int main(int argc, char **argv)
 
 void I_InitNetwork()
 {
+	int i;
+
+	// setup players for Lua
+	for(i = 0; i < MAXPLAYERS; i++)
+		players[i].think.lua_type = TT_PLAYER;
+
 	{
 		// singleplayer game
 		consoleplayer = 0;
