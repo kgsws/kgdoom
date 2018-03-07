@@ -444,43 +444,43 @@ void D_DoomMain (void)
     printf ("W_Init: Init WADfiles.\n");
 
 	// pick an IWAD
-	gamemode = shareware;
-	iwad = "doom1.wad";
+	gamemode = registered;
+	iwad = "/sd/switch/kgdoom/doom.wad";
 
-	if(M_CheckParm ("-doom"))
+	if(M_CheckParm ("-doom1"))
 	{
-		gamemode = registered;
-		iwad = "doom.wad";
+		gamemode = shareware;
+		iwad = "/sd/switch/kgdoom/doom1.wad";
 	} else
 	if(M_CheckParm ("-doomu"))
 	{
 		gamemode = retail;
-		iwad = "doomu.wad";
+		iwad = "/sd/switch/kgdoom/doomu.wad";
 	} else
 	if(M_CheckParm ("-tnt"))
 	{
 		gamemode = commercial;
-		iwad = "tnt.wad";
+		iwad = "/sd/switch/kgdoom/tnt.wad";
 	} else
 	if(M_CheckParm ("-plutonia"))
 	{
 		gamemode = commercial;
-		iwad = "plutonia.wad";
+		iwad = "/sd/switch/kgdoom/plutonia.wad";
 	} else
 	if(M_CheckParm ("-doom2"))
 	{
 		gamemode = commercial;
-		iwad = "doom2.wad";
+		iwad = "/sd/switch/kgdoom/doom2.wad";
 	} else
 	if(M_CheckParm ("-freedoom"))
 	{
 		gamemode = retail;
-		iwad = "freedoom1.wad";
+		iwad = "/sd/switch/kgdoom/freedoom1.wad";
 	} else
 	if(M_CheckParm ("-freedoom2"))
 	{
 		gamemode = commercial;
-		iwad = "freedoom2.wad";
+		iwad = "/sd/switch/kgdoom/freedoom2.wad";
 	}
 
 	W_LoadWad(iwad);

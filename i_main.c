@@ -201,60 +201,6 @@ char *test_argv[] =
 	NULL
 };
 
-// +temporary
-int bsd_poll(struct bsd_pollfd *fds, int nfds, int timeout)
-{
-	result_t r;
-	ipc_object_t bsd_object = bsd_get_object();
-
-	int32_t raw[] = {nfds, timeout};
-
-	ipc_buffer_t fds_in = {
-		.addr = fds,
-		.size = sizeof(struct bsd_pollfd) * nfds,
-		.type = 0x21
-	};
-
-	ipc_buffer_t fds_out = {
-		.addr = fds,
-		.size = sizeof(struct bsd_pollfd) * nfds,
-		.type = 0x22
-	};
-
-	ipc_buffer_t *buffers[] = {
-		&fds_in,
-		&fds_out,
-	};
-
-	ipc_request_t rq = ipc_default_request;
-	rq.request_id = 6;
-	rq.raw_data = (uint32_t*)raw;
-	rq.raw_data_size = sizeof(raw);
-	rq.num_buffers = 2;
-	rq.buffers = buffers;
-
-	int32_t response[2]; // ret, errno
-  
-	ipc_response_fmt_t rs = ipc_default_response_fmt;
-	rs.raw_data_size = sizeof(response);
-	rs.raw_data = (uint32_t*) response;
-  
-	r = ipc_send(bsd_object, &rq, &rs);
-	if(r) {
-		bsd_result = r;
-		return -1;
-	}
-
-	if(response[0] < 0) {
-		bsd_result = LIBTRANSISTOR_ERR_BSD_ERRNO_SET;
-		bsd_errno = response[1];
-		return -1;
-	}
-  
-	return response[0];
-}
-// -temporary
-
 #endif
 
 void main_finish()
@@ -324,20 +270,6 @@ int main(int argc, char **argv)
 		sm_finalize();
 		return 3;
 	}
-
-	// prepare HTTP stdout
-	if(libtransistor_context.workstation_addr)
-		server_addr.sin_addr.s_addr = libtransistor_context.workstation_addr;
-	else
-	{
-		server_addr.sin_addr.s_addr = make_ip(192,168,1,47);
-		server_addr.sin_port = htons(8001);
-		myargv = test_argv;
-		myargc = (sizeof(test_argv) / sizeof(char*)) - 1;
-	}
-	http_stdout._write = stdout_http;
-	http_stdout._flags = __SWR | __SNBF;
-	http_stdout._bf._base = (void*)1;
 #endif
 
 	srand(time(NULL));
@@ -415,12 +347,12 @@ void I_NetUpdate()
 		pfd.events = BSD_POLLIN;
 		pfd.revents = 0;
 
-		length = bsd_poll(&pfd, 1, 0);
+        // length = bsd_poll(&pfd, 1, 0);
 		if(length != 1 || !(pfd.revents & BSD_POLLIN))
 			break;
 
 		length = MAX_PACKET_LEN;
-		recvlen = bsd_recv(client_socket, recvbuf, length, 0);
+		// recvlen = bsd_recv(client_socket, recvbuf, length, 0);
 		if(recvlen <= 0)
 			break;
 #endif

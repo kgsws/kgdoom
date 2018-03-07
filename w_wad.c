@@ -38,7 +38,7 @@ void W_LoadWad(const char *name)
 	if(numwads == MAXWADS)
 		I_Error("W_Init: too many wads");
 
-#ifdef LINUX
+#if 1
 	FILE *f = fopen(name, "rb");
 
 	if(!f)
@@ -95,7 +95,7 @@ int W_CheckNumForName (char* name)
 	name8.s[8] = 0;
 
 	// case insensitive
-	strupr (name8.s);		
+	strupr (name8.s);
 
 	v1 = name8.x;
 
@@ -132,10 +132,10 @@ int W_GetNumForName (char* name)
     int	i;
 
     i = W_CheckNumForName (name);
-    
+
     if (i == -1)
       I_Error ("W_GetNumForName: %s not found!", name);
-      
+
     return i;
 }
 
@@ -245,7 +245,7 @@ void W_ForEachName(const char *name, boolean (*func)(int))
 	name8.s[8] = 0;
 
 	// case insensitive
-	strupr (name8.s);		
+	strupr (name8.s);
 
 	v1 = name8.x;
 
