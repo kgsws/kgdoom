@@ -39,7 +39,9 @@ mtype = {
 	shootz = 32,
 	species = 7,
 	damageScale = {0},
-	flags = mf.Monster | mf.noRadiusDamage | mf.fullVolume,
+	__Monster = true,
+	__noRadiusDamage = true,
+	__fullVolume = true,
 	_spawn = {
 		{"CYBRA", 10, a.Look},
 		{"CYBRB", 10, a.Look},

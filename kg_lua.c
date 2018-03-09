@@ -93,6 +93,7 @@ const char *const thinker_names[] =
 	"line",
 	"genericPlane",
 	"genericCaller",
+	"textureScroll",
 };
 
 static lua_State *luaS_game;
@@ -135,7 +136,6 @@ static int LUA_sectorTagIterator(lua_State *L);
 static int LUA_setFakeContrast(lua_State *L);
 
 static int LUA_removeMobjFromMobj(lua_State *L);
-static int LUA_flagCheckMobj(lua_State *L);
 static int LUA_faceFromMobj(lua_State *L);
 static int LUA_teleportMobj(lua_State *L);
 static int LUA_checkMobjPos(lua_State *L);
@@ -150,6 +150,7 @@ static int LUA_thrustFromMobj(lua_State *L);
 static int LUA_sightCheckFromMobj(lua_State *L);
 static int LUA_radiusDamageFromMobj(lua_State *L);
 static int LUA_damageScaleFromMobj(lua_State *L);
+static int LUA_resetFlagsFromMobj(lua_State *L);
 
 static int LUA_soundFromMobj(lua_State *L);
 
@@ -208,11 +209,9 @@ static int func_set_mobjpitch(lua_State *L, void *dst, void *o);
 static int func_set_radius(lua_State *L, void *dst, void *o);
 static int func_set_mobj(lua_State *L, void *dst, void *o);
 static int func_get_ptr(lua_State *L, void *dst, void *o);
-static int func_set_flags(lua_State *L, void *dst, void *o);
 static int func_get_sector(lua_State *L, void *dst, void *o);
 
 static int func_get_removemobj(lua_State *L, void *dst, void *o);
-static int func_get_checkflagmobj(lua_State *L, void *dst, void *o);
 static int func_get_facemobj(lua_State *L, void *dst, void *o);
 static int func_get_teleportmobj(lua_State *L, void *dst, void *o);
 static int func_get_checkmobjpos(lua_State *L, void *dst, void *o);
@@ -227,6 +226,7 @@ static int func_get_thrustmobj(lua_State *L, void *dst, void *o);
 static int func_get_checkmobjsight(lua_State *L, void *dst, void *o);
 static int func_get_mobjradiusdmg(lua_State *L, void *dst, void *o);
 static int func_get_mobjdmgscale(lua_State *L, void *dst, void *o);
+static int func_get_mobjresetflags(lua_State *L, void *dst, void *o);
 
 static int func_get_mobjsound_body(lua_State *L, void *dst, void *o);
 static int func_get_mobjsound_weapon(lua_State *L, void *dst, void *o);
@@ -397,8 +397,8 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"bobz", offsetof(mobjinfo_t, bobz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"stepheight", offsetof(mobjinfo_t, stepheight), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"species", offsetof(mobjinfo_t, species), LUA_TNUMBER},
+	{"icon", offsetof(mobjinfo_t, icon), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
-	{"flags", offsetof(mobjinfo_t, flags), LUA_TNUMBER},
 	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(mobjinfo_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
 	// states; keep same order as in 'mobjinfo_t'
@@ -445,7 +445,6 @@ static const lua_table_model_t lua_mobj[] =
 	{"momx", offsetof(mobj_t, momx), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"momy", offsetof(mobj_t, momy), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"momz", offsetof(mobj_t, momz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
-	{"flags", offsetof(mobj_t, flags), LUA_TNUMBER, func_set_flags},
 	{"movedir", offsetof(mobj_t, movedir), LUA_TNUMBER},
 	{"movecount", offsetof(mobj_t, movecount), LUA_TNUMBER},
 	{"target", offsetof(mobj_t, target), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
@@ -468,7 +467,6 @@ static const lua_table_model_t lua_mobj[] =
 	{"colormap", offsetof(mobj_t, colormap), LUA_TSTRING, func_set_colormap, func_get_colormap},
 	// functions
 	{"Remove", 0, LUA_TFUNCTION, func_set_readonly, func_get_removemobj},
-	{"Flag", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkflagmobj},
 	{"Face", 0, LUA_TFUNCTION, func_set_readonly, func_get_facemobj},
 	{"Teleport", 0, LUA_TFUNCTION, func_set_readonly, func_get_teleportmobj},
 	{"CheckPosition", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkmobjpos},
@@ -483,6 +481,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"CheckSight", 0, LUA_TFUNCTION, func_set_readonly, func_get_checkmobjsight},
 	{"RadiusDamage", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjradiusdmg},
 	{"DamageScale", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjdmgscale},
+	{"ResetFlags", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjresetflags},
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
 	{"SoundPickup", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_pickup},
@@ -503,6 +502,7 @@ static const lua_table_model_t lua_player[] =
 	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
 	{"refire", offsetof(player_t, refire), LUA_TNUMBER},
 	{"colormap", offsetof(player_t, viewmap), LUA_TSTRING, func_set_colormap, func_get_colormap},
+	{"extralight", offsetof(player_t, extralight), LUA_TNUMBER},
 	// functions
 	{"Message", 0, LUA_TFUNCTION, func_set_readonly, func_setplayermessage},
 	{"SetWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},
@@ -973,7 +973,7 @@ static int func_set_states(lua_State *L, void *dst, void *o)
 			break;
 			case LUA_TSTRING:
 				jump = lua_tostring(L, -1);
-				if(jump[0] == '_')
+				if(jump[0] == '_' && jump[1] != '_')
 				{
 					int j;
 					int k = 0; // k is animation ID
@@ -1174,25 +1174,6 @@ static int func_get_ptr(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
-// few flags have to be checked when changed
-static int func_set_flags(lua_State *L, void *dst, void *o)
-{
-	uint64_t nf, change;
-	mobj_t *mo = o;
-
-	nf = lua_tointeger(L, -1);
-
-	change = mo->flags ^ nf;
-	if(change & (MF_NOBLOCKMAP | MF_NOSECTOR))
-	{
-		P_UnsetThingPosition(mo);
-		mo->flags = nf;
-		P_SetThingPosition(mo);
-	} else
-		mo->flags = nf;
-	return 0;
-}
-
 // return sector from mobj
 static int func_get_sector(lua_State *L, void *dst, void *o)
 {
@@ -1210,14 +1191,6 @@ static int func_get_removemobj(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_removeMobjFromMobj, 1);
-	return 1;
-}
-
-// return flag check function
-static int func_get_checkflagmobj(lua_State *L, void *dst, void *o)
-{
-	lua_pushlightuserdata(L, o);
-	lua_pushcclosure(L, LUA_flagCheckMobj, 1);
 	return 1;
 }
 
@@ -1330,6 +1303,14 @@ static int func_get_mobjdmgscale(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_damageScaleFromMobj, 1);
+	return 1;
+}
+
+// return flag reset function
+static int func_get_mobjresetflags(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_resetFlagsFromMobj, 1);
 	return 1;
 }
 
@@ -1989,9 +1970,11 @@ const lua_table_model_t *LUA_FieldByName(const char *name, const lua_table_model
 	return NULL;
 }
 
-int LUA_StructFromTable(lua_State *L, const lua_table_model_t *model, int modelsize, void *dst)
+int LUA_MobjTypeStruct(lua_State *L, void *dst)
 {
 	int i;
+	int modelsize = sizeof(lua_mobjtype) / sizeof(lua_table_model_t);
+	int fodelsize = sizeof(lua_mobjflags) / sizeof(lua_mobjflag_t);
 	// assuming table is on top of the stack
 	lua_pushnil(L);
 	while(lua_next(L, -2) != 0)
@@ -2000,23 +1983,42 @@ int LUA_StructFromTable(lua_State *L, const lua_table_model_t *model, int models
 		{
 			const char *key = lua_tostring(L, -2);
 			int type = lua_type(L, -1);
-			// only string can be a key
+
+			if(key[0] == '_' && key[1] == '_')
+			for(i = 0; i < fodelsize; i++)
+			{
+				// it's a flag
+				if(!strcmp(key + 2, lua_mobjflags[i].name))
+				{
+					luaL_checktype(L, -1, LUA_TBOOLEAN);
+					if(lua_toboolean(L, -1))
+						// set
+						((mobjinfo_t*)dst)->flags |= lua_mobjflags[i].value;
+					else
+						// unset
+						((mobjinfo_t*)dst)->flags &= ~lua_mobjflags[i].value;
+					i = -1;
+					break;
+				}
+			} else
 			for(i = 0; i < modelsize; i++)
 			{
-				if((type == model[i].ltype || model[i].ltype == LUA_TNIL) && !strcmp(key, model[i].name))
+				// it's a value
+				if((type == lua_mobjtype[i].ltype || lua_mobjtype[i].ltype == LUA_TNIL) && !strcmp(key, lua_mobjtype[i].name))
 				{
-					if(model[i].set)
-						model[i].set(L, ((void*)dst) + model[i].offset, dst);
+					if(lua_mobjtype[i].set)
+						lua_mobjtype[i].set(L, ((void*)dst) + lua_mobjtype[i].offset, dst);
 					else
 					{
 						// right now only numbers are supported
 						int num = lua_tointeger(L, -1);
-						*(int*)(dst + model[i].offset) = num;
+						*(int*)(dst + lua_mobjtype[i].offset) = num;
 					}
+					i = -1;
 					break;
 				}
 			}
-			if(i == modelsize)
+			if(i >= 0)
 				return luaL_error(L, "key '%s' is not expected", key);
 		} else
 			return luaL_error(L, "invalid key for structure");
@@ -2192,7 +2194,7 @@ static int LUA_createMobjType(lua_State *L)
 		temp.stepheight = 24 * FRACUNIT;
 		// get states
 		state_mobjt = numstates;
-		LUA_StructFromTable(L, lua_mobjtype, sizeof(lua_mobjtype)/sizeof(lua_table_model_t), &temp);
+		LUA_MobjTypeStruct(L, &temp);
 		// get memory
 		Z_Enlarge(mobjinfo, sizeof(mobjinfo_t));
 		// finish mobj type
@@ -2214,17 +2216,41 @@ static int LUA_setPlayerType(lua_State *L)
 
 static int LUA_addWeaponType(lua_State *L)
 {
-	int type;
+	int type, amm0, amm1;
 	char icon[8];
 	const char *tmp;
+	char *str;
+	int top;
 
-	luaL_checktype(L, 2, LUA_TSTRING);
-
-	tmp = lua_tostring(L, 2);
-	strncpy(icon, tmp, 8);
-
+	// type; required
 	type = LUA_GetMobjTypeParam(L, 1);
-	ST_AddWeaponType(type, icon);
+
+	// icon; required, can be nil
+	if(lua_type(L, 2) == LUA_TNIL)
+		str = NULL;
+	else
+	{
+		luaL_checktype(L, 2, LUA_TSTRING);
+		tmp = lua_tostring(L, 2);
+		strncpy(icon, tmp, 8);
+		str = icon;
+	}
+
+	top = lua_gettop(L);
+
+	// primary ammo type; optional
+	if(top > 2)
+		amm0 = LUA_GetMobjTypeParam(L, 3);
+	else
+		amm0 = 0;
+
+	// primary ammo type; optional
+	if(top > 3)
+		amm1 = LUA_GetMobjTypeParam(L, 4);
+	else
+		amm1 = 0;
+
+	ST_AddWeaponType(type, str, amm0, amm1);
 
 	return 0;
 }
@@ -2814,27 +2840,70 @@ static int LUA_ThinkerIndex(lua_State *L)
 	switch(th->lua_type)
 	{
 		case TT_MOBJ:
-			// special check for animation changes
+			// special check
+			field = NULL;
 			if(idx[0] == '_')
 			{
-				if(top != 2)
-					return func_set_readonly(L, th, th);
-				int k = 0;
-				for(i = 0; i < sizeof(lua_mobjtype) / sizeof(lua_table_model_t); i++)
+				if(idx[1] == '_')
 				{
-					if(lua_mobjtype[i].name[0] == '_')
+					// flag name
+					for(i = 0; i < sizeof(lua_mobjflags) / sizeof(lua_mobjflag_t); i++)
 					{
-						if(!strcmp(idx, lua_mobjtype[i].name))
+						if(!strcmp(idx + 2, lua_mobjflags[i].name))
 						{
-							lua_pushlightuserdata(L, th);
-							lua_pushinteger(L, k);
-							lua_pushcclosure(L, LUA_animationFromMobj, 2);
-							return 1;
+							mobj_t *mo = (mobj_t*)th;
+							if(top != 2)
+							{
+								uint64_t new;
+
+								luaL_checktype(L, 3, LUA_TBOOLEAN);
+								if(lua_toboolean(L, 3))
+									// set
+									new = mo->flags | lua_mobjflags[i].value;
+								else
+									// unset
+									new = mo->flags & ~lua_mobjflags[i].value;
+
+								// special check
+								if((mo->flags ^ new) & (MF_NOBLOCKMAP | MF_NOSECTOR))
+								{
+									// these can't be just changed
+									P_UnsetThingPosition(mo);
+									mo->flags = new;
+									P_SetThingPosition(mo);
+								} else
+									// set flag
+									mo->flags = new;
+
+								return 0;
+							} else
+							{
+								lua_pushboolean(L, !!(mo->flags & lua_mobjflags[i].value));
+								return 1;
+							}
 						}
-						k++;
+					}
+				} else
+				{
+					// animation change
+					if(top != 2)
+						return func_set_readonly(L, th, th);
+					int k = 0;
+					for(i = 0; i < sizeof(lua_mobjtype) / sizeof(lua_table_model_t); i++)
+					{
+						if(lua_mobjtype[i].name[0] == '_')
+						{
+							if(!strcmp(idx, lua_mobjtype[i].name))
+							{
+								lua_pushlightuserdata(L, th);
+								lua_pushinteger(L, k);
+								lua_pushcclosure(L, LUA_animationFromMobj, 2);
+								return 1;
+							}
+							k++;
+						}
 					}
 				}
-				field = NULL;
 			} else
 			// normal check
 			field = LUA_FieldByName(idx, lua_mobj, sizeof(lua_mobj) / sizeof(lua_table_model_t));
@@ -2897,21 +2966,6 @@ static int LUA_removeMobjFromMobj(lua_State *L)
 	P_RemoveMobj(mo);
 
 	return 0;
-}
-
-static int LUA_flagCheckMobj(lua_State *L)
-{
-	mobj_t *mo;
-	int flag;
-
-	luaL_checktype(L, 1, LUA_TNUMBER);
-	flag = lua_tointeger(L, 1);
-
-	mo = lua_touserdata(L, lua_upvalueindex(1));
-
-	lua_pushboolean(L, !!(mo->flags & flag));
-
-	return 1;
 }
 
 static int LUA_faceFromMobj(lua_State *L)
@@ -3526,6 +3580,37 @@ static int LUA_damageScaleFromMobj(lua_State *L)
 		lua_pushnumber(L, (lua_Number)(num - (DEFAULT_DAMAGE_SCALE-DAMAGE_SCALE)) / DAMAGE_SCALE);
 		return 1;
 	}
+}
+
+static int LUA_resetFlagsFromMobj(lua_State *L)
+{
+	mobj_t *mo;
+	uint64_t new;
+	boolean defa = false;
+
+	// reset to type defaults; optional
+	if(lua_gettop(L) > 0)
+	{
+		luaL_checktype(L, 1, LUA_TBOOLEAN);
+		defa = lua_toboolean(L, 1);
+	}
+
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(defa)
+		new = mo->info->flags;
+	else
+		new = 0;
+
+	if((mo->flags ^ new) & (MF_NOBLOCKMAP | MF_NOSECTOR))
+	{
+		P_UnsetThingPosition(mo);
+		mo->flags = new;
+		P_SetThingPosition(mo);
+	} else
+		mo->flags = new;
+
+	return 0;
 }
 
 static int LUA_soundFromMobj(lua_State *L)

@@ -10,7 +10,8 @@ a.BloodStuff =
 function(mobj)
 	local source
 	source = mobj.source
-	mobj.flags = mf.noBlockmap | mf.missile | mf.dropOff | mf.troughMobj
+	mobj.__missile = true
+	mobj.__noGravity = false
 	mobj.momz = -0.5
 	mobj.Thrust(0.25 + doomRandom() / 512, (doomRandom() - 128)*2)
 	if source.info == MT_HEAD then
@@ -24,7 +25,10 @@ end
 mtype = {
 	radius = 8,
 	height = 12,
-	flags = mf.noBlockmap | mf.noGravity | mf.dropOff | mf.troughMobj,
+	__noBlockmap = true,
+	__noGravity = true,
+	__dropOff = true,
+	__troughMobj = true,
 	_spawn = {
 		{"*PUFFA", 4, a.PuffStuff},
 		{"PUFFB", 4},
@@ -43,7 +47,10 @@ MT_PUFF = createMobjType(mtype)
 mtype = {
 	radius = 8,
 	height = 12,
-	flags = mf.noBlockmap | mf.noGravity | mf.dropOff | mf.troughMobj,
+	__noBlockmap = true,
+	__noGravity = true,
+	__dropOff = true,
+	__troughMobj = true,
 	_spawn = {
 		{"PUFFC", 4, a.PuffStuff},
 		{"PUFFD", 4}

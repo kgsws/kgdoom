@@ -32,7 +32,7 @@ mtype = {
 	painChance = 180,
 	shootz = 36,
 	damageScale = {0},
-	flags = mf.Monster,
+	__Monster = true,
 	_spawn = {
 		{"SARGA", 10, a.Look},
 		{"SARGB", 10, a.Look},
@@ -81,7 +81,8 @@ mtype = {
 MT_SERGEANT = createMobjType(mtype)
 
 -- MT_SHADOWS
+-- only modify what's different
 mtype.ednum = 58
-mtype.flags = mf.Monster | mf.shadow
+mtype.__shadow = true
 MT_SHADOWS = createMobjType(mtype)
 

@@ -85,6 +85,7 @@ typedef struct
 	int viewz;
 	int shootz;
 	int bobz;
+	int icon;
 
 	// [kg] damage resistance
 	int damagetype;

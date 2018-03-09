@@ -127,6 +127,17 @@ function mapLoadLine(line)
 			line.special = 0
 		end
 	end
+	-- this is not Doom original, but freedoom uses it
+	if line.special == 85 then
+		local func
+		func = line.funcFront
+		if func ~= nil then
+			func.x = func.x - 1
+		else
+			line.SetScroller(-1, 0, true)
+			line.special = 0
+		end
+	end
 end
 
 function mapSetupPlayers(player)

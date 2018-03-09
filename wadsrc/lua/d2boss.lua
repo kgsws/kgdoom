@@ -72,7 +72,9 @@ mtype = {
 	reactionTime = 8,
 	painChance = 256,
 	damageScale = {0},
-	flags = mf.solid | mf.shootable | mf.fullVolume,
+	__solid = true,
+	__shootable = true,
+	__fullVolume = true,
 	_spawn = {
 		{"BBRNA", -1}
 	},
@@ -93,7 +95,9 @@ mtype = {
 	ednum = 89,
 	height = 32,
 	shootz = 10,
-	flags = mf.noBlockmap | mf.noSector | mf.fullVolume,
+	__noBlockmap = true,
+	__noSector = true,
+	__fullVolume = true,
 	_spawn = {
 		{"BBRNA", 10, a.Look},
 		"loop"
@@ -110,7 +114,9 @@ createMobjType(mtype)
 mtype = {
 	seeSound = "dsbospit",
 	speed = 10,
-	flags = mf.Projectile | mf.noClip | mf.fullVolume,
+	__Projectile = true,
+	__noClip = true,
+	__fullVolume = true,
 	_spawn = {
 		{"*BOSFA", 3, a.SpawnFly},
 		{"*BOSFB", 3, a.SpawnFly},
@@ -124,7 +130,8 @@ MT_SPAWNSHOT = createMobjType(mtype)
 -- MT_BOSSTARGET
 mtype = {
 	ednum = 87,
-	flags = mf.noBlockmap | mf.noSector,
+	__noBlockmap = true,
+	__noSector = true,
 	_spawn = {
 		{"BOSFA", -1}
 	}
@@ -134,7 +141,8 @@ MT_BOSSTARGET = createMobjType(mtype)
 -- MT_SPAWNFIRE
 mtype = {
 	seeSound = "dsflame",
-	flags = mf.noBlockmap | mf.noGravity,
+	__noBlockmap = true,
+	__noGravity = true,
 	_spawn = {
 		{"*FIREA", 4, a.SoundSee},
 		{"*FIREB", 4},

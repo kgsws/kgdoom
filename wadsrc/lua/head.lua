@@ -23,7 +23,7 @@ mtype = {
 	radius = 6,
 	height = 8,
 	damage = -5,
-	flags = mf.Projectile,
+	__Projectile = true,
 	_spawn = {
 		{"*BAL2A", 4},
 		{"*BAL2B", 4},
@@ -54,7 +54,9 @@ mtype = {
 	shootz = 32,
 	species = 4,
 	damageScale = {0},
-	flags = mf.Monster | mf.float | mf.noGravity,
+	__Monster = true,
+	__float = true,
+	__noGravity = true,
 	_spawn = {
 		{"HEADA", 10, a.Look},
 		"loop"

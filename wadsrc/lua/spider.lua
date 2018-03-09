@@ -41,7 +41,9 @@ mtype = {
 	painChance = 40,
 	shootz = 58,
 	damageScale = {0},
-	flags = mf.Monster | mf.noRadiusDamage | mf.fullVolume,
+	__Monster = true,
+	__noRadiusDamage = true,
+	__fullVolume = true,
 	_spawn = {
 		{"SPIDA", 10, a.Look},
 		{"SPIDB", 10, a.Look},

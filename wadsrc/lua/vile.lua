@@ -32,14 +32,14 @@ end
 
 PIT_VileCheck =
 function(thing, vile)
-	if thing.Flag(mf.corpse) and thing.tics == -1 then
+	if thing.__corpse and thing.tics == -1 then
 		local temp
 		temp = thing.height
 		thing.height = thing.info.height
 		if thing.CheckPosition() and thing._raise() then
 			vile._heal()
 			thing.SoundBody("dsslop")
-			thing.flags = thing.info.flags
+			thing.ResetFlags(true)
 			thing.health = thing.info.health
 			thing.target = nil
 			return false, thing
@@ -93,7 +93,8 @@ mtype = {
 	activeSound = "dsflame",
 	radius = 8,
 	height = 16,
-	flags = mf.noBlockmap | mf.noGravity,
+	__noBlockmap = true,
+	__noGravity = true,
 	_spawn = {
 		{"*FIREA", 1},
 		{"*FIREA", 2, a.FireStart},
@@ -148,7 +149,7 @@ mtype = {
 	painChance = 10,
 	shootz = 32,
 	damageScale = {0},
-	flags = mf.Monster,
+	__Monster = true,
 	_spawn = {
 		{"VILEA", 10, a.Look},
 		{"VILEB", 10, a.Look},

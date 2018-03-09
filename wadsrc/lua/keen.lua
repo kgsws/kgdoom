@@ -23,7 +23,9 @@ mtype = {
 	height = 72,
 	reactionTime = 8,
 	painChance = 256,
-	flags = mf.Monster | mf.spawnCeiling | mf.noGravity,
+	__Monster = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"KEENA", -1}
 	},

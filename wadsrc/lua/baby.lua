@@ -38,7 +38,7 @@ mtype = {
 	radius = 13,
 	height = 8,
 	damage = -5,
-	flags = mf.Projectile,
+	__Projectile = true,
 	_spawn = {
 		{"*APLSA", 5},
 		{"*APLSB", 5},
@@ -71,7 +71,7 @@ mtype = {
 	shootz = 32,
 	species = 6,
 	damageScale = {0},
-	flags = mf.Monster,
+	__Monster = true,
 	_spawn = {
 		{"BSPIA", 10, a.Look},
 		{"BSPIB", 10, a.Look},

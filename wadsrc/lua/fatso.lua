@@ -52,7 +52,7 @@ mtype = {
 	radius = 6,
 	height = 8,
 	damage = -8,
-	flags = mf.Projectile,
+	__Projectile = true,
 	_spawn = {
 		{"*MANFA", 4},
 		{"*MANFB", 4},
@@ -83,7 +83,7 @@ mtype = {
 	shootz = 32,
 	species = 2,
 	damageScale = {0},
-	flags = mf.Monster,
+	__Monster = true,
 	_spawn = {
 		{"FATTA", 15, a.Look},
 		{"FATTB", 15, a.Look},

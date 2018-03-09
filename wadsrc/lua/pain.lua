@@ -51,7 +51,9 @@ mtype = {
 	painChance = 128,
 	shootz = 32,
 	damageScale = {0},
-	flags = mf.Monster | mf.float | mf.noGravity,
+	__Monster = true,
+	__float = true,
+	__noGravity = true,
 	_spawn = {
 		{"PAINA", 10, a.Look},
 		"loop"

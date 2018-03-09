@@ -14,7 +14,9 @@ mtype = {
 	height = 42,
 	health = 20,
 	mass = 100,
-	flags = mf.solid | mf.shootable | mf.noblood,
+	__solid = true,
+	__shootable = true,
+	__noblood = true,
 	_spawn = {
 		{"BAR1A", 6},
 		{"BAR1B", 6},
@@ -36,7 +38,7 @@ mtype = {
 	ednum = 85,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*TLMPA", 4},
 		{"*TLMPB", 4},
@@ -52,7 +54,7 @@ mtype = {
 	ednum = 86,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*TLP2A", 4},
 		{"*TLP2B", 4},
@@ -68,7 +70,7 @@ mtype = {
 	ednum = 2028,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*COLUA", -1}
 	}
@@ -80,7 +82,7 @@ mtype = {
 	ednum = 30,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"COL1A", -1}
 	}
@@ -92,7 +94,7 @@ mtype = {
 	ednum = 31,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"COL2A", -1}
 	}
@@ -104,7 +106,7 @@ mtype = {
 	ednum = 32,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"COL3A", -1}
 	}
@@ -116,7 +118,7 @@ mtype = {
 	ednum = 33,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"COL4A", -1}
 	}
@@ -128,7 +130,7 @@ mtype = {
 	ednum = 37,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"COL6A", -1}
 	}
@@ -140,7 +142,7 @@ mtype = {
 	ednum = 36,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"COL5A", 14},
 		{"COL5B", 14},
@@ -154,7 +156,7 @@ mtype = {
 	ednum = 41,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*CEYEA", 6},
 		{"*CEYEB", 6},
@@ -170,7 +172,7 @@ mtype = {
 	ednum = 42,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*FSKUA", 6},
 		{"*FSKUB", 6},
@@ -185,7 +187,7 @@ mtype = {
 	ednum = 43,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"TRE1A", -1}
 	}
@@ -197,7 +199,7 @@ mtype = {
 	ednum = 44,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*TBLUA", 4},
 		{"*TBLUB", 4},
@@ -213,7 +215,7 @@ mtype = {
 	ednum = 45,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*TGRNA", 4},
 		{"*TGRNB", 4},
@@ -229,7 +231,7 @@ mtype = {
 	ednum = 46,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*TREDA", 4},
 		{"*TREDB", 4},
@@ -245,7 +247,7 @@ mtype = {
 	ednum = 55,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*SMBTA", 4},
 		{"*SMBTB", 4},
@@ -261,7 +263,7 @@ mtype = {
 	ednum = 56,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*SMGTA", 4},
 		{"*SMGTB", 4},
@@ -277,7 +279,7 @@ mtype = {
 	ednum = 57,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*SMRTA", 4},
 		{"*SMRTB", 4},
@@ -293,7 +295,7 @@ mtype = {
 	ednum = 47,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"SMITA", -1}
 	}
@@ -305,7 +307,7 @@ mtype = {
 	ednum = 48,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"ELECA", -1}
 	}
@@ -328,7 +330,7 @@ mtype = {
 	ednum = 35,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*CBRAA", -1}
 	}
@@ -340,7 +342,9 @@ mtype = {
 	ednum = 49,
 	radius = 16,
 	height = 68,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR1A", 10},
 		{"GOR1B", 15},
@@ -356,7 +360,9 @@ mtype = {
 	ednum = 50,
 	radius = 16,
 	height = 84,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR2A", -1}
 	}
@@ -368,7 +374,9 @@ mtype = {
 	ednum = 51,
 	radius = 16,
 	height = 84,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR3A", -1}
 	}
@@ -380,7 +388,9 @@ mtype = {
 	ednum = 52,
 	radius = 16,
 	height = 68,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR4A", -1}
 	}
@@ -392,7 +402,9 @@ mtype = {
 	ednum = 53,
 	radius = 16,
 	height = 52,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR5A", -1}
 	}
@@ -404,7 +416,8 @@ mtype = {
 	ednum = 59,
 	radius = 16,
 	height = 84,
-	flags = mf.spawnCeiling | mf.noGravity,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR2A", -1}
 	}
@@ -416,7 +429,8 @@ mtype = {
 	ednum = 60,
 	radius = 16,
 	height = 68,
-	flags = mf.spawnCeiling | mf.noGravity,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR4A", -1}
 	}
@@ -428,7 +442,8 @@ mtype = {
 	ednum = 61,
 	radius = 16,
 	height = 84,
-	flags = mf.spawnCeiling | mf.noGravity,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR3A", -1}
 	}
@@ -440,7 +455,8 @@ mtype = {
 	ednum = 62,
 	radius = 16,
 	height = 68,
-	flags = mf.spawnCeiling | mf.noGravity,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR5A", -1}
 	}
@@ -452,7 +468,8 @@ mtype = {
 	ednum = 63,
 	radius = 16,
 	height = 68,
-	flags = mf.spawnCeiling | mf.noGravity,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"GOR1A", 10},
 		{"GOR1B", 15},
@@ -558,7 +575,7 @@ mtype = {
 	ednum = 28,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"POL2A", -1}
 	}
@@ -581,7 +598,7 @@ mtype = {
 	ednum = 27,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"POL4A", -1}
 	}
@@ -593,7 +610,7 @@ mtype = {
 	ednum = 29,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*POL3A", 6},
 		{"*POL3B", 6},
@@ -607,7 +624,7 @@ mtype = {
 	ednum = 25,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"POL1A", -1}
 	}
@@ -619,7 +636,7 @@ mtype = {
 	ednum = 26,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"POL6A", 6},
 		{"POL6B", 8},
@@ -633,7 +650,7 @@ mtype = {
 	ednum = 54,
 	radius = 32,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"TRE2A", -1}
 	}
@@ -645,7 +662,7 @@ mtype = {
 	ednum = 70,
 	radius = 16,
 	height = 16,
-	flags = mf.solid,
+	__solid = true,
 	_spawn = {
 		{"*FCANA", 4},
 		{"*FCANB", 4},
@@ -660,7 +677,9 @@ mtype = {
 	ednum = 73,
 	radius = 16,
 	height = 88,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"HDB1A", -1}
 	}
@@ -672,7 +691,9 @@ mtype = {
 	ednum = 74,
 	radius = 16,
 	height = 88,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"HDB2A", -1}
 	}
@@ -684,7 +705,9 @@ mtype = {
 	ednum = 75,
 	radius = 16,
 	height = 64,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"HDB3A", -1}
 	}
@@ -696,7 +719,9 @@ mtype = {
 	ednum = 76,
 	radius = 16,
 	height = 64,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"HDB4A", -1}
 	}
@@ -708,7 +733,9 @@ mtype = {
 	ednum = 77,
 	radius = 16,
 	height = 64,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"HDB5A", -1}
 	}
@@ -720,7 +747,9 @@ mtype = {
 	ednum = 78,
 	radius = 16,
 	height = 64,
-	flags = mf.solid | mf.spawnCeiling | mf.noGravity,
+	__solid = true,
+	__spawnCeiling = true,
+	__noGravity = true,
 	_spawn = {
 		{"HDB6A", -1}
 	}
@@ -732,7 +761,7 @@ mtype = {
 	ednum = 79,
 	radius = 20,
 	height = 16,
-	flags = mf.noBlockmap,
+	__noBlockmap = true,
 	_spawn = {
 		{"POB1A", -1}
 	}
@@ -744,7 +773,7 @@ mtype = {
 	ednum = 80,
 	radius = 20,
 	height = 16,
-	flags = mf.noBlockmap,
+	__noBlockmap = true,
 	_spawn = {
 		{"POB2A", -1}
 	}
@@ -756,7 +785,7 @@ mtype = {
 	ednum = 81,
 	radius = 20,
 	height = 16,
-	flags = mf.noBlockmap,
+	__noBlockmap = true,
 	_spawn = {
 		{"BRS1A", -1}
 	}

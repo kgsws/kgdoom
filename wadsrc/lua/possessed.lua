@@ -15,7 +15,7 @@ a.PosDrop =
 function(mobj)
 	local mo
 	mo = spawnMobj(MT_CLIP, mobj.x, mobj.y, mobj.z)
-	mo.flags = mo.flags | mf.dropped
+	mo.__dropped = true
 end
 
 a.PosAttack =
@@ -45,7 +45,7 @@ a.SPosDrop =
 function(mobj)
 	local mo
 	mo = spawnMobj(MT_SHOTGUN, mobj.x, mobj.y, mobj.z)
-	mo.flags = mo.flags | mf.dropped
+	mo.__dropped = true
 end
 
 a.CPosRefire =
@@ -61,7 +61,7 @@ a.CPosDrop =
 function(mobj)
 	local mo
 	mo = spawnMobj(MT_CHAINGUN, mobj.x, mobj.y, mobj.z)
-	mo.flags = mo.flags | mf.dropped
+	mo.__dropped = true
 end
 
 
@@ -81,7 +81,7 @@ mtype = {
 	painChance = 200,
 	shootz = 36,
 	damageScale = {0},
-	flags = mf.Monster,
+	__Monster = true,
 	_spawn = {
 		{"POSSA", 10, a.Look},
 		{"POSSB", 10, a.Look},
@@ -154,7 +154,7 @@ mtype = {
 	painChance = 170,
 	shootz = 36,
 	damageScale = {0},
-	flags = mf.Monster,
+	__Monster = true,
 	_spawn = {
 		{"SPOSA", 10, a.Look},
 		{"SPOSB", 10, a.Look},
@@ -228,7 +228,7 @@ mtype = {
 	painChance = 170,
 	shootz = 36,
 	damageScale = {0},
-	flags = mf.Monster,
+	__Monster = true,
 	_spawn = {
 		{"CPOSA", 10, a.Look},
 		{"CPOSB", 10, a.Look},
@@ -306,7 +306,7 @@ mtype = {
 	painChance = 170,
 	shootz = 36,
 	damageScale = {0},
-	flags = mf.Monster,
+	__Monster = true,
 	_spawn = {
 		{"SSWVA", 10, a.Look},
 		{"SSWVB", 10, a.Look},

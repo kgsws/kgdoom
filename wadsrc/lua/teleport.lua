@@ -11,7 +11,7 @@ function(thing, mobj)
 end
 
 function PIT_TeleportCheck(thing)
-	if thing.Flag(mf.solid) then
+	if thing.__solid then
 		return false, true
 	end
 end
@@ -31,7 +31,7 @@ function setupTeleport(sector)
 end
 
 function lineTeleport(mobj, line, side, act)
-	if act ~= lnspec.cross or not side or mobj.Flag(mf.missile) then
+	if act ~= lnspec.cross or not side or mobj.__missile then
 		return false
 	end
 	if not doomLineType[line.special] and mobj.player ~= nil then
@@ -83,7 +83,8 @@ doomLineRe[125] = false
 -- MT_TELEPORTMAN; teleport destination
 mtype = {
 	ednum = 14,
-	flags = mf.noBlockmap | mf.noGravity
+	__noBlockmap = true,
+	__noGravity = true
 }
 MT_TELEPORTMAN = createMobjType(mtype)
 
@@ -91,7 +92,8 @@ MT_TELEPORTMAN = createMobjType(mtype)
 mtype = {
 	seeSound = "dstelept",
 	ednum = 14,
-	flags = mf.noBlockmap | mf.noGravity,
+	__noBlockmap = true,
+	__noGravity = true,
 	_spawn = {
 		{"*TFOGA", 6, a.SoundSee},
 		{"*TFOGB", 6},

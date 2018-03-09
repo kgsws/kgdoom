@@ -1,6 +1,16 @@
 -- kgsws' Lua Doom exports
 -- Doom weapons
 
+a.Light1 =
+function(mobj)
+	mobj.player.extralight = 1
+end
+
+a.Light2 =
+function(mobj)
+	mobj.player.extralight = 2
+end
+
 a.Explode =
 function(mobj)
 	mobj.RadiusDamage(128, 128, 0, mobj.source, true)
@@ -35,6 +45,7 @@ function(mobj)
 		an = an + (doomRandom() - doomRandom()) / 2
 	end
 	mobj.LineAttack(MT_PUFF, doomRandom(1, 3) * 5, an, sl)
+	mobj.InventoryTake(MT_CLIP, 1)
 end
 
 a.FireShotgun =
@@ -47,6 +58,7 @@ function(mobj)
 	for i=1,7 do
 		mobj.LineAttack(MT_PUFF, doomRandom(1, 3) * 5, an + (doomRandom() - doomRandom()) / 2, sl)
 	end
+	mobj.InventoryTake(MT_SHELL, 1)
 end
 
 a.FireShotgun2 =
@@ -59,6 +71,7 @@ function(mobj)
 	for i=1,20 do
 		mobj.LineAttack(MT_PUFF, doomRandom(1, 3) * 5, an + (doomRandom() - doomRandom()), sl + (doomRandom() - doomRandom()) / 2048)
 	end
+	mobj.InventoryTake(MT_SHELL, 2)
 end
 
 a.SgnCheck =
@@ -92,6 +105,7 @@ function(mobj, flash)
 		an = an + (doomRandom() - doomRandom()) / 2
 	end
 	mobj.LineAttack(MT_PUFF, doomRandom(1, 3) * 5, an, sl)
+	mobj.InventoryTake(MT_CLIP, 1)
 end
 
 a.FireChaingun1 =
@@ -105,6 +119,7 @@ function(mobj)
 	local sl
 	an, sl = mobj.AttackAim(false)
 	mobj.SpawnMissile(MT_ROCKET, an, sl)
+	mobj.InventoryTake(MT_ROCKETAMMO, 1)
 end
 
 a.FirePlasma =
@@ -114,6 +129,7 @@ function(mobj)
 	local sl
 	an, sl = mobj.AttackAim(false)
 	mobj.SpawnMissile(MT_PLASMA, an, sl)
+	mobj.InventoryTake(MT_CELL, 1)
 end
 
 a.BfgSound =
@@ -128,6 +144,7 @@ function(mobj)
 	local sl
 	an, sl = mobj.AttackAim(false)
 	mobj.SpawnMissile(MT_BFG, an, sl)
+	mobj.InventoryTake(MT_CELL, 40)
 end
 
 a.BfgSpray =
@@ -204,7 +221,7 @@ mtype = {
 	radius = 11,
 	height = 8,
 	damage = -20,
-	flags = mf.Projectile,
+	__Projectile = true,
 	_spawn = {
 		{"*MISLA", -1}
 	},
@@ -224,7 +241,7 @@ mtype = {
 	radius = 13,
 	height = 8,
 	damage = -5,
-	flags = mf.Projectile,
+	__Projectile = true,
 	_spawn = {
 		{"*PLSSA", 6},
 		{"*PLSSB", 6},
@@ -247,7 +264,7 @@ mtype = {
 	radius = 13,
 	height = 8,
 	damage = -100,
-	flags = mf.Projectile,
+	__Projectile = true,
 	_spawn = {
 		{"*BFS1A", 4},
 		{"*BFS1B", 4},
@@ -268,7 +285,8 @@ MT_BFG = createMobjType(mtype)
 mtype = {
 	radius = 20,
 	height = 16,
-	flags = mf.noBlockmap | mf.noGravity,
+	__noBlockmap = true,
+	__noGravity = true,
 	_spawn = {
 		{"*BFE2A", 8},
 		{"*BFE2B", 8},
@@ -321,7 +339,7 @@ mtype = {
 	maxcount = 1,
 	radius = 20,
 	height = 16,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"PISTA", -1}
 	},
@@ -345,7 +363,7 @@ mtype = {
 		"_wReady"
 	},
 	_wFlashMain = {
-		{"*PISFA", 7}
+		{"*PISFA", 7, a.Light1}
 	}
 }
 MT_PISTOL = createMobjType(mtype)
@@ -359,7 +377,7 @@ mtype = {
 	ednum = 2001,
 	radius = 20,
 	height = 16,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"SHOTA", -1}
 	},
@@ -388,8 +406,8 @@ mtype = {
 		"_wReady"
 	},
 	_wFlashMain = {
-		{"*SHTFA", 4},
-		{"*SHTFB", 3}
+		{"*SHTFA", 4, a.Light1},
+		{"*SHTFB", 3, a.Light2}
 	}
 }
 MT_SHOTGUN = createMobjType(mtype)
@@ -403,7 +421,7 @@ mtype = {
 	ednum = 82,
 	radius = 20,
 	height = 16,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"SGN2A", -1}
 	},
@@ -433,8 +451,8 @@ mtype = {
 		"_wReady"
 	},
 	_wFlashMain = {
-		{"*SHT2I", 4},
-		{"*SHT2J", 3}
+		{"*SHT2I", 4, a.Light1},
+		{"*SHT2J", 3, a.Light2}
 	}
 }
 MT_SUPERSHOTGUN = createMobjType(mtype)
@@ -448,7 +466,7 @@ mtype = {
 	ednum = 2002,
 	radius = 20,
 	height = 16,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"MGUNA", -1}
 	},
@@ -472,9 +490,9 @@ mtype = {
 		"_wReady"
 	},
 	_wFlashMain = {
-		{"*CHGFA", 5},
+		{"*CHGFA", 5, a.Light1},
 		"stop",
-		{"*CHGFB", 5}
+		{"*CHGFB", 5, a.Light1}
 	}
 }
 MT_CHAINGUN = createMobjType(mtype)
@@ -488,7 +506,7 @@ mtype = {
 	ednum = 2003,
 	radius = 20,
 	height = 16,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"LAUNA", -1}
 	},
@@ -512,9 +530,9 @@ mtype = {
 		"_wReady"
 	},
 	_wFlashMain = {
-		{"*MISFA", 3},
+		{"*MISFA", 3, a.Light1},
 		{"*MISFB", 4},
-		{"*MISFC", 4},
+		{"*MISFC", 4, a.Light2},
 		{"*MISFD", 4}
 	}
 }
@@ -529,7 +547,7 @@ mtype = {
 	ednum = 2004,
 	radius = 20,
 	height = 16,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"PLASA", -1}
 	},
@@ -552,9 +570,9 @@ mtype = {
 		"_wReady"
 	},
 	_wFlashMain = {
-		{"*PLSFA", 4},
+		{"*PLSFA", 4, a.Light1},
 		"stop",
-		{"*PLSFB", 4}
+		{"*PLSFB", 4, a.Light1}
 	}
 }
 MT_PLASMAGUN = createMobjType(mtype)
@@ -568,7 +586,7 @@ mtype = {
 	ednum = 2006,
 	radius = 20,
 	height = 16,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"BFUGA", -1}
 	},
@@ -592,8 +610,8 @@ mtype = {
 		"_wReady"
 	},
 	_wFlashMain = {
-		{"*BFGFA", 11},
-		{"*BFGFB", 6}
+		{"*BFGFA", 11, a.Light1},
+		{"*BFGFB", 6, a.Light2}
 	}
 }
 MT_BFGW = createMobjType(mtype)
@@ -607,7 +625,7 @@ mtype = {
 	ednum = 2005,
 	radius = 20,
 	height = 16,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"CSAWA", -1}
 	},
@@ -647,12 +665,12 @@ MT_CHAINSAW = createMobjType(mtype)
 --
 
 addWeaponType(MT_FIST, "UNKNA0")
-addWeaponType(MT_PISTOL, "UNKNB0")
-addWeaponType(MT_SHOTGUN, "SHOTA0")
-addWeaponType(MT_SUPERSHOTGUN, "SGN2A0")
-addWeaponType(MT_CHAINGUN, "MGUNA0")
-addWeaponType(MT_LAUNCHER, "LAUNA0")
-addWeaponType(MT_PLASMAGUN, "PLASA0")
-addWeaponType(MT_BFGW, "BFUGA0")
+addWeaponType(MT_PISTOL, "UNKNB0", MT_CLIP)
+addWeaponType(MT_SHOTGUN, "SHOTA0", MT_SHELL)
+addWeaponType(MT_SUPERSHOTGUN, "SGN2A0", MT_SHELL)
+addWeaponType(MT_CHAINGUN, "MGUNA0", MT_CLIP)
+addWeaponType(MT_LAUNCHER, "LAUNA0", MT_ROCKETAMMO)
+addWeaponType(MT_PLASMAGUN, "PLASA0", MT_CELL)
+addWeaponType(MT_BFGW, "BFUGA0", MT_CELL)
 addWeaponType(MT_CHAINSAW, "CSAWA0")
 

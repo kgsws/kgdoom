@@ -19,7 +19,8 @@ mtype = {
 	radius = 20,
 	height = 16,
 	action = pickupAmmo,
-	flags = mf.special,
+	icon = "CLIPA0",
+	__special = true,
 	_spawn = {
 		{"CLIPA", -1}
 	}
@@ -34,7 +35,7 @@ mtype = {
 	radius = 20,
 	height = 16,
 	action = pickupAmmo,
-	flags = mf.special,
+	__special = true,
 	arg = 50,
 	_spawn = {
 		{"AMMOA", -1}
@@ -51,7 +52,8 @@ mtype = {
 	radius = 20,
 	height = 16,
 	action = pickupAmmo,
-	flags = mf.special,
+	icon = "SHELA0",
+	__special = true,
 	_spawn = {
 		{"SHELA", -1}
 	}
@@ -66,7 +68,7 @@ mtype = {
 	radius = 20,
 	height = 16,
 	action = pickupAmmo,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"SBOXA", -1}
 	}
@@ -82,7 +84,8 @@ mtype = {
 	radius = 20,
 	height = 16,
 	action = pickupAmmo,
-	flags = mf.special,
+	icon = "ROCKA0",
+	__special = true,
 	_spawn = {
 		{"ROCKA", -1}
 	}
@@ -97,7 +100,7 @@ mtype = {
 	radius = 20,
 	height = 16,
 	action = pickupAmmo,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"BROKA", -1}
 	}
@@ -113,7 +116,8 @@ mtype = {
 	radius = 20,
 	height = 16,
 	action = pickupAmmo,
-	flags = mf.special,
+	icon = "CELLA0",
+	__special = true,
 	_spawn = {
 		{"CELLA", -1}
 	}
@@ -128,7 +132,7 @@ mtype = {
 	radius = 20,
 	height = 16,
 	action = pickupAmmo,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"CELPA", -1}
 	}

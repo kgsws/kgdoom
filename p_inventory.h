@@ -23,6 +23,8 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count);
 int P_MaxInventory(mobj_t *mo, mobjinfo_t *type, int count);
 // check inventory amount; max is optional
 int P_CheckInventory(mobj_t *mo, mobjinfo_t *type, int *max);
+// get inventory ptr
+inventory_t *P_GetInventory(mobj_t *mo, mobjinfo_t *type);
 // debug info
 void P_DumpInventory(mobj_t *mo);
 

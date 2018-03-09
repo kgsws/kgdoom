@@ -15,11 +15,7 @@ function playerSpawn(pl)
 end
 
 function pain(mobj)
-	print("health is " .. mobj.health .. " angle is " .. mobj.angle .. " pitch is " .. mobj.pitch .. " texture was " .. mobj.sector.floorpic)
---	mobj.floorz = mobj.floorz + 64
---	mobj.momz = mobj.momz + 8
---	mobj.momx = mobj.momx + finecosine[mobj.angle] * 8
---	mobj.momy = mobj.momy + finesine[mobj.angle] * 8
+	-- easter egg
 	if mobj.attacker and mobj.attacker ~= mobj then
 		mobj.attacker.Damage(true, 0)
 	end
@@ -37,7 +33,11 @@ mtype = {
 	shootz = 32,
 	viewz = 41,
 	bobz = 16,
-	flags = mf.solid | mf.shootable | mf.dropOff | mf.pickup | mf.slide,
+	__solid = true,
+	__shootable = true,
+	__dropOff = true,
+	__pickup = true,
+	__slide = true,
 	_spawn = {
 		{"PLAYA", -1}
 	},

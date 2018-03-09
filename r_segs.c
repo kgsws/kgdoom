@@ -194,14 +194,13 @@ R_RenderMaskedSegRange
 	    lightnum--;
 	else if (curline->v1->x == curline->v2->x)
 	    lightnum++;
+    }
 
-	if (lightnum < 0)		
-	    walllights = scalelight[0];
-	else if (lightnum >= LIGHTLEVELS)
-	    walllights = scalelight[LIGHTLEVELS-1];
-	else
-	    walllights = scalelight[lightnum];
-    } else
+    if (lightnum < 0)		
+	walllights = scalelight[0];
+    else if (lightnum >= LIGHTLEVELS)
+	walllights = scalelight[LIGHTLEVELS-1];
+    else
 	walllights = scalelight[lightnum];
 
     maskedtexturecol = ds->maskedtexturecol;
@@ -947,14 +946,13 @@ R_StoreWallRange
 		    lightnum--;
 		else if (curline->v1->x == curline->v2->x)
 		    lightnum++;
+	    }
 
-		if (lightnum < 0)		
-		    walllights = scalelight[0];
-		else if (lightnum >= LIGHTLEVELS)
-		    walllights = scalelight[LIGHTLEVELS-1];
-		else
-		    walllights = scalelight[lightnum];
-	    } else
+	    if (lightnum < 0)		
+		walllights = scalelight[0];
+	    else if (lightnum >= LIGHTLEVELS)
+		walllights = scalelight[LIGHTLEVELS-1];
+	    else
 		walllights = scalelight[lightnum];
 	}
     }
@@ -1129,14 +1127,13 @@ R_StoreWallRange
 						lightnum--;
 					else if (curline->v1->x == curline->v2->x)
 						lightnum++;
+				}
 
-					if (lightnum < 0)		
-						walllights = scalelight[0];
-					else if (lightnum >= LIGHTLEVELS)
-						walllights = scalelight[LIGHTLEVELS-1];
-					else
-						walllights = scalelight[lightnum];
-				} else
+				if (lightnum < 0)		
+					walllights = scalelight[0];
+				else if (lightnum >= LIGHTLEVELS)
+					walllights = scalelight[LIGHTLEVELS-1];
+				else
 					walllights = scalelight[lightnum];
 
 				// draw this stripe

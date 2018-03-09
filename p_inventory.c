@@ -69,7 +69,7 @@ int P_GiveInventory(mobj_t *mo, mobjinfo_t *type, int count)
 				cur->count = 0;
 			} else
 				count = 0;
-			if(cur->count == 0 && cur->maxcount)
+			if(cur->count == 0 && cur->maxcount > 0)
 			{
 				// free this item slot
 				if(cur->prev)
@@ -189,6 +189,19 @@ int P_CheckInventory(mobj_t *mo, mobjinfo_t *type, int *max)
 	if(max)
 		*max = 0;
 	return 0;
+}
+
+inventory_t *P_GetInventory(mobj_t *mo, mobjinfo_t *type)
+{
+	inventory_t *inv = mo->inventory;
+
+	while(inv)
+	{
+		if(inv->type == type)
+			return inv;
+		inv = inv->next;
+	}
+	return NULL;
 }
 
 void P_DumpInventory(mobj_t *mo)

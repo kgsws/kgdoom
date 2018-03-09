@@ -84,6 +84,8 @@ typedef struct weaponlist_s
 {
 	struct weaponlist_s *next;
 	patch_t *patch;
+	patch_t *pammo[2];
+	int ammo[2];
 	int type;
 	boolean owned;
 } weaponlist_t;
@@ -105,12 +107,6 @@ static patch_t*		pack_back;
 // death timeout
 static int deathtime;
 
-// tables
-//static char *const ammo_icon[NUMAMMO] = {"AMMOA0", "SBOXA0", "CELPA0", "BROKA0"};
-static char *const weap_icon[MAXWEAPONS] = {"PUNGC0", "PISGC0", "SHOTA0", "MGUNA0", "LAUNA0", "PLASA0", "BFUGA0", "CSAWA0", "SGN2A0"};
-static const int weap_offs_x[8] = {0  , 200, 300, 200 , 0   , -200, -300, -200};
-static const int weap_offs_y[8] = {200, 150, 0  , -150, -200, -150, 0   , 150};
-
 // [kg] weapon menu
 static weaponlist_t *weapon_list;
 static weaponlist_t *weapon_last;
@@ -118,6 +114,9 @@ static angle_t weapon_astep;
 boolean in_weapon_menu;
 static weapontype_t weapon_change;
 static weapontype_t weapon_select;
+
+// [kg] weapon HUD
+inventory_t *weapon_ammo[2];
 
 // [kg] keys
 keylist_t *key_list;
@@ -483,17 +482,31 @@ ST_Responder (event_t* ev)
 	else 
 	  plyr->message = STSTR_DQDOFF;
       }
+      // 'kfa' cheat for killer fucking arsenal
+      else if (cht_CheckCheat(&cheat_ammo, ev->data1))
+      {
+	keylist_t *kist = key_list;
+
+	while(kist)
+	{
+		if(kist->patch)
+			P_GiveInventory(plyr->mo, &mobjinfo[kist->type], 1);
+		kist = kist->next;
+	}
+
+	weaponlist_t *list = weapon_list;
+	while(list)
+	{
+		if(list->patch)
+			P_GiveInventory(plyr->mo, &mobjinfo[list->type], 1);
+		list = list->next;
+	}
+	
+	plyr->message = STSTR_KFAADDED;
+      }
       // 'fa' cheat for killer fucking arsenal
       else if (cht_CheckCheat(&cheat_ammonokey, ev->data1))
       {
-	plyr->mo->armorpoints = 200;
-//	plyr->mo->armortype = 2;
-	
-//	plyr->weaponowned = -1;
-	
-//	for (i=0;i<NUMAMMO;i++)
-//	  plyr->ammo[i] = plyr->maxammo[i];
-
 	weaponlist_t *list = weapon_list;
 	while(list)
 	{
@@ -720,33 +733,13 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	}
 
 	// ammo
-/*	temp = am_noammo;
-	switch(plyr->readyweapon)
+	if(weapon_ammo[0])
 	{
-		case wp_pistol:
-		case wp_chaingun:
-			temp = am_clip;
-		break;
-		case wp_shotgun:
-		case wp_supershotgun:
-			temp = am_shell;
-		break;
-		case wp_missile:
-			temp = am_misl;
-		break;
-		case wp_plasma:
-		case wp_bfg:
-			temp = am_cell;
-		break;
+		if(weapon_ammo[0]->type->icon >= 0)
+			V_DrawPatchNew(STBAR_AMMO_X, STBAR_AMMO_Y, W_CacheLumpNum(weapon_ammo[0]->type->icon), v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_NONE, 2);
+		STlib_drawNum(STBAR_AMMO_X, STBAR_AMMO_Y + 8, weapon_ammo[0]->count, plyr->cheats & CF_INFAMMO ? imap : v_colormap_normal);
 	}
-	if(temp != am_noammo)
-	{
-		if(plyr->backpack)
-			V_DrawPatchNew(STBAR_AMMO_X - 4, STBAR_AMMO_Y + 12, pack_back, v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_CENTER, 2);
-		V_DrawPatchNew(STBAR_AMMO_X, STBAR_AMMO_Y, ammo_back[temp], v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_NONE, 2);
-		STlib_drawNum(STBAR_AMMO_X, STBAR_AMMO_Y + 8, plyr->ammo[temp], plyr->cheats & CF_INFAMMO ? bloodlationtables + 256 : v_colormap_normal);
-	}
-*/
+
 	// keys
 	{
 		keylist_t *list = key_list;
@@ -833,34 +826,38 @@ void ST_loadGraphics(void)
 	// health
 	hp_back = (patch_t *) W_CacheLumpName("MEDIA0");
 
-	// ammo
-/*	for(i = 0; i < NUMAMMO; i++)
-	{
-		// some lumps are not present in shareware
-		int lump = W_CheckNumForName(ammo_icon[i]);
-		if(lump >= 0)
-			ammo_back[i] = W_CacheLumpNum(lump);
-	}
-*/	pack_back = (patch_t *) W_CacheLumpName("BPAKA0");
+	pack_back = (patch_t *) W_CacheLumpName("BPAKA0");
 }
 
-void ST_AddWeaponType(int type, char *patch)
+static patch_t *get_patch(char *patch)
 {
 	int pnum;
+
+	if(!patch)
+		return NULL;
+
+	pnum = W_CheckNumForName(patch);
+
+	if(pnum < 0)
+		return NULL;
+
+	return W_CacheLumpNum(pnum);
+}
+
+void ST_AddWeaponType(int type, char *patch, int ammo0type, int ammo1type)
+{
 	weaponlist_t *list;
 
 	list = malloc(sizeof(weaponlist_t));
 	if(!list)
 		I_Error("ST_AddWeaponType: memory allocation error");
 
-	pnum = W_CheckNumForName(patch);
 	list->next = NULL;
-	if(pnum >= 0)
-		list->patch = W_CacheLumpNum(pnum);
-	else
-		list->patch = NULL;
+	list->patch = get_patch(patch);
 	list->type = type;
 	list->owned = false;
+	list->ammo[0] = ammo0type;
+	list->ammo[1] = ammo1type;
 
 	if(weapon_last)
 		weapon_last->next = list;
@@ -943,6 +940,31 @@ void ST_ClearInventory()
 			list->owned = 0;
 			list = list->next;
 		}
+	}
+}
+
+void ST_ReadyWeapon(void *pl)
+{
+	player_t *plr = pl;
+	weaponlist_t *list = weapon_list;
+
+	weapon_ammo[0] = NULL;
+	weapon_ammo[1] = NULL;
+
+	while(list)
+	{
+		if(list->type == plr->readyweapon)
+		{
+			weapon_ammo[0] = P_GetInventory(plr->mo, &mobjinfo[list->ammo[0]]);
+			weapon_ammo[1] = P_GetInventory(plr->mo, &mobjinfo[list->ammo[1]]);
+			// must be undepletable
+			if(weapon_ammo[0] && weapon_ammo[0]->maxcount >= 0)
+				weapon_ammo[0] = NULL;
+			if(weapon_ammo[1] && weapon_ammo[1]->maxcount >= 0)
+				weapon_ammo[1] = NULL;
+			return;
+		}
+		list = list->next;
 	}
 }
 

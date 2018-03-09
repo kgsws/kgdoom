@@ -403,10 +403,6 @@ R_DrawVisSprite
 
     if(vis->mo)
     {
-	// [kg] custom colormap; first
-	if(vis->translation)
-		dc_colormap = vis->mo->colormap.data;
-	else
 	if(fixedcolormap)
 	{
 		// forced colormap
@@ -455,16 +451,17 @@ R_DrawVisSprite
 		dc_colormap = spritelights[index];
 	}
 
-	if(vis->mo->flags & MF_HOLEY)
-		colfunc = R_DrawColumnHoley;
-	if(vis->mo->flags & MF_SHADOW)
-		colfunc = fuzzcolfunc;
-
 	if(vis->translation)
 	{
 		colfunc = R_DrawTranslatedColumn;
 		dc_translation = vis->translation;
 	}
+
+	if(vis->mo->flags & MF_HOLEY)
+		colfunc = R_DrawColumnHoley;
+	if(vis->mo->flags & MF_SHADOW)
+		colfunc = fuzzcolfunc;
+
     } else
     {
 	// player sprite

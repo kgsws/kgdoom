@@ -1,9 +1,9 @@
 -- kgsws' Lua Doom exports
 -- Doom monsters
 
-a.Gravity =
+a.NoGravity =
 function(mobj)
-	mobj.flags = mobj.flags | mf.noGravity
+	mobj.__noGravity = true
 end
 
 a.SkullAttack =
@@ -12,7 +12,7 @@ function(mobj)
 	local sl
 	local sp
 	a.SoundAttack(mobj)
-	mobj.flags = mobj.flags | mf.skullFly
+	mobj.__skullFly = true
 	an, sl = mobj.AttackAim()
 	if sl < 0 then
 		sp = 1 + sl
@@ -41,7 +41,9 @@ mtype = {
 	painChance = 256,
 	damage = 3,
 	damageScale = {0},
-	flags = mf.Monster | mf.float | mf.noGravity,
+	__Monster = true,
+	__float = true,
+	__noGravity = true,
 	_spawn = {
 		{"*SKULA", 10, a.Look},
 		{"*SKULB", 10, a.Look},
@@ -65,7 +67,7 @@ mtype = {
 		"_see"
 	},
 	_death = {
-		{"*SKULF", 8, a.Gravity},
+		{"*SKULF", 8, a.NoGravity},
 		{"*SKULG", 8, a.SoundDeath},
 		{"*SKULH", 8},
 		{"*SKULI", 8, a.Fall},

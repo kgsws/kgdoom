@@ -54,6 +54,7 @@ P_SetPsprite
 	{
 	    // object removed itself
 	    psp->state = NULL;
+	    player->extralight = 0;
 	    break;	
 	}
 
@@ -137,6 +138,9 @@ void P_BringUpWeapon (player_t* player)
 
     player->readyweapon = player->pendingweapon;
     player->pendingweapon = wp_nochange;
+
+    if(player == &players[consoleplayer])
+	ST_ReadyWeapon(player);
 
     P_SetPsprite (player, ps_weapon, newstate);
 }

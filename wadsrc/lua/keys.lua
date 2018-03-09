@@ -19,7 +19,8 @@ mtype = {
 	ednum = 5,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.notInDeathmatch,
+	__special = true,
+	__notInDeathmatch = true,
 	_spawn = {
 		{"BKEYA", 10},
 		{"*BKEYB", 10},
@@ -37,7 +38,8 @@ mtype = {
 	ednum = 6,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.notInDeathmatch,
+	__special = true,
+	__notInDeathmatch = true,
 	_spawn = {
 		{"YKEYA", 10},
 		{"*YKEYB", 10},
@@ -55,7 +57,8 @@ mtype = {
 	ednum = 13,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.notInDeathmatch,
+	__special = true,
+	__notInDeathmatch = true,
 	_spawn = {
 		{"RKEYA", 10},
 		{"*RKEYB", 10},
@@ -73,7 +76,8 @@ mtype = {
 	ednum = 38,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.notInDeathmatch,
+	__special = true,
+	__notInDeathmatch = true,
 	_spawn = {
 		{"RSKUA", 10},
 		{"*RSKUB", 10},
@@ -91,7 +95,8 @@ mtype = {
 	ednum = 39,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.notInDeathmatch,
+	__special = true,
+	__notInDeathmatch = true,
 	_spawn = {
 		{"YSKUA", 10},
 		{"*YSKUB", 10},
@@ -109,7 +114,8 @@ mtype = {
 	ednum = 40,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.notInDeathmatch,
+	__special = true,
+	__notInDeathmatch = true,
 	_spawn = {
 		{"BSKUA", 10},
 		{"*BSKUB", 10},

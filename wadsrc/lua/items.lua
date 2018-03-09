@@ -123,7 +123,7 @@ function pickupSuit(mobj, spec, arg)
 end
 
 function removeInvuln(mobj)
-	mobj.flags = mobj.flags & ~mf.invulnerable
+	mobj.__invulnerable = false
 	if mobj.TickerCheck(pw_infrared) then
 		mobj.player.colormap = "COLORMAP:1"
 	else
@@ -132,7 +132,7 @@ function removeInvuln(mobj)
 end
 
 function pickupInvuln(mobj, spec, arg)
-	mobj.flags = mobj.flags | mf.invulnerable
+	mobj.__invulnerable = true
 	mobj.player.Message("Invulnerability!")
 	mobj.TickerSet(pw_invulnerability, 30*35, removeInvuln)
 	mobj.player.colormap = "COLORMAP:32"
@@ -140,11 +140,11 @@ function pickupInvuln(mobj, spec, arg)
 end
 
 function removeInvis(mobj)
-	mobj.flags = mobj.flags & ~mf.shadow
+	mobj.__shadow = false
 end
 
 function pickupInvis(mobj, spec, arg)
-	mobj.flags = mobj.flags | mf.shadow
+	mobj.__shadow = true
 	mobj.player.Message("Partial Invisibility")
 	mobj.TickerSet(pw_invisibility, 60*35, removeInvis)
 	return pickup.power
@@ -184,7 +184,7 @@ mtype = {
 	ednum = 8,
 	radius = 20,
 	height = 8,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"BPAKA", -1}
 	}
@@ -198,7 +198,8 @@ mtype = {
 	ednum = 83,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.countItem,
+	__special = true,
+	__countItem = true,
 	_spawn = {
 		{"*MEGAA", 6},
 		{"*MEGAB", 6},
@@ -218,7 +219,7 @@ mtype = {
 	ednum = 2011,
 	radius = 20,
 	height = 8,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"STIMA", -1}
 	}
@@ -234,7 +235,7 @@ mtype = {
 	ednum = 2012,
 	radius = 20,
 	height = 8,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"MEDIA", -1}
 	}
@@ -248,7 +249,8 @@ mtype = {
 	ednum = 2013,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.countItem,
+	__special = true,
+	__countItem = true,
 	_spawn = {
 		{"*SOULA", 6},
 		{"*SOULB", 6},
@@ -268,7 +270,8 @@ mtype = {
 	ednum = 2014,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.countItem,
+	__special = true,
+	__countItem = true,
 	_spawn = {
 		{"BON1A", 6},
 		{"BON1B", 6},
@@ -288,7 +291,8 @@ mtype = {
 	ednum = 2015,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.countItem,
+	__special = true,
+	__countItem = true,
 	_spawn = {
 		{"BON2A", 6},
 		{"BON2B", 6},
@@ -309,7 +313,7 @@ mtype = {
 	ednum = 2018,
 	radius = 20,
 	height = 8,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"ARM1A", 6},
 		{"*ARM1B", 6},
@@ -326,7 +330,7 @@ mtype = {
 	ednum = 2019,
 	radius = 20,
 	height = 8,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"ARM2A", 6},
 		{"*ARM2B", 6},
@@ -342,7 +346,8 @@ mtype = {
 	ednum = 2022,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.countItem,
+	__special = true,
+	__countItem = true,
 	_spawn = {
 		{"*PINVA", 6},
 		{"*PINVB", 6},
@@ -361,7 +366,8 @@ mtype = {
 	ednum = 2023,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.countItem,
+	__special = true,
+	__countItem = true,
 	_spawn = {
 		{"*PSTRA", -1}
 	}
@@ -375,7 +381,8 @@ mtype = {
 	ednum = 2024,
 	radius = 20,
 	height = 8,
-	flags = mf.special | mf.countItem,
+	__special = true,
+	__countItem = true,
 	_spawn = {
 		{"*PINSA", 6},
 		{"*PINSB", 6},
@@ -393,7 +400,7 @@ mtype = {
 	ednum = 2025,
 	radius = 20,
 	height = 8,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"*SUITA", -1}
 	}
@@ -405,7 +412,7 @@ mtype = {
 	ednum = 2026,
 	radius = 20,
 	height = 8,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"*PMAPA", 6},
 		{"*PMAPB", 6},
@@ -425,7 +432,7 @@ mtype = {
 	ednum = 2045,
 	radius = 20,
 	height = 8,
-	flags = mf.special,
+	__special = true,
 	_spawn = {
 		{"*PVISA", 6},
 		{"PVISB", 6},
