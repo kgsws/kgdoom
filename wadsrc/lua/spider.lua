@@ -88,6 +88,9 @@ mtype = {
 		{"SPIDR", 10},
 		{"SPIDS", 30},
 		{"SPIDS", -1, a.SpidDie}
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_SPIDER = createMobjType(mtype)

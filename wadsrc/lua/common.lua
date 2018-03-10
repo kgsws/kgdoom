@@ -1,6 +1,16 @@
 -- kgsws' Lua Doom exports
 -- common action functions
 
+a.Crushed =
+function(mobj)
+	if mobj.info == MT_HEAD then
+		mobj.translation = "BLOODMAP:0"
+	elseif mobj.info == MT_BRUISER or mobj.info == MT_KNIGHT then
+		mobj.translation = "BLOODMAP:1"
+	end
+	mobj.__solid = false
+end
+
 a.Metal =
 function(mobj)
 	mobj.SoundPickup("dsmetal")

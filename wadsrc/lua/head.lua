@@ -93,6 +93,9 @@ mtype = {
 		{"HEADH", 8},
 		{"HEADG", 8},
 		"_see"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_HEAD = createMobjType(mtype)

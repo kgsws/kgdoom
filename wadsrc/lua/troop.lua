@@ -124,6 +124,9 @@ mtype = {
 		{"TROOJ", 5},
 		{"TROOI", 5},
 		"_see+1"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_TROOP = createMobjType(mtype)

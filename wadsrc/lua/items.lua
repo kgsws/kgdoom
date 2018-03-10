@@ -118,7 +118,7 @@ end
 function pickupSuit(mobj, spec, arg)
 	mobj.DamageScale(1, 0)
 	mobj.player.Message("Radiation Shielding Suit")
-	mobj.TickerSet(pw_ironfeet, 60*35, removeSuit)
+	mobj.TickerSet(pw_ironfeet, 60*35, "SUITA0", removeSuit)
 	return pickup.power
 end
 
@@ -134,7 +134,7 @@ end
 function pickupInvuln(mobj, spec, arg)
 	mobj.__invulnerable = true
 	mobj.player.Message("Invulnerability!")
-	mobj.TickerSet(pw_invulnerability, 30*35, removeInvuln)
+	mobj.TickerSet(pw_invulnerability, 30*35, "PINVA0", removeInvuln)
 	mobj.player.colormap = "COLORMAP:32"
 	return pickup.power
 end
@@ -146,7 +146,7 @@ end
 function pickupInvis(mobj, spec, arg)
 	mobj.__shadow = true
 	mobj.player.Message("Partial Invisibility")
-	mobj.TickerSet(pw_invisibility, 60*35, removeInvis)
+	mobj.TickerSet(pw_invisibility, 60*35, "PINSA0", removeInvis)
 	return pickup.power
 end
 
@@ -159,7 +159,7 @@ end
 
 function pickupVisor(mobj, spec, arg)
 	mobj.player.Message("Light Amplification Visor")
-	mobj.TickerSet(pw_infrared, 120*35, removeVisor)
+	mobj.TickerSet(pw_infrared, 120*35, "PVISA0", removeVisor)
 	if not mobj.TickerCheck(pw_invulnerability) then
 		mobj.player.colormap = "COLORMAP:1"
 	end

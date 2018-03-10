@@ -42,6 +42,7 @@ function(thing, vile)
 			thing.ResetFlags(true)
 			thing.health = thing.info.health
 			thing.target = nil
+			thing.translation = "-"
 			return false, thing
 		else
 			thing.height = temp
@@ -205,6 +206,9 @@ mtype = {
 		{"*VILE\\", 10},
 		{"*VILE]", 10},
 		"_see"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_VILE = createMobjType(mtype)

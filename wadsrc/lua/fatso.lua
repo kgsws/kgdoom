@@ -144,6 +144,9 @@ mtype = {
 		{"FATTL", 5},
 		{"FATTK", 5},
 		"_see"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_FATSO = createMobjType(mtype)

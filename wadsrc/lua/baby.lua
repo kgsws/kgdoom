@@ -123,6 +123,9 @@ mtype = {
 		{"BSPIK", 5},
 		{"BSPIJ", 5},
 		"_see+1"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_BABY = createMobjType(mtype)

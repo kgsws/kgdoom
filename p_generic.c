@@ -6,6 +6,7 @@
 #include "s_sound.h"
 #include "doomstat.h"
 #include "r_state.h"
+#include "w_wad.h"
 
 #include "p_generic.h"
 
@@ -289,7 +290,7 @@ generic_line_t *P_TextureScroller(line_t *line, fixed_t x, fixed_t y, int side)
 // Mobj ticker
 //
 
-void P_AddMobjTicker(mobj_t *mo, int id, int ticrate, int action, int arg)
+void P_AddMobjTicker(mobj_t *mo, int id, int ticrate, int action, int arg, int patch)
 {
 	generic_ticker_t *gt = mo->generic_ticker;
 
@@ -314,6 +315,10 @@ void P_AddMobjTicker(mobj_t *mo, int id, int ticrate, int action, int arg)
 		new->curtics = ticrate;
 		new->lua_action = action;
 		new->lua_arg = arg;
+		if(patch >= 0)
+			new->patch = W_CacheLumpNum(patch);			
+		else
+			new->patch = NULL;
 
 		if(gt)
 			// add to chain
@@ -332,6 +337,11 @@ void P_AddMobjTicker(mobj_t *mo, int id, int ticrate, int action, int arg)
 	gt->curtics = ticrate;
 	gt->lua_action = action;
 	gt->lua_arg = arg;
+	if(patch >= 0)
+		gt->patch = W_CacheLumpNum(patch);			
+	else
+		gt->patch = NULL;
+
 }
 
 void P_RemoveMobjTicker(mobj_t *mo, int id)

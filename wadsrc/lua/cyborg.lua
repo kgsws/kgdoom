@@ -82,6 +82,9 @@ mtype = {
 		{"CYBRO", 10},
 		{"CYBRP", 30},
 		{"CYBRP", -1, a.CyberDie}
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_CYBORG = createMobjType(mtype)

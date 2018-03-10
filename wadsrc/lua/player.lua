@@ -80,6 +80,9 @@ mtype = {
 		{"PLAYU", 5},
 		{"PLAYV", 5},
 		{"PLAYW", -1}
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 setPlayerType(createMobjType(mtype))

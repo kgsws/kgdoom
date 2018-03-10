@@ -76,6 +76,9 @@ mtype = {
 		{"SARGJ", 5},
 		{"SARGI", 5},
 		"_see"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_SERGEANT = createMobjType(mtype)

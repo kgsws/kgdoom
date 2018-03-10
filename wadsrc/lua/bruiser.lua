@@ -115,7 +115,11 @@ mtype = {
 		{"BOSSJ", 8},
 		{"BOSSI", 8},
 		"_see"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
+
 }
 MT_BRUISER = createMobjType(mtype)
 
@@ -189,6 +193,9 @@ mtype = {
 		{"BOS2J", 8},
 		{"BOS2I", 8},
 		"_see"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_KNIGHT = createMobjType(mtype)

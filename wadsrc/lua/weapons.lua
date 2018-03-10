@@ -74,11 +74,6 @@ function(mobj)
 	mobj.InventoryTake(MT_SHELL, 2)
 end
 
-a.SgnCheck =
-function(mobj)
-	print("check for ammo")
-end
-
 a.SgnSound0 =
 function(mobj)
 	mobj.SoundWeapon("dsdbopn")
@@ -134,8 +129,14 @@ end
 
 a.BfgSound =
 function(mobj)
-	a.NoiseAlert(mobj)
-	mobj.SoundWeapon("dsbfg")
+	local count
+	count = mobj.InventoryCheck(MT_CELL)
+	if count < 40 then
+		changeWeapon(mobj)
+	else
+		a.NoiseAlert(mobj)
+		mobj.SoundWeapon("dsbfg")
+	end
 end
 
 a.FireBfg =
@@ -190,6 +191,61 @@ function(mobj)
 	mobj.SoundWeapon("dssawup")
 end
 
+a.CheckClipAmmo =
+function(mobj)
+	local count
+	count = mobj.InventoryCheck(MT_CLIP)
+	if count < 1 then
+		changeWeapon(mobj)
+	else
+		a.NoiseAlert(mobj)
+	end
+end
+
+a.CheckShellAmmo =
+function(mobj)
+	local count
+	count = mobj.InventoryCheck(MT_SHELL)
+	if count < 1 then
+		changeWeapon(mobj)
+	else
+		a.NoiseAlert(mobj)
+	end
+end
+
+a.CheckShell2Ammo =
+function(mobj)
+	local count
+	count = mobj.InventoryCheck(MT_SHELL)
+	if count < 2 then
+		changeWeapon(mobj)
+	else
+		a.NoiseAlert(mobj)
+	end
+end
+
+a.CheckRocketAmmo =
+function(mobj)
+	local count
+	count = mobj.InventoryCheck(MT_ROCKETAMMO)
+	if count < 1 then
+		changeWeapon(mobj)
+	else
+		a.NoiseAlert(mobj)
+	end
+end
+
+a.CheckCellAmmo =
+function(mobj)
+	local count
+	count = mobj.InventoryCheck(MT_CELL)
+	if count < 1 then
+		changeWeapon(mobj)
+	else
+		a.NoiseAlert(mobj)
+	end
+end
+
 function pickupWeapon(mobj, spec, arg)
 	local left
 	if arg[1] ~= nil then
@@ -207,6 +263,29 @@ function pickupWeapon(mobj, spec, arg)
 	end
 	mobj.player.Message(arg[3])
 	return pickup.weapon
+end
+
+function changeWeapon(mobj)
+	if mobj.InventoryCheck(MT_PLASMAGUN) > 0 and mobj.InventoryCheck(MT_CELL) > 0 then
+		mobj.player.SetWeapon(MT_PLASMAGUN)
+	elseif mobj.InventoryCheck(MT_SUPERSHOTGUN) > 0 and mobj.InventoryCheck(MT_SHELL) > 1 then
+		mobj.player.SetWeapon(MT_SUPERSHOTGUN)
+	elseif mobj.InventoryCheck(MT_CHAINGUN) > 0 and mobj.InventoryCheck(MT_CLIP) > 0 then
+		mobj.player.SetWeapon(MT_CHAINGUN)
+	elseif mobj.InventoryCheck(MT_SHOTGUN) > 0 and mobj.InventoryCheck(MT_SHELL) > 0 then
+		mobj.player.SetWeapon(MT_SHOTGUN)
+	elseif mobj.InventoryCheck(MT_PISTOL) > 0 and mobj.InventoryCheck(MT_CLIP) > 0 then
+		mobj.player.SetWeapon(MT_PISTOL)
+	elseif mobj.InventoryCheck(MT_CHAINSAW) > 0 then
+		mobj.player.SetWeapon(MT_CHAINSAW)
+	elseif mobj.InventoryCheck(MT_LAUNCHER) > 0 and mobj.InventoryCheck(MT_ROCKETAMMO) > 0 then
+		mobj.player.SetWeapon(MT_LAUNCHER)
+	elseif mobj.InventoryCheck(MT_BFGW) > 0 and mobj.InventoryCheck(MT_CELL) >= 40 then
+		mobj.player.SetWeapon(MT_BFGW)
+	else
+		mobj.player.SetWeapon(MT_FIST)
+	end
+	a.WeaponReady(mobj)
 end
 
 --
@@ -356,7 +435,7 @@ mtype = {
 		"loop"
 	},
 	_wFireMain = {
-		{"PISGA", 4, a.NoiseAlert},
+		{"PISGA", 4, a.CheckClipAmmo},
 		{"PISGB", 6, a.FirePistol},
 		{"PISGC", 4},
 		{"PISGA", 5, a.WeaponRefire},
@@ -394,7 +473,7 @@ mtype = {
 		"loop"
 	},
 	_wFireMain = {
-		{"SHTGA", 3, a.NoiseAlert},
+		{"SHTGA", 3, a.CheckShellAmmo},
 		{"SHTGA", 7, a.FireShotgun},
 		{"SHTGB", 5},
 		{"SHTGC", 5},
@@ -438,10 +517,10 @@ mtype = {
 		"loop"
 	},
 	_wFireMain = {
-		{"SHT2A", 3, a.NoiseAlert},
+		{"SHT2A", 3, a.CheckShell2Ammo},
 		{"SHT2A", 7, a.FireShotgun2},
 		{"SHT2B", 7},
-		{"SHT2C", 7, a.SgnCheck},
+		{"SHT2C", 7, a.CheckShell2Ammo},
 		{"SHT2D", 7, a.SgnSound0},
 		{"SHT2E", 7},
 		{"SHT2F", 7, a.SgnSound1},
@@ -483,7 +562,7 @@ mtype = {
 		"loop"
 	},
 	_wFireMain = {
-		{"CHGGA", 0, a.NoiseAlert},
+		{"CHGGA", 0, a.CheckClipAmmo},
 		{"CHGGA", 4, a.FireChaingun0},
 		{"CHGGB", 4, a.FireChaingun1},
 		{"CHGGB", 0, a.WeaponRefire},
@@ -523,7 +602,7 @@ mtype = {
 		"loop"
 	},
 	_wFireMain = {
-		{"MISGB", 0, a.NoiseAlert},
+		{"MISGB", 0, a.CheckRocketAmmo},
 		{"MISGB", 8, a.WeaponFlash},
 		{"MISGB", 12, a.FireMissile},
 		{"MISGB", 0, a.WeaponRefire},
@@ -564,7 +643,7 @@ mtype = {
 		"loop"
 	},
 	_wFireMain = {
-		{"PLSGA", 0, a.NoiseAlert},
+		{"PLSGA", 0, a.CheckCellAmmo},
 		{"PLSGA", 3, a.FirePlasma},
 		{"PLSGB", 20, a.WeaponRefire},
 		"_wReady"

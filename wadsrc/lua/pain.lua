@@ -94,6 +94,9 @@ mtype = {
 		{"PAINI", 8},
 		{"PAINH", 8},
 		"_see"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_PAIN = createMobjType(mtype)

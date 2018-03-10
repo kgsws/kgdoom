@@ -1616,20 +1616,14 @@ boolean PIT_ChangeSector (mobj_t*	thing)
     }
 
     // crunch bodies to giblets
-    if (thing->health <= 0)
+    if (thing->health <= 0 && thing->flags & MF_CORPSE && thing->info->crushstate)
     {
 #ifndef SERVER
 	if(!netgame)
 	{
 #endif
 
-	if(!(thing->flags & MF_NOBLOOD))
-	{
-//		P_SetMobjState (thing, S_GIBS); // TODO: gibs state
-		thing->flags &= ~(MF_SOLID|MF_COUNTKILL);
-//		thing->height = 0;
-//		thing->radius = 0;
-	}
+	P_SetMobjState(thing, thing->info->crushstate);
 
 #ifdef SERVER
 	// tell clients about this

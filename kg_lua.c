@@ -3765,19 +3765,31 @@ static int LUA_mobjTickerSet(lua_State *L)
 	mobj_t *mo;
 	int func, id, rate;
 	int arg = LUA_REFNIL;
+	int patch = -1;
 
 	// ID; required
 	luaL_checktype(L, 1, LUA_TNUMBER);
 	// ticrate; required
 	luaL_checktype(L, 2, LUA_TNUMBER);
+	// icon; can be nil
+	if(lua_type(L, 3) != LUA_TNIL)
+	{
+		const char *tmp;
+		char name[8];
+
+		luaL_checktype(L, 3, LUA_TSTRING);
+		tmp = lua_tostring(L, 3);
+		strncpy(name, tmp, 8);
+		patch = W_CheckNumForName(name);
+	}
 	// function; required
-	luaL_checktype(L, 3, LUA_TFUNCTION);
+	luaL_checktype(L, 4, LUA_TFUNCTION);
 
 	id = lua_tointeger(L, 1);
 	rate = lua_tointeger(L, 2);
 
 	// argument; optional
-	if(lua_gettop(L) > 3)
+	if(lua_gettop(L) > 4)
 	{
 		arg = luaL_ref(L, LUA_REGISTRYINDEX);
 		LUA_DebugRef(arg, false);
@@ -3789,7 +3801,7 @@ static int LUA_mobjTickerSet(lua_State *L)
 
 	mo = lua_touserdata(L, lua_upvalueindex(1));
 
-	P_AddMobjTicker(mo, id, rate, func, arg);
+	P_AddMobjTicker(mo, id, rate, func, arg, patch);
 
 	return 0;
 }

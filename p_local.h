@@ -31,7 +31,7 @@
 
 #define USERANGE		(64*FRACUNIT)
 #define MELEERANGE		(64*FRACUNIT)
-#define MISSILERANGE	(8192*FRACUNIT)
+#define MISSILERANGE	(4096*FRACUNIT)
 
 // follow a player exlusively for 3 seconds
 #define	BASETHRESHOLD	 	100

@@ -84,9 +84,10 @@ typedef struct generic_ticker_s
 	int curtics;
 	int lua_action; // Lua function to call
 	int lua_arg; // Lua, optional argument
+	void *patch;
 } generic_ticker_t;
 
-void P_AddMobjTicker(mobj_t *mo, int id, int ticrate, int action, int arg);
+void P_AddMobjTicker(mobj_t *mo, int id, int ticrate, int action, int arg, int patch);
 void P_RemoveMobjTicker(mobj_t *mo, int id);
 void P_RemoveMobjTickers(mobj_t *mo);
 

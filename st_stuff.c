@@ -38,6 +38,7 @@
 #include "dstrings.h"
 
 #include "p_inventory.h"
+#include "p_generic.h"
 
 //
 // STATUS BAR DATA
@@ -674,7 +675,7 @@ void ST_doPaletteStuff(void)
 
 void ST_Drawer (boolean fullscreen, boolean refresh)
 {
-	int x, temp;
+	int x, y, temp;
 	byte *cmap;
 	byte *imap = v_colormap_normal + 256*32;
 
@@ -744,6 +745,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	{
 		keylist_t *list = key_list;
 
+		y = 0; // used for powerups too
 		x = STBAR_KEY_X;
 		while(list)
 		{
@@ -751,8 +753,28 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 			{
 				V_DrawPatchNew(x, STBAR_KEY_Y, list->patch, v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_TOP, 3);
 				x -= SHORT(list->patch->width) * 3 + 3;
+				if(y < SHORT(list->patch->height) * 3)
+					y = SHORT(list->patch->height) * 3;
 			}
 			list = list->next;
+		}
+	}
+
+	// powers
+	{
+		y += 6;
+		x = STBAR_KEY_X;
+		generic_ticker_t *gt = plyr->mo->generic_ticker;
+		while(gt)
+		{
+			if(gt->patch)
+			{
+				patch_t *patch = gt->patch;
+				if(gt->curtics > 4*32 || gt->curtics & 8) // TODO: replace with translucency
+					V_DrawPatchNew(x, STBAR_KEY_Y + y, patch, v_colormap_normal, V_HALLIGN_RIGHT, V_VALLIGN_TOP, 3);
+				x -= SHORT(patch->width) * 3 + 3;
+			}
+			gt = gt->next;
 		}
 	}
 

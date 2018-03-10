@@ -134,6 +134,9 @@ mtype = {
 		{"POSSI", 5},
 		{"POSSH", 5},
 		"_see+1"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_POSSESSED = createMobjType(mtype)
@@ -208,6 +211,9 @@ mtype = {
 		{"SPOSI", 5},
 		{"SPOSH", 5},
 		"_see+1"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_SHOTGUY = createMobjType(mtype)
@@ -284,6 +290,9 @@ mtype = {
 		{"CPOSI", 5},
 		{"CPOSH", 5},
 		"_see+1"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_CHAINGUY = createMobjType(mtype)
@@ -362,6 +371,9 @@ mtype = {
 		{"SSWVJ", 5},
 		{"SSWVI", 5},
 		"_see"
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_WOLFSS = createMobjType(mtype)

@@ -47,6 +47,9 @@ mtype = {
 		{"KEENJ", 6},
 		{"KEENK", 6, a.Fall},
 		{"KEENL", -1, a.KeenDie},
+	},
+	_crush = {
+		{"POL5A0", -1, a.Crushed}
 	}
 }
 MT_KEEN = createMobjType(mtype)
