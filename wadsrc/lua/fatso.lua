@@ -55,6 +55,7 @@ mtype = {
 	radius = 6,
 	height = 8,
 	damage = -8,
+	pass = 3,
 	__Projectile = true,
 	_spawn = {
 		{"*MANFA", 4},
@@ -85,6 +86,7 @@ mtype = {
 	painChance = 80,
 	shootz = 32,
 	species = 2,
+	pass = 1,
 	damageScale = {0},
 	__Monster = true,
 	_spawn = {

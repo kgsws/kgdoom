@@ -34,6 +34,7 @@ mtype = {
 	radius = 11,
 	height = 8,
 	damage = -10,
+	pass = 3,
 	__Projectile = true,
 	_spawn = {
 		{"*FATBA", 2},
@@ -65,6 +66,7 @@ mtype = {
 	painChance = 100,
 	shootz = 48,
 	species = 1,
+	pass = 1,
 	damageScale = {0},
 	__Monster = true,
 	_spawn = {

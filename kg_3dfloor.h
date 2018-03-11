@@ -18,6 +18,7 @@ typedef struct extraplane_s
 	short *lightlevel;
 	int validcount;
 	short *clip;
+	uint16_t blocking;
 } extraplane_t;
 
 extern boolean fakeclip;

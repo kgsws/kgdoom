@@ -40,6 +40,7 @@ mtype = {
 	reactionTime = 8,
 	painChance = 40,
 	shootz = 58,
+	pass = 1,
 	damageScale = {0},
 	__Monster = true,
 	__noRadiusDamage = true,

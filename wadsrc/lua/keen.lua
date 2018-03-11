@@ -23,6 +23,7 @@ mtype = {
 	height = 72,
 	reactionTime = 8,
 	painChance = 256,
+	damageScale = {0},
 	__Monster = true,
 	__spawnCeiling = true,
 	__noGravity = true,

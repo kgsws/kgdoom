@@ -31,6 +31,7 @@ mtype = {
 	reactionTime = 8,
 	painChance = 180,
 	shootz = 36,
+	pass = 2,
 	damageScale = {0},
 	__Monster = true,
 	_spawn = {

@@ -404,7 +404,7 @@ void P_LoadLineDefs (int lump)
 	v2 = ld->v2 = &vertexes[v2idx];
 	ld->dx = v2->x - v1->x;
 	ld->dy = v2->y - v1->y;
-	
+
 	if (!ld->dx)
 	    ld->slopetype = ST_VERTICAL;
 	else if (!ld->dy)
@@ -456,6 +456,15 @@ void P_LoadLineDefs (int lump)
 	    ld->backsector = 0;
 	    ld->flags &= ~LF_TWOSIDED;
 	}
+
+	// [kg] blocking
+	ld->blocking = 0;
+	if(!ld->backsector)
+	    ld->blocking = 0xFFFF;
+	if(ld->flags & LF_BLOCKING)
+	    ld->blocking |= 3; // players and monsters
+	if(ld->flags & LF_BLOCKMONSTERS)
+	    ld->blocking |= 2; // monsters
 
 	// [kg] soundorg
 	ld->soundorg.x = ((v2->x - v1->x) / 2) + v1->x;
@@ -549,6 +558,17 @@ void P_LoadLineDefs_H(int lump)
 			ld->backsector = 0;
 			ld->flags &= ~LF_TWOSIDED;
 		}
+
+		// [kg] blocking
+		ld->blocking = 0;
+		if(!ld->backsector)
+		    ld->blocking = 0xFFFF;
+		if(ld->flags & ELF_TOTAL_BLOCK)
+		    ld->blocking |= 15; // players and monsters and shooting
+		if(ld->flags & LF_BLOCKING)
+		    ld->blocking |= 3; // players and monsters
+		if(ld->flags & LF_BLOCKMONSTERS)
+		    ld->blocking |= 2; // monsters
 
 		// [kg] soundorg
 		ld->soundorg.x = ((v2->x - v1->x) / 2) + v1->x;

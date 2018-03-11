@@ -39,6 +39,7 @@ mtype = {
 	radius = 13,
 	height = 8,
 	damage = -5,
+	pass = 3,
 	__Projectile = true,
 	_spawn = {
 		{"*APLSA", 5},
@@ -71,6 +72,7 @@ mtype = {
 	painChance = 128,
 	shootz = 32,
 	species = 6,
+	pass = 1,
 	damageScale = {0},
 	__Monster = true,
 	_spawn = {

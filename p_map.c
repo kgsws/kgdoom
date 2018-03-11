@@ -102,14 +102,9 @@ boolean PIT_CheckLine (line_t* ld)
     if (!ld->backsector)
 	goto nocross;		// one sided line
 
-    if (!(tmthing->flags & MF_MISSILE) )
-    {
-	if ( ld->flags & LF_BLOCKING )
-	    is_blocking = true;	// explicitly blocking everything
-
-	if ( !tmthing->player && ld->flags & LF_BLOCKMONSTERS )
-	    is_blocking = true;	// block monsters only
-    }
+    // [kg] new blocking style
+    if(~tmthing->canpass & ld->blocking)
+	is_blocking = true;
 
     // [kg] 3D midtex check
     if(is_blocking && (!isHexen || (!sides[ld->sidenum[0]].midtexture && !sides[ld->sidenum[1]].midtexture)))
@@ -191,11 +186,13 @@ boolean PIT_CheckLine (line_t* ld)
 	pl = ld->frontsector->exfloor;
 	while(pl)
 	{
-	    if(	pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
+	    if( ~tmthing->canpass & pl->blocking &&
+		pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
 		pl->source->floorheight < tmthing->z + tmthing->height
 	    )
 		goto nocross;
-	    if(*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
+	    if( ~tmthing->canpass & pl->blocking &&
+		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
 	    pl = pl->next;
 	}
@@ -203,7 +200,8 @@ boolean PIT_CheckLine (line_t* ld)
 	pl = ld->backsector->exfloor;
 	while(pl)
 	{
-	    if(*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
+	    if( ~tmthing->canpass & pl->blocking &&
+		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
 	    pl = pl->next;
 	}
@@ -212,11 +210,13 @@ boolean PIT_CheckLine (line_t* ld)
 	pl = ld->backsector->exfloor;
 	while(pl)
 	{
-	    if(	pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
+	    if( ~tmthing->canpass & pl->blocking &&
+		pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
 		pl->source->floorheight < tmthing->z + tmthing->height
 	    )
 		goto nocross;
-	    if(*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
+	    if( ~tmthing->canpass & pl->blocking &&
+		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
 	    pl = pl->next;
 	}
@@ -224,7 +224,8 @@ boolean PIT_CheckLine (line_t* ld)
 	pl = ld->frontsector->exfloor;
 	while(pl)
 	{
-	    if(*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
+	    if( ~tmthing->canpass & pl->blocking &&
+		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
 	    pl = pl->next;
 	}
@@ -236,7 +237,7 @@ boolean PIT_CheckLine (line_t* ld)
     {
 	if(*pl->height <= tmthing->z)
 	    break;
-	if(*pl->height < opentop)
+	if( ~tmthing->canpass & pl->blocking && *pl->height < opentop)
 	    opentop = *pl->height;
 	pl = pl->next;
     }
@@ -245,7 +246,7 @@ boolean PIT_CheckLine (line_t* ld)
     {
 	if(*pl->height <= tmthing->z)
 	    break;
-	if(*pl->height < opentop)
+	if( ~tmthing->canpass & pl->blocking && *pl->height < opentop)
 	    opentop = *pl->height;
 	pl = pl->next;
     }
@@ -304,6 +305,10 @@ boolean PIT_CheckThing (mobj_t* thing)
     
     // don't clip against self
     if (thing == tmthing)
+	return true;
+
+    // [kg] new blocking
+    if(!(~tmthing->canpass & thing->blocking))
 	return true;
 
     // [kg] thing Z collision checking
@@ -756,7 +761,7 @@ boolean PTR_SlideTraverse (intercept_t* in)
 		
     li = in->d.line;
 
-    if ( ! (li->flags & LF_TWOSIDED) )
+    if( ~slidemo->canpass & li->blocking )
     {
 	if (P_PointOnLineSide (slidemo->x, slidemo->y, li))
 	{
@@ -765,7 +770,7 @@ boolean PTR_SlideTraverse (intercept_t* in)
 	}
 	goto isblocking;
     } else
-    if(li->flags & LF_BLOCKING)
+    if(~slidemo->canpass & li->blocking)
         goto isblocking;
 
     // set openrange, opentop, openbottom
@@ -786,7 +791,8 @@ boolean PTR_SlideTraverse (intercept_t* in)
 	pl = li->frontsector->exfloor;
 	while(pl)
 	{
-	    if(	pl->source->ceilingheight > slidemo->z + slidemo->info->stepheight &&
+	    if(	~slidemo->canpass & pl->blocking &&
+		pl->source->ceilingheight > slidemo->z + slidemo->info->stepheight &&
 		pl->source->floorheight < slidemo->z + slidemo->height
 	    )
 		goto isblocking;
@@ -797,7 +803,8 @@ boolean PTR_SlideTraverse (intercept_t* in)
 	pl = li->backsector->exfloor;
 	while(pl)
 	{
-	    if(	pl->source->ceilingheight > slidemo->z + slidemo->info->stepheight &&
+	    if(	~slidemo->canpass & pl->blocking &&
+		pl->source->ceilingheight > slidemo->z + slidemo->info->stepheight &&
 		pl->source->floorheight < slidemo->z + slidemo->height
 	    )
 		goto isblocking;
@@ -1067,6 +1074,8 @@ boolean PTR_ShootTraverse (intercept_t* in)
     fixed_t		thingtopslope;
     fixed_t		thingbottomslope;
 
+    uint16_t canopass = ~mobjinfo[la_pufftype].canpass;
+
     sector_t *frontsector = NULL;
     sector_t *backsector = NULL;
 
@@ -1081,7 +1090,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	if (li->special)
 	    P_ExtraLineSpecial(shootthing, li, P_PointOnLineSide(shootthing->x, shootthing->y, li), EXTRA_HITSCAN);
 
-	if ( !(li->flags & LF_TWOSIDED) )
+	if( canopass & li->blocking )
 	{
 	    frontsector = li->frontsector;
 	    goto hitline_check3d;
@@ -1122,7 +1131,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		z = shootz + dz;
 		while(pl)
 		{
-			if(z >= pl->source->floorheight && z <= pl->source->ceilingheight && pl->source->floorheight < backsector->ceilingheight && pl->source->ceilingheight > backsector->floorheight)
+			if(canopass & pl->blocking && z >= pl->source->floorheight && z <= pl->source->ceilingheight && pl->source->floorheight < backsector->ceilingheight && pl->source->ceilingheight > backsector->floorheight)
 				block = true;
 			if(z < *pl->height)
 				pl->validcount = validcount;
@@ -1153,7 +1162,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 				z = frontsector->floorheight;
 			while(pl)
 			{
-				if(*pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((z < *pl->height && pl->validcount != validcount) || (z > *pl->height && pl->validcount == validcount)))
+				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((z < *pl->height && pl->validcount != validcount) || (z > *pl->height && pl->validcount == validcount)))
 				{
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
@@ -1178,7 +1187,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 				z = frontsector->ceilingheight;
 			while(pl)
 			{
-				if(*pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((z < *pl->height && pl->validcount == validcount) || (z > *pl->height && pl->validcount != validcount)))
+				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((z < *pl->height && pl->validcount == validcount) || (z > *pl->height && pl->validcount != validcount)))
 				{
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
@@ -1267,7 +1276,11 @@ boolean PTR_ShootTraverse (intercept_t* in)
     
     if (!(th->flags&MF_SHOOTABLE))
 	return true;		// corpse or something
-		
+
+    // [kg] blocking
+    if(!(canopass & th->blocking))
+	return true;
+
     // check angles to see if the thing can be aimed at
     dist = FixedMul (attackrange, in->frac);
     thingtopslope = FixedDiv (th->z+th->height - shootz , dist);
@@ -1716,6 +1729,9 @@ boolean PIT_CheckThingZ(mobj_t* thing)
 	if(!(thing->flags & MF_SOLID) || thing->flags & MF_NOCLIP)
 		return true;
 
+	if(!(~tmthing->canpass & thing->blocking))
+		return true;
+
 	if(tmthing->flags & MF_MISSILE && tmthing->source == thing)
 		return true;
 
@@ -1845,6 +1861,9 @@ boolean PIT_UpdateThingZ(mobj_t* thing)
 		return true;
 
 	if(thing->flags & MF_NOCLIP)
+		return true;
+
+	if(!(~tmthing->canpass & thing->blocking))
 		return true;
 
 	if(tmthing->flags & MF_MISSILE)

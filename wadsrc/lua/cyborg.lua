@@ -39,6 +39,7 @@ mtype = {
 	painChance = 20,
 	shootz = 32,
 	species = 7,
+	pass = 1,
 	damageScale = {0},
 	__Monster = true,
 	__noRadiusDamage = true,

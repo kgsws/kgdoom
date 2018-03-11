@@ -49,6 +49,7 @@ extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec, line_t *line
 	new->pic = &sec->ceilingpic;
 	new->lightlevel = &sec->lightlevel;
 	new->validcount = 0;
+	new->blocking = 0xFFFF; // TODO
 
 	return new;
 }
@@ -75,6 +76,7 @@ extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec, line_t *li
 	new->pic = &sec->floorpic;
 	new->lightlevel = &sec->lightlevel;
 	new->validcount = 0;
+	new->blocking = 0xFFFF; // TODO
 
 	return new;
 }

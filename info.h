@@ -104,6 +104,8 @@ typedef struct
 
 	// [kg] some new stuff
 	int species;
+	int blocking;
+	int canpass;
 	int viewz;
 	int shootz;
 	int bobz;

@@ -188,11 +188,12 @@ typedef struct line_s
     fixed_t	dx;
     fixed_t	dy;
 
-    // Animation related.
-    short	flags;
-    short	tag;
+    // stuff
+    uint16_t	flags;
+    uint16_t	tag;
     uint16_t	special;
     uint8_t	arg[5];
+    uint16_t	blocking;
 
     // Visual appearance: SideDefs.
     //  sidenum[1] will be -1 if one sided

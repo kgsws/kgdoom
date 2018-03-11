@@ -50,6 +50,7 @@ mtype = {
 	reactionTime = 8,
 	painChance = 128,
 	shootz = 32,
+	pass = 1,
 	damageScale = {0},
 	__Monster = true,
 	__float = true,

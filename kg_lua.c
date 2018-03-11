@@ -400,6 +400,8 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"bobz", offsetof(mobjinfo_t, bobz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"stepheight", offsetof(mobjinfo_t, stepheight), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"species", offsetof(mobjinfo_t, species), LUA_TNUMBER},
+	{"block", offsetof(mobjinfo_t, blocking), LUA_TNUMBER},
+	{"pass", offsetof(mobjinfo_t, canpass), LUA_TNUMBER},
 	{"icon", offsetof(mobjinfo_t, icon), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
 	{"render", offsetof(mobjinfo_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
@@ -459,6 +461,8 @@ static const lua_table_model_t lua_mobj[] =
 	{"threshold", offsetof(mobj_t, threshold), LUA_TNUMBER},
 	{"tics", offsetof(mobj_t, tics), LUA_TNUMBER},
 	{"render", offsetof(mobj_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
+	{"block", offsetof(mobj_t, blocking), LUA_TNUMBER},
+	{"pass", offsetof(mobj_t, canpass), LUA_TNUMBER},
 	// read only
 	{"x", offsetof(mobj_t, x), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
 	{"y", offsetof(mobj_t, y), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
@@ -2246,6 +2250,7 @@ static int LUA_createMobjType(lua_State *L)
 		temp.lua_action = LUA_REFNIL;
 		temp.lua_arg = LUA_REFNIL;
 		temp.stepheight = 24 * FRACUNIT;
+		temp.blocking = 0xFFFF;
 		// get states
 		state_mobjt = numstates;
 		LUA_MobjTypeStruct(L, &temp);
@@ -5313,7 +5318,7 @@ boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)
 		return false;
 
 	// HEXEN mode activation check
-	if(isHexen)
+	if(isHexen && (line->flags & ELF_ACT_TYPE_MASK) != ELF_ACT_PASSLUA)
 	{
 		switch(act)
 		{
@@ -5321,7 +5326,6 @@ boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)
 				switch(line->flags & ELF_ACT_TYPE_MASK)
 				{
 					case ELF_ACT_PLAYER:
-					case ELF_ACT_PLAYER_:
 						if(!mobj->player && !(line->flags & ELF_ANY_ACT))
 							return false;
 					break;

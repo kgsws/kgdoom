@@ -298,6 +298,10 @@ typedef struct mobj_s
     // For nightmare respawn.
     mapthing_hexen_t		spawnpoint;
 
+    // [kg] blocking
+    int blocking;
+    int canpass;
+
     // [kg] colors
     // translation is applied first, colormap second
     colormap_t	translation;

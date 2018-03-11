@@ -683,6 +683,9 @@ P_SpawnMobj
     mobj->floorz = mobj->subsector->sector->floorheight;
     mobj->ceilingz = mobj->subsector->sector->ceilingheight;
 
+    mobj->blocking = mobj->info->blocking;
+    mobj->canpass = mobj->info->canpass;
+
     mobj->renderstyle = mobj->info->renderstyle;
     mobj->rendertable = mobj->info->rendertable;
 

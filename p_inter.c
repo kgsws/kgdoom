@@ -318,7 +318,7 @@ P_DamageMobj
 	// chase after this one
 	target->target = source;
 	target->threshold = BASETHRESHOLD;
-	if (target->animation != ANIM_SEE
+	if (target->animation == ANIM_SPAWN
 	    && target->info->seestate != S_NULL)
 	    P_SetMobjAnimation(target, ANIM_SEE, 0);
     }

@@ -35,6 +35,7 @@ mtype = {
 	radius = 6,
 	height = 8,
 	damage = -3,
+	pass = 3,
 	__Projectile = true,
 	_spawn = {
 		{"*BAL1A", 4},
@@ -65,6 +66,7 @@ mtype = {
 	painChance = 200,
 	shootz = 32,
 	species = 3,
+	pass = 1,
 	damageScale = {0},
 	__Monster = true,
 	_spawn = {

@@ -33,6 +33,7 @@ mtype = {
 	shootz = 32,
 	viewz = 41,
 	bobz = 16,
+	pass = 2,
 	__solid = true,
 	__shootable = true,
 	__dropOff = true,

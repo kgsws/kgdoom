@@ -25,6 +25,7 @@ end
 mtype = {
 	radius = 8,
 	height = 12,
+	pass = 3,
 	__noBlockmap = true,
 	__noGravity = true,
 	__dropOff = true,
@@ -47,6 +48,7 @@ MT_PUFF = createMobjType(mtype)
 mtype = {
 	radius = 8,
 	height = 12,
+	pass = 3,
 	__noBlockmap = true,
 	__noGravity = true,
 	__dropOff = true,
