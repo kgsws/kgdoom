@@ -3,7 +3,13 @@
 
 function pickupAmmo(mobj, spec, arg)
 	local left
-	left = mobj.InventoryGive(arg[1], arg[2])
+	local count
+	if spec.__dropped then
+		count = arg[2] / 2
+	else
+		count = arg[2]
+	end
+	left = mobj.InventoryGive(arg[1], count)
 	if left == arg[2] then
 		return pickup.doNotPickup
 	end

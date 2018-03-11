@@ -86,6 +86,6 @@ MT_SERGEANT = createMobjType(mtype)
 -- MT_SHADOWS
 -- only modify what's different
 mtype.ednum = 58
-mtype.__shadow = true
+mtype.render = "!SHADOW"
 MT_SHADOWS = createMobjType(mtype)
 

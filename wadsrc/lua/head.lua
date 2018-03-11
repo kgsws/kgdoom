@@ -10,6 +10,7 @@ function(mobj)
 		local an
 		local sl
 		an, sl = mobj.AttackAim()
+		an = shadowAim(mobj, an)
 		mobj.angle = an
 		mobj.SpawnMissile(MT_HEADSHOT, an, sl)
 	end

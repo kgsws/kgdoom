@@ -74,6 +74,7 @@ typedef enum
 enum
 {
 	joybfire,
+	joybfirealt,
 	joybuse,
 	joybweapons,
 	joybspeed,
@@ -174,6 +175,13 @@ typedef uint16_t weapontype_t;
 #define NUMDAMAGETYPES	32
 #define DAMAGE_SCALE	20		// 5% steps
 #define DEFAULT_DAMAGE_SCALE	74	// 74 = 100%; 255 = kill; 254 = 900%; 0 = -270% (healing)
+
+// [kg] rendering
+enum
+{
+	RENDER_NORMAL, // must be first
+	RENDER_SHADOW,
+};
 
 // [kg] custom colormaps
 typedef struct

@@ -96,9 +96,10 @@ typedef struct player_s
     // Is wp_nochange if not changing.
     weapontype_t	readyweapon;
     weapontype_t	pendingweapon;
+    boolean		lua_weapon_change;
 
     // True if button down last tic.
-    int			attackdown;
+    int			attacktype; // 0 = none; 1 = main; 2 = alt
     int			usedown;
 
     // Bit flags, for cheats and debug.

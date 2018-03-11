@@ -243,12 +243,14 @@ function lightGlowBlink(self, level0)
 	if level0 > level1 then
 		level = level - 8
 		if level <= level1 then
+			level = level1
 			self.arg = level1
 			sector.special = level0
 		end
 	else
 		level = level + 8
 		if level >= level1 then
+			level = level1
 			self.arg = level1
 			sector.special = level0
 		end

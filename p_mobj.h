@@ -149,9 +149,8 @@ typedef enum
     // Dropped by a demon, not level spawned.
     // E.g. ammo clips dropped by dying former humans.
     MF_DROPPED		= 0x20000,
-    // Use fuzzy draw (shadow demons or spectres),
-    //  temporary player invisibility powerup.
-    MF_SHADOW		= 0x40000,
+    // [kg] this is a monster
+    MF_ISMONSTER	= 0x40000,
     // Flag: don't bleed when shot (use puff),
     //  barrels and shootable furniture shall not bleed.
     MF_NOBLOOD		= 0x80000,
@@ -180,27 +179,26 @@ typedef enum
     MF_NOTDMATCH    	= 0x2000000,
 
     // [kg] new flags
-    MF_ISMONSTER	= 0x4000000,
-    MF_NORADIUSDMG	= 0x8000000,
+    MF_NORADIUSDMG	= 0x4000000,
 
     // [kg] disable thing Z collision updates
     // used on dead projectiles and puffs
-    MF_NOZCHANGE	= 0x10000000,
+    MF_NOZCHANGE	= 0x8000000,
 
     // [kg] ignore thing colisions
-    MF_TROUGHMOBJ	= 0x20000000,
+    MF_TROUGHMOBJ	= 0x10000000,
 
     // [kg] ignore thing colisions
-    MF_FULLVOLUME	= 0x40000000,
+    MF_FULLVOLUME	= 0x20000000,
 
     // [kg] holey rendering
-    MF_HOLEY = 0x80000000,
+    MF_HOLEY = 0x40000000,
 
     // [kg] disable death 'pull'
-    MF_NODEATHPULL = 0x100000000,
+    MF_NODEATHPULL = 0x80000000,
 
     // [kg] invulnerability
-    MF_INVULNERABLE = 0x200000000,
+    MF_INVULNERABLE = 0x100000000,
 
 } mobjflag_t;
 
@@ -254,6 +252,10 @@ typedef struct mobj_s
     
     int			tics;	// state tic counter
     state_t*		state;
+    // [kg] current animation ID
+    int			animation;
+
+
     uint64_t		flags;
     int			health;
 
@@ -300,6 +302,10 @@ typedef struct mobj_s
     // translation is applied first, colormap second
     colormap_t	translation;
     colormap_t	colormap;
+
+    // [kg] renderer
+    int renderstyle;
+    uint8_t *rendertable;
 
     // [kg] inventory
     struct inventory_s *inventory;

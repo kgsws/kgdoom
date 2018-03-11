@@ -1,6 +1,23 @@
 -- kgsws' Lua Doom exports
 -- common action functions
 
+function shadowAim(mobj, angle)
+	local target
+	target = mobj.target
+	if target ~= nil then
+		if target.render == "!SHADOW" then
+			return angle + (doomRandom() - doomRandom()) * 4
+		end
+	end
+	return angle
+end
+
+a.FaceTarget =
+function(mobj)
+	mobj.Face(mobj.target)
+	mobj.angle = shadowAim(mobj, mobj.angle)
+end
+
 a.Crushed =
 function(mobj)
 	if mobj.info == MT_HEAD then

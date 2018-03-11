@@ -1453,12 +1453,12 @@ void WI_checkForAccelerate(void)
 	{
 	    if (player->cmd.buttons & BT_ATTACK)
 	    {
-		if (!player->attackdown)
+		if (!player->attacktype)
 		    acceleratestage = 1;
-		player->attackdown = true;
+		player->attacktype = 1;
 	    }
 	    else
-		player->attackdown = false;
+		player->attacktype = 0;
 	    if (player->cmd.buttons & BT_USE)
 	    {
 		if (!player->usedown)

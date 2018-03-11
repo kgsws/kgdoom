@@ -84,18 +84,18 @@ P_KillMobj
 #endif
     }
 
-    if (target->health < -target->info->spawnhealth 
-	&& target->info->xdeathstate)
-    {
-	P_SetMobjState (target, target->info->xdeathstate);
-    }
+    if (target->health < -target->info->spawnhealth && target->info->xdeathstate)
+	P_SetMobjAnimation(target, ANIM_XDEATH, 0);
     else
     if(target->info->deathstate)
-	P_SetMobjState (target, target->info->deathstate);
-    target->tics -= P_Random()&3;
-
-    if (target->tics < 1)
-	target->tics = 1;
+	P_SetMobjAnimation(target, ANIM_DEATH, 0);
+/*
+    if(target->tics != -1)
+    {
+	target->tics -= P_Random()&3;
+	if (target->tics < 1)
+	    target->tics = 1;
+    }*/
 }
 
 
@@ -304,7 +304,7 @@ P_DamageMobj
     {
 	target->flags |= MF_JUSTHIT;	// fight back!
 	if(target->info->painstate)
-	    P_SetMobjState (target, target->info->painstate);
+	    P_SetMobjAnimation(target, ANIM_PAIN, 0);
     }
 			
     target->reactiontime = 0;		// we're awake now...	
@@ -318,9 +318,9 @@ P_DamageMobj
 	// chase after this one
 	target->target = source;
 	target->threshold = BASETHRESHOLD;
-	if (target->state == &states[target->info->spawnstate]
+	if (target->animation != ANIM_SEE
 	    && target->info->seestate != S_NULL)
-	    P_SetMobjState (target, target->info->seestate);
+	    P_SetMobjAnimation(target, ANIM_SEE, 0);
     }
 #ifdef SERVER
     SV_UpdateMobj(target, SV_MOBJF_AUTO | SV_MOBJF_STATE | SV_MOBJF_TARGET);

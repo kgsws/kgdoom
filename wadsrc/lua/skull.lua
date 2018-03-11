@@ -10,19 +10,14 @@ a.SkullAttack =
 function(mobj)
 	local an
 	local sl
-	local sp
 	a.SoundAttack(mobj)
 	mobj.__skullFly = true
 	an, sl = mobj.AttackAim()
-	if sl < 0 then
-		sp = 1 + sl
-	else
-		sp = 1 - sl	
-	end
+	an = shadowAim(mobj, an)
 	mobj.angle = an
 	mobj.momz = sl * 20
-	mobj.momx = finecosine[an] * 20 * sp
-	mobj.momy = finesine[an] * 20 * sp
+	mobj.momx = finecosine[an] * 20
+	mobj.momy = finesine[an] * 20
 end
 
 -- MT_SKULL

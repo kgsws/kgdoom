@@ -125,13 +125,13 @@ int		key_down;
 int             key_strafeleft;
 int		key_straferight;
 int             key_fire;
+int             key_fire_alt;
 int		key_use;
 int		key_strafe;
 int		key_speed;
  
 int             mousebfire;
-int             mousebstrafe;
-int             mousebforward;
+int             mousebfirealt;
 int		mousebuse;
 
 #define MAXPLMOVE		(forwardmove[1]) 
@@ -274,6 +274,9 @@ void G_BuildTiccmd (ticcmd_t* cmd)
 
     if (gamekeydown[key_fire] || mousebuttons[mousebfire] || joybuttons[joybfire]) 
 	cmd->buttons |= BT_ATTACK; 
+
+    if (gamekeydown[key_fire_alt] || mousebuttons[mousebfirealt] || joybuttons[joybfirealt]) 
+	cmd->buttons |= BT_ALTATTACK; 
  
     if (gamekeydown[key_use] || joybuttons[joybuse] || mousebuttons[mousebuse] ) 
     { 
@@ -291,34 +294,6 @@ void G_BuildTiccmd (ticcmd_t* cmd)
     } else
 	// or send current weapon
 	cmd->weapon = players[consoleplayer].readyweapon;
-
-    // mouse
-    if (mousebuttons[mousebforward]) 
-	forward += forwardmove[speed];
-    
-    // forward double click
-    if (mousebuttons[mousebforward] != dclickstate && dclicktime > 1 ) 
-    { 
-	dclickstate = mousebuttons[mousebforward]; 
-	if (dclickstate) 
-	    dclicks++; 
-	if (dclicks == 2) 
-	{ 
-	    cmd->buttons |= BT_USE; 
-	    dclicks = 0; 
-	} 
-	else 
-	    dclicktime = 0; 
-    } 
-    else 
-    { 
-	dclicktime++; 
-	if (dclicktime > 20) 
-	{ 
-	    dclicks = 0; 
-	    dclickstate = 0; 
-	} 
-    }
 
     angleturn -= mousex << 16;
     pitchturn -= mousey;
@@ -647,8 +622,10 @@ void G_PlayerFinishLevel (int player)
     player_t*	p; 
 	 
     p = &players[player]; 
-	 
-    p->mo->flags &= ~MF_SHADOW;		// cancel invisibility 
+
+    // cancel invisibility 
+    p->mo->renderstyle = p->mo->info->renderstyle;
+    p->mo->rendertable = p->mo->info->rendertable;
     p->extralight = 0;			// cancel gun flashes 
     p->damagecount = 0;			// no palette changes 
     p->bonuscount = 0;
@@ -716,7 +693,9 @@ void G_PlayerReborn (int player)
 #else
     p->mo = NULL;
 #endif
-    p->usedown = p->attackdown = true;	// don't do anything immediately 
+    // don't do anything immediately
+    p->usedown = true;
+    p->attacktype = 1;
 }
 
 //

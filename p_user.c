@@ -3,6 +3,9 @@
 
 #include "p_local.h"
 
+#include "p_inventory.h"
+#include "st_stuff.h"
+
 #include "doomstat.h"
 
 #ifndef SERVER
@@ -325,7 +328,12 @@ void P_PlayerThink (player_t* player)
 	// The actual changing of the weapon is done
 	//  when the weapon psprite can do it
 	//  (read: not in the middle of an attack).
-	player->pendingweapon = cmd->weapon;
+	// [kg] only allow to pick owned weapons that have icon
+	if(P_CheckInventory(player->mo, &mobjinfo[cmd->weapon], NULL) && ST_PickableWeapon(cmd->weapon))
+	{
+		player->pendingweapon = cmd->weapon;
+		player->lua_weapon_change = 0;
+	}
     }
     
     // check for use

@@ -248,9 +248,12 @@ void P_FireWeapon(player_t* player, int offs)
 	if(player->mo->health <= 0)
 		return;
 
-	//    P_SetMobjState (player->mo, S_PLAY_ATK1); // TODO
+	P_SetMobjAnimation(player->mo, ANIM_MELEE, 0);
 
-	newstate = mobjinfo[player->readyweapon].weaponfiremain;
+	if(player->attacktype == 1)
+		newstate = mobjinfo[player->readyweapon].weaponfiremain;
+	else
+		newstate = mobjinfo[player->readyweapon].weaponfirealt;
 	if(!newstate)
 		return;
 
@@ -275,7 +278,7 @@ void P_WeaponRefire(player_t *player, int offset)
 {
 	// check for fire
 	//  (if a weaponchange is pending, let it go through instead)
-	if ( (player->cmd.buttons & BT_ATTACK) // TODO: alt attack check
+	if ( (player->cmd.buttons & (BT_ATTACK|BT_ALTATTACK))
 		&& player->pendingweapon == wp_nochange
 		&& player->mo->health)
 	{
@@ -294,9 +297,12 @@ void P_WeaponFlash(player_t *player, int offs)
 	if(player->mo->health <= 0)
 		return;
 
-	//    P_SetMobjState (player->mo, S_PLAY_ATK2); // TODO
+	P_SetMobjAnimation(player->mo, ANIM_MISSILE, 0);
 
-	newstate = mobjinfo[player->readyweapon].weaponflashmain;
+	if(player->attacktype == 1)
+		newstate = mobjinfo[player->readyweapon].weaponflashmain;
+	else
+		newstate = mobjinfo[player->readyweapon].weaponflashalt;
 	if(!newstate)
 		return;
 
@@ -331,7 +337,7 @@ void P_SetAttack(player_t *player)
 {
 	if(player->mo->health <= 0)
 		return;
-//	P_SetMobjState (player->mo, S_PLAY_ATK2);
+	P_SetMobjAnimation(player->mo, ANIM_MISSILE, 0);
 }
 
 //
@@ -351,21 +357,13 @@ void A_WeaponReady(mobj_t *mo)
     if(!player)
 	return;
 
-    if(player->mo->health > 0)
+/*    if(player->mo->health > 0) // TODO: is this really needed?
     {
-	// get out of attack state // TODO: handle player animation
-/*	if(player->mo->state == &states[S_PLAY_ATK1] || player->mo->state == &states[S_PLAY_ATK2])
-	{
-	    P_SetMobjState (player->mo, S_PLAY);
-	}
-*/
-/*	if (player->readyweapon == wp_chainsaw
-	    && psp->state == &states[S_SAW])
-	{
-	    S_StartSound (player->mo, sfx_sawidl, SOUND_WEAPON);
-	}*/
+	// get out of attack state
+	if(player->mo->animation == ANIM_MELEE || player->mo->animation == ANIM_MISSILE)
+	    P_SetMobjAnimation(player->mo, ANIM_SPAWN, 0);
     }
-
+*/
     //  if player is dead, put the weapon away
     if(!player->mo->health)
     {
@@ -386,20 +384,23 @@ void A_WeaponReady(mobj_t *mo)
     }
 
     // check for fire
-    //  the missile launcher and bfg do not auto fire
-    if (!(player->cheats & CF_SPECTATOR) && player->cmd.buttons & BT_ATTACK)
+    if(!(player->cheats & CF_SPECTATOR) && player->readyweapon != wp_nochange)
     {
-/*	if ( !player->attackdown
-	     || (player->readyweapon != wp_missile
-		 && player->readyweapon != wp_bfg) )*/
+	if(player->cmd.buttons & BT_ATTACK && mobjinfo[player->readyweapon].weaponfiremain)
 	{
-	    player->attackdown = true;
-	    P_FireWeapon(player, 0);
-	    return;
+		player->attacktype = 1;
+		P_FireWeapon(player, 0);
+		return;
+	}
+	if(player->cmd.buttons & BT_ALTATTACK && mobjinfo[player->readyweapon].weaponfirealt)
+	{
+		player->attacktype = 2;
+		P_FireWeapon(player, 0);
+		return;
 	}
     }
-    else
-	player->attackdown = false;
+
+    player->attacktype = 0;
 
     // bob the weapon based on movement speed
     angle = (128*leveltime)&FINEMASK;
@@ -408,7 +409,16 @@ void A_WeaponReady(mobj_t *mo)
     anim_psp->sy = WEAPONTOP + FixedMul (player->bob, finesine[angle]);
 }
 
-
+// [kg] player can't switch from this weapon
+// only Lua SetWeapon can
+void A_WeaponReadyForced(mobj_t *mo)
+{
+	if(!mo->player)
+		return;
+	if(!mo->player->lua_weapon_change)
+		mo->player->pendingweapon = wp_nochange;
+	A_WeaponReady(mo);
+}
 
 //
 // A_ReFire

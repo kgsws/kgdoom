@@ -37,13 +37,13 @@ void G_PlayerReborn (int player);
 void P_SpawnMapThing (mapthing_hexen_t*	mthing);
 
 //
-// P_SetMobjState
+// P_ForceMobjState
 // Returns true if the mobj is still present.
 //
 int test;
 
 boolean
-P_SetMobjState
+P_ForceMobjState
 ( mobj_t*	mobj,
   statenum_t	state )
 {
@@ -64,7 +64,10 @@ P_SetMobjState
 
 	// [kg] animation 'alias'
 	if(state & STATE_ANIMATION)
+	{
 		state = L_StateFromAlias(mobj->info, state);
+		mobj->animation = state & STATE_AMASK; // new animation ID
+	}
 
 	st = &states[state];
 	mobj->state = st;
@@ -91,7 +94,7 @@ void P_ExplodeMissile (mobj_t* mo)
 
     if(mo->info->deathstate)
     {
-	P_SetMobjState (mo, mo->info->deathstate);
+	P_SetMobjAnimation(mo, ANIM_DEATH, 0);
 
 	mo->tics -= P_Random()&3;
 
@@ -132,7 +135,7 @@ void P_XYMovement (mobj_t* mo)
 	    mo->flags &= ~MF_SKULLFLY;
 	    mo->momx = mo->momy = mo->momz = 0;
 
-	    P_SetMobjState (mo, mo->info->spawnstate);
+	    P_SetMobjAnimation(mo, ANIM_SPAWN, 0);
 	}
 	return;
     }
@@ -290,10 +293,9 @@ void P_XYMovement (mobj_t* mo)
 	if(!netgame)
 #endif
 	// if in a walking frame, stop moving
-//	if ( player&&(unsigned)((player->mo->state - states)- S_PLAY_RUN1) < 4)
-//	    P_SetMobjState (player->mo, S_PLAY);
-	// TODO: handle player animation
-	
+	if(player && player->mo->animation == ANIM_SEE)
+	    P_SetMobjAnimation(player->mo, ANIM_SPAWN, 0);
+
 	mo->momx = 0;
 	mo->momy = 0;
     }
@@ -597,7 +599,7 @@ void P_MobjThinker (mobj_t* mobj)
 		
 	// you can cycle through multiple states in a tic
 	if (!mobj->tics)
-	    if (!P_SetMobjState (mobj, mobj->state->nextstate) )
+	    if (!P_ForceMobjState (mobj, mobj->state->nextstate) )
 		return;		// freed itself
     }
     else
@@ -680,6 +682,9 @@ P_SpawnMobj
 	
     mobj->floorz = mobj->subsector->sector->floorheight;
     mobj->ceilingz = mobj->subsector->sector->ceilingheight;
+
+    mobj->renderstyle = mobj->info->renderstyle;
+    mobj->rendertable = mobj->info->rendertable;
 
     if (z == ONFLOORZ)
 	mobj->z = mobj->floorz;
@@ -1041,10 +1046,7 @@ P_SpawnPuff
 	z = sec->ceilingheight - th->info->height;
     th->z = z;
 
-    if(th->info->meleestate && attackrange <= MELEERANGE)
-	P_SetMobjState(th, th->info->meleestate);
-    else
-	P_SetMobjState(th, th->info->spawnstate);
+    P_SetMobjAnimation(th, ANIM_SPAWN, 0);
 
 #ifdef SERVER
     // tell clients about this
@@ -1075,9 +1077,9 @@ P_SpawnBlood
     th->angle = R_PointToAngle2(th->x, th->y, origin->x, origin->y);
 
     if(th->info->painstate)
-	P_SetMobjState(th, th->info->painstate);
+	P_SetMobjAnimation(th, ANIM_PAIN, 0);
     else
-	P_SetMobjState(th, th->info->spawnstate);
+	P_SetMobjAnimation(th, ANIM_SPAWN, 0);
 
 #ifdef SERVER
     // tell clients about this

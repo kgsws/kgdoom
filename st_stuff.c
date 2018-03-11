@@ -990,6 +990,19 @@ void ST_ReadyWeapon(void *pl)
 	}
 }
 
+boolean ST_PickableWeapon(weapontype_t wpn)
+{
+	weaponlist_t *list = weapon_list;
+
+	while(list)
+	{
+		if(list->type == wpn)
+			return list->patch != NULL;
+		list = list->next;
+	}
+	return false;
+}
+
 void ST_Stop (void)
 {
 	I_SetPalette (W_CacheLumpNum (lu_palette));

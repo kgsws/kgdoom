@@ -246,10 +246,27 @@ function(mobj)
 	end
 end
 
+a.CheckCell40Ammo =
+function(mobj)
+	local count
+	count = mobj.InventoryCheck(MT_CELL)
+	if count < 40 then
+		changeWeapon(mobj)
+	else
+		a.NoiseAlert(mobj)
+	end
+end
+
 function pickupWeapon(mobj, spec, arg)
 	local left
+	local count
+	if spec.__dropped then
+		count = arg[2] / 2
+	else
+		count = arg[2]
+	end
 	if arg[1] ~= nil then
-		left = mobj.InventoryGive(arg[1], arg[2])
+		left = mobj.InventoryGive(arg[1], count)
 	else
 		left = 0
 	end
@@ -439,6 +456,7 @@ mtype = {
 		{"PISGB", 6, a.FirePistol},
 		{"PISGC", 4},
 		{"PISGA", 5, a.WeaponRefire},
+		{"PISGA", 0, a.CheckClipAmmo},
 		"_wReady"
 	},
 	_wFlashMain = {
@@ -482,6 +500,7 @@ mtype = {
 		{"SHTGB", 5},
 		{"SHTGA", 3},
 		{"SHTGA", 7, a.WeaponRefire},
+		{"SHTGA", 0, a.CheckShellAmmo},
 		"_wReady"
 	},
 	_wFlashMain = {
@@ -566,6 +585,7 @@ mtype = {
 		{"CHGGA", 4, a.FireChaingun0},
 		{"CHGGB", 4, a.FireChaingun1},
 		{"CHGGB", 0, a.WeaponRefire},
+		{"CHGGB", 0, a.CheckClipAmmo},
 		"_wReady"
 	},
 	_wFlashMain = {
@@ -606,6 +626,7 @@ mtype = {
 		{"MISGB", 8, a.WeaponFlash},
 		{"MISGB", 12, a.FireMissile},
 		{"MISGB", 0, a.WeaponRefire},
+		{"MISGB", 0, a.CheckRocketAmmo},
 		"_wReady"
 	},
 	_wFlashMain = {
@@ -646,6 +667,7 @@ mtype = {
 		{"PLSGA", 0, a.CheckCellAmmo},
 		{"PLSGA", 3, a.FirePlasma},
 		{"PLSGB", 20, a.WeaponRefire},
+		{"PLSGB", 0, a.CheckCellAmmo},
 		"_wReady"
 	},
 	_wFlashMain = {
@@ -686,6 +708,7 @@ mtype = {
 		{"BFGGB", 10, a.WeaponFlash},
 		{"BFGGB", 10, a.FireBfg},
 		{"BFGGB", 20, a.WeaponRefire},
+		{"BFGGB", 0, a.CheckCell40Ammo},
 		"_wReady"
 	},
 	_wFlashMain = {

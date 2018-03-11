@@ -12,6 +12,7 @@ function(mobj)
 	local an
 	local sl
 	an, sl = mobj.AttackAim()
+	an = shadowAim(mobj, an)
 	mobj.SpawnMissile(MT_FATSHOT, an, sl)
 	mobj.SpawnMissile(MT_FATSHOT, an + 256, sl)
 	mobj.angle = mobj.angle + 256
@@ -22,6 +23,7 @@ function(mobj)
 	local an
 	local sl
 	an, sl = mobj.AttackAim()
+	an = shadowAim(mobj, an)
 	mobj.angle = an - 256
 	mobj.SpawnMissile(MT_FATSHOT, an, sl)
 	mobj.SpawnMissile(MT_FATSHOT, an - 256, sl)
@@ -32,6 +34,7 @@ function(mobj)
 	local an
 	local sl
 	an, sl = mobj.AttackAim()
+	an = shadowAim(mobj, an)
 	mobj.angle = an
 	mobj.SpawnMissile(MT_FATSHOT, an - 128, sl)
 	mobj.SpawnMissile(MT_FATSHOT, an + 128, sl)

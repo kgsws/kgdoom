@@ -274,6 +274,9 @@ static int func_set_flattexture(lua_State *L, void *dst, void *o);
 static int func_get_lumpname(lua_State *L, void *dst, void *o);
 static int func_set_lumpname_optional(lua_State *L, void *dst, void *o);
 
+static int func_set_renderstyle(lua_State *L, void *dst, void *o);
+static int func_get_renderstyle(lua_State *L, void *dst, void *o);
+
 static int func_set_sideset(lua_State *L, void *dst, void *o);
 static int func_get_sideset(lua_State *L, void *dst, void *o);
 
@@ -336,7 +339,6 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"float", MF_FLOAT},
 	{"missile", MF_MISSILE},
 	{"dropped", MF_DROPPED},
-	{"shadow", MF_SHADOW},
 	{"noblood", MF_NOBLOOD},
 	{"corpse", MF_CORPSE},
 	{"countKill", MF_COUNTKILL},
@@ -372,6 +374,7 @@ static const lua_mobjaction_t lua_mobjactions[] =
 
 	{"WeaponRaise", A_WeaponRaise},
 	{"WeaponReady", A_WeaponReady},
+	{"WeaponReadyForced", A_WeaponReadyForced},
 	{"WeaponLower", A_WeaponLower},
 	{"WeaponFlash", A_WeaponFlash},
 	{"WeaponRefire", A_WeaponRefire},
@@ -399,6 +402,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"species", offsetof(mobjinfo_t, species), LUA_TNUMBER},
 	{"icon", offsetof(mobjinfo_t, icon), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
+	{"render", offsetof(mobjinfo_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(mobjinfo_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
 	// states; keep same order as in 'mobjinfo_t'
@@ -454,6 +458,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"reactiontime", offsetof(mobj_t, reactiontime), LUA_TNUMBER},
 	{"threshold", offsetof(mobj_t, threshold), LUA_TNUMBER},
 	{"tics", offsetof(mobj_t, tics), LUA_TNUMBER},
+	{"render", offsetof(mobj_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	// read only
 	{"x", offsetof(mobj_t, x), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
 	{"y", offsetof(mobj_t, y), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
@@ -1955,6 +1960,55 @@ static int func_get_lumpname(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+static int func_set_renderstyle(lua_State *L, void *dst, void *o)
+{
+	uint8_t **table;
+	int *style;
+	const char *tmp;
+
+	style = dst;
+	table = (dst + sizeof(int));
+
+	tmp = lua_tostring(L, -1);
+
+	if(!strcmp(tmp, "!NORMAL"))
+	{
+		*style = RENDER_NORMAL;
+		*table = NULL;
+		return 0;
+	}
+
+	if(!strcmp(tmp, "!SHADOW"))
+	{
+		*style = RENDER_SHADOW;
+		*table = NULL;
+		return 0;
+	}
+
+	return luaL_error(L, "invalid render style '%s'", tmp);
+}
+
+static int func_get_renderstyle(lua_State *L, void *dst, void *o)
+{
+	uint8_t **table;
+	int *style;
+
+	style = dst;
+	table = (dst + sizeof(int));
+
+	switch(*style)
+	{
+		case RENDER_NORMAL:
+			lua_pushstring(L, "!NORMAL");
+		break;
+		case RENDER_SHADOW:
+			lua_pushstring(L, "!SHADOW");
+		break;
+	}
+
+	return 1;
+}
+
 //
 // common functions
 
@@ -2343,7 +2397,7 @@ static int LUA_spawnMobj(lua_State *L)
 	mo = P_SpawnMobj(x, y, z, type);
 
 	// play first action
-	P_SetMobjState(mo, mo->info->spawnstate);
+	P_SetMobjAnimation(mo, ANIM_SPAWN, 0);
 
 	lua_pushlightuserdata(L, mo);
 
@@ -3226,9 +3280,6 @@ static int LUA_attackAim(lua_State *L)
 
 			slope = (dest->z - source->z) / slope;
 		}
-		// invisiblity random
-		if(!source->player && dest && dest->flags & MF_SHADOW)
-			angle += (P_Random()-P_Random())<<21;
 	}
 
 	lua_pushnumber(L, angle / (lua_Number)(1 << ANGLETOFINESHIFT));
@@ -3878,6 +3929,7 @@ static int LUA_setPlayerWeapon(lua_State *L)
 
 	pl = lua_touserdata(L, lua_upvalueindex(1));
 	pl->pendingweapon = LUA_GetMobjTypeParam(L, 1);
+	pl->lua_weapon_change = 1;
 
 	if(lua_gettop(L) > 1)
 	{
@@ -5228,7 +5280,10 @@ boolean P_SetMobjAnimation(mobj_t *mo, int anim, int skip)
 			return true;
 
 		if(!skip)
-			return P_SetMobjState(mo, state);
+		{
+			mo->animation = anim;
+			return P_ForceMobjState(mo, state);
+		}
 		skip--;
 
 		if(states[state].nextstate == STATE_NULL_NEXT)
@@ -5239,7 +5294,8 @@ boolean P_SetMobjAnimation(mobj_t *mo, int anim, int skip)
 			// nope
 			return true;
 	}
-	return P_SetMobjState(mo, state);
+	mo->animation = anim;
+	return P_ForceMobjState(mo, state);
 }
 
 boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)

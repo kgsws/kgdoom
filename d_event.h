@@ -51,11 +51,12 @@ typedef enum
 {
     // Press "Fire".
     BT_ATTACK		= 1,
+    BT_ALTATTACK	= 2,
     // Use button, to open doors, activate switches.
-    BT_USE		= 2,
+    BT_USE		= 4,
     // Flag, weapon change pending.
     // If true, 'weapon' hold weapon num.
-    BT_CHANGE		= 4,
+    BT_CHANGE		= 8,
 } buttoncode_t;
 
 

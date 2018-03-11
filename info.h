@@ -33,12 +33,34 @@ typedef struct
 
 extern state_t *states;
 
+// [kg] animation index
+enum
+{
+	ANIM_SPAWN, // must be first
+	ANIM_SEE,
+	ANIM_PAIN,
+	ANIM_MELEE,
+	ANIM_MISSILE,
+	ANIM_DEATH,
+	ANIM_XDEATH,
+	ANIM_RAISE,
+	ANIM_CRUSH,
+	ANIM_HEAL,
+	ANIM_WPN_RAISE,
+	ANIM_WPN_READY,
+	ANIM_WPN_LOWER,
+	ANIM_WPN_FIRE_MAIN,
+	ANIM_WPN_FIRE_ALT,
+	ANIM_WPN_FLASH_MAIN,
+	ANIM_WPN_FLASH_ALT
+};
+
 typedef struct
 {
 	// [kg] must be first
 	degenthinker_t dthink;
 
-	// [kg] keep same order as in 'lua_mobjtype'
+	// [kg] keep same order as in 'lua_mobjtype' and animation index enum
 	int	spawnstate; // must be first
 	int	seestate;
 	int	painstate;
@@ -86,6 +108,10 @@ typedef struct
 	int shootz;
 	int bobz;
 	int icon;
+
+	// [kg] renderer
+	int renderstyle;
+	uint8_t *rendertable;
 
 	// [kg] damage resistance
 	int damagetype;

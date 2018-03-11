@@ -323,7 +323,7 @@ boolean PIT_CheckThing (mobj_t* thing)
 	tmthing->flags &= ~MF_SKULLFLY;
 	tmthing->momx = tmthing->momy = tmthing->momz = 0;
 	
-	P_SetMobjState (tmthing, tmthing->info->spawnstate);
+	P_SetMobjAnimation(tmthing, ANIM_SPAWN, 0);
 #ifdef SERVER
 	// tell clients about this
 	SV_UpdateMobj(thing, SV_MOBJF_POSITION | SV_MOBJF_MOMENTNUM | SV_MOBJF_STATE);
@@ -1623,7 +1623,7 @@ boolean PIT_ChangeSector (mobj_t*	thing)
 	{
 #endif
 
-	P_SetMobjState(thing, thing->info->crushstate);
+	P_SetMobjAnimation(thing, ANIM_CRUSH, 0);
 
 #ifdef SERVER
 	// tell clients about this

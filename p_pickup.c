@@ -69,7 +69,7 @@ void P_RemoveSpecial(mobj_t* th, int rt)
 	// hide item
 	P_UnsetThingPosition(th);
 	th->flags |= MF_NOSECTOR | MF_NOBLOCKMAP;
-	P_SetMobjState(th, S_ITEMRESPAWN0);
+	P_ForceMobjState(th, S_ITEMRESPAWN0);
 	// set respawn time
 	th->tics = respawntime;
 #ifdef SERVER
@@ -101,7 +101,7 @@ void A_RespawnSpecial(mobj_t* th)
 	SV_SpawnMobj(mo, SV_MOBJF_SOUND_SEE);
 #endif
 	// unhide item
-	P_SetMobjState(th, th->info->spawnstate);
+	P_SetMobjAnimation(th, ANIM_SPAWN, 0);
 	th->flags &= ~(MF_NOSECTOR | MF_NOBLOCKMAP);
 	P_SetThingPosition(th);
 #ifdef SERVER

@@ -284,7 +284,7 @@ boolean P_Move (mobj_t*	actor)
 	    else
 		actor->z -= FLOATSPEED;
 
-	    P_ZMovement(actor, true);
+	    P_ZMovement(actor);
 
 	    actor->flags |= MF_INFLOAT;
 	    return true;
@@ -585,7 +585,7 @@ void A_Look (mobj_t* actor)
     if (actor->info->seesound)
 	S_StartSound (actor, actor->info->seesound, SOUND_BODY);
 
-    P_SetMobjState (actor, actor->info->seestate);
+    P_SetMobjAnimation(actor, ANIM_SEE, 0);
 #ifdef SERVER
     // tell clients about this
     SV_UpdateMobj(actor, SV_MOBJF_STATE | SV_MOBJF_TARGET | SV_MOBJF_SOUND_SEE);
@@ -656,7 +656,7 @@ void A_Chase (mobj_t*	actor)
 	if (P_LookForPlayers(actor,true))
 	    return; 	// got a new target
 	
-	P_SetMobjState (actor, actor->info->spawnstate);
+	P_SetMobjAnimation(actor, ANIM_SPAWN, 0);
 #ifdef SERVER
 	// tell clients about this
 	SV_UpdateMobj(actor, SV_MOBJF_POSITION | SV_MOBJF_FLOORZ | SV_MOBJF_CEILZ | SV_MOBJF_ANGLE | SV_MOBJF_STATE | SV_MOBJF_TARGET);
@@ -684,7 +684,7 @@ void A_Chase (mobj_t*	actor)
     if (actor->info->meleestate
 	&& P_CheckMeleeRange (actor, actor->target, true))
     {
-	P_SetMobjState (actor, actor->info->meleestate);
+	P_SetMobjAnimation(actor, ANIM_MELEE, 0);
 #ifdef SERVER
 	// tell clients about this
 	SV_UpdateMobj(actor, SV_MOBJF_POSITION | SV_MOBJF_FLOORZ | SV_MOBJF_CEILZ | SV_MOBJF_ANGLE | SV_MOBJF_STATE | SV_MOBJF_TARGET | SV_MOBJF_SOUND_ATTACK);
@@ -704,7 +704,7 @@ void A_Chase (mobj_t*	actor)
 	if (!P_CheckMissileRange (actor))
 	    goto nomissile;
 	
-	P_SetMobjState (actor, actor->info->missilestate);
+	P_SetMobjAnimation(actor, ANIM_MISSILE, 0);
 	actor->flags |= MF_JUSTATTACKED;
 #ifdef SERVER
 	// tell clients about this
@@ -759,9 +759,7 @@ void A_FaceTarget (mobj_t* actor)
 				    actor->y,
 				    actor->target->x,
 				    actor->target->y);
-    
-    if (actor->target->flags & MF_SHADOW)
-	actor->angle += (P_Random()-P_Random())<<21;
+
 #ifndef SERVER
 	// [kg] new cheats
 	if(actor->target->player)

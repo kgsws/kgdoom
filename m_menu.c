@@ -313,6 +313,7 @@ menuitem_t OptionsMenu[]=
 {
     {"STICK ROLES", M_ToggleStick, 1},
     {"SHOOT", M_ChangeKey, 1},
+    {"SHOOT SECONDARY", M_ChangeKey, 1},
     {"USE", M_ChangeKey, 1},
     {"WEAPONS", M_ChangeKey, 1},
     {"WALK", M_ChangeKey, 1},

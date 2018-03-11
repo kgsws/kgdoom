@@ -459,7 +459,7 @@ R_DrawVisSprite
 
 	if(vis->mo->flags & MF_HOLEY)
 		colfunc = R_DrawColumnHoley;
-	if(vis->mo->flags & MF_SHADOW)
+	if(vis->mo->renderstyle == RENDER_SHADOW)
 		colfunc = fuzzcolfunc;
 
     } else
@@ -773,7 +773,7 @@ void R_DrawPSprite (pspdef_t* psp)
 
     vis->patch = lump;
 
-    if (viewplayer->mo->flags & MF_SHADOW)
+    if (viewplayer->mo->renderstyle == RENDER_SHADOW)
     {
 	// shadow draw
 	dc_colormap = NULL;

@@ -18,10 +18,6 @@
 #define MAPBMASK		(MAPBLOCKSIZE-1)
 #define MAPBTOFRAC		(MAPBLOCKSHIFT-FRACBITS)
 
-
-// player radius for movement checking
-#define PLAYERRADIUS	16*FRACUNIT
-
 #define GRAVITY		FRACUNIT
 #define MAXMOVE		(32*FRACUNIT)
 
@@ -96,7 +92,7 @@ void 	P_RemoveMobj (mobj_t* th, boolean clientside);
 #else
 void 	P_RemoveMobj (mobj_t* th);
 #endif
-boolean	P_SetMobjState (mobj_t* mobj, statenum_t state);
+boolean	P_ForceMobjState (mobj_t* mobj, statenum_t state);
 boolean P_SetMobjAnimation(mobj_t *mobj, int anim, int skip);
 void 	P_MobjThinker (mobj_t* mobj);
 
@@ -107,6 +103,8 @@ void 	P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin, mobj_t *cau
 mobj_t *P_SpawnMissile(mobj_t *source, mobjtype_t type, angle_t ango, fixed_t pio, fixed_t zo, fixed_t xo, fixed_t yo);
 
 void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer);
+
+void P_ZMovement (mobj_t* mo);
 
 //
 // P_ENEMY
@@ -299,6 +297,7 @@ void A_VileChase(mobj_t *actor);
 
 void A_WeaponRaise(mobj_t *actor);
 void A_WeaponReady(mobj_t *actor);
+void A_WeaponReadyForced(mobj_t *actor);
 void A_WeaponLower(mobj_t *actor);
 void A_WeaponFlash(mobj_t *mo);
 void A_WeaponRefire(mobj_t *mo);

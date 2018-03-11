@@ -140,11 +140,11 @@ function pickupInvuln(mobj, spec, arg)
 end
 
 function removeInvis(mobj)
-	mobj.__shadow = false
+	mobj.render = "!NORMAL"
 end
 
 function pickupInvis(mobj, spec, arg)
-	mobj.__shadow = true
+	mobj.render = "!SHADOW"
 	mobj.player.Message("Partial Invisibility")
 	mobj.TickerSet(pw_invisibility, 60*35, "PINSA0", removeInvis)
 	return pickup.power

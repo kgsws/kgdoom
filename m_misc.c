@@ -149,13 +149,14 @@ extern int	key_strafeleft;
 extern int	key_straferight;
 
 extern int	key_fire;
+extern int	key_fire_alt;
 extern int	key_use;
 extern int	key_strafe;
 extern int	key_speed;
 
 extern int	mousebfire;
+extern int	mousebfirealt;
 extern int	mousebstrafe;
-extern int	mousebforward;
 extern int	mousebuse;
 
 extern int	viewwidth;
@@ -210,14 +211,14 @@ default_t	defaults[] =
     {"key_straferight",&key_straferight, 'd'},
 
     {"key_fire",&key_fire, KEY_RCTRL},
+    {"key_fire_alt",&key_fire_alt, 0},
     {"key_use",&key_use, 'e'},
     {"key_strafe",&key_strafe, KEY_RALT},
     {"key_speed",&key_speed, KEY_RSHIFT},
 
     {"use_mouse",&usemouse, 1},
     {"mouseb_fire",&mousebfire,0},
-    {"mouseb_strafe",&mousebstrafe,1},
-    {"mouseb_forward",&mousebforward,1},
+    {"mouseb_fire_alt",&mousebfirealt,1},
     {"mouseb_use",&mousebuse,2},
 
     {"screenblocks",&screenblocks, 11},

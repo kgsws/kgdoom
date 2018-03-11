@@ -24,6 +24,7 @@ function(mobj)
 	local sl
 	a.SoundAttack(mobj)
 	an, sl = mobj.AttackAim(true)
+	an = shadowAim(mobj, an)
 	mobj.angle = an
 	an = an + (doomRandom() - doomRandom()) * 2
 	mobj.LineAttack(MT_PUFF, doomRandom(1, 5) * 3, an, sl)
@@ -35,6 +36,7 @@ function(mobj)
 	local sl
 	a.SoundAttack(mobj)
 	an, sl = mobj.AttackAim(true)
+	an = shadowAim(mobj, an)
 	mobj.angle = an
 	for i=0,2 do
 		mobj.LineAttack(MT_PUFF, doomRandom(1, 5) * 3, an + (doomRandom() - doomRandom()) * 2, sl)
