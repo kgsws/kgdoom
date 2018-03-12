@@ -122,12 +122,17 @@ function pickupSuit(mobj, spec, arg)
 	return pickup.power
 end
 
+function pickupMap(mobj, spec, arg)
+	mobj.player.Message("Computer Area Map")
+	mobj.player.map = 1
+end
+
 function removeInvuln(mobj)
 	mobj.__invulnerable = false
 	if mobj.TickerCheck(pw_infrared) then
 		mobj.player.colormap = "COLORMAP:1"
 	else
-		mobj.player.colormap = "-"		
+		mobj.player.colormap = "-"
 	end
 end
 
@@ -409,6 +414,8 @@ createMobjType(mtype)
 
 -- map
 mtype = {
+	activeSound = "dsgetpow",
+	action = pickupMap,
 	ednum = 2026,
 	radius = 20,
 	height = 8,

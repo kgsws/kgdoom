@@ -512,6 +512,7 @@ static const lua_table_model_t lua_player[] =
 	{"refire", offsetof(player_t, refire), LUA_TNUMBER},
 	{"colormap", offsetof(player_t, viewmap), LUA_TSTRING, func_set_colormap, func_get_colormap},
 	{"extralight", offsetof(player_t, extralight), LUA_TNUMBER},
+	{"map", offsetof(player_t, automap), LUA_TNUMBER},
 	// functions
 	{"Message", 0, LUA_TFUNCTION, func_set_readonly, func_setplayermessage},
 	{"SetWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},

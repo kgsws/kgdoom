@@ -620,12 +620,10 @@ void G_Ticker (void)
 void G_PlayerFinishLevel (int player)
 { 
     player_t*	p; 
-	 
+
     p = &players[player]; 
 
-    // cancel invisibility 
-    p->mo->renderstyle = p->mo->info->renderstyle;
-    p->mo->rendertable = p->mo->info->rendertable;
+    p->automap = 0; // clear map
     p->extralight = 0;			// cancel gun flashes 
     p->damagecount = 0;			// no palette changes 
     p->bonuscount = 0;

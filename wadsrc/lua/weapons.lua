@@ -317,6 +317,7 @@ mtype = {
 	radius = 11,
 	height = 8,
 	damage = -20,
+	pass = 3,
 	__Projectile = true,
 	_spawn = {
 		{"*MISLA", -1}
@@ -337,6 +338,7 @@ mtype = {
 	radius = 13,
 	height = 8,
 	damage = -5,
+	pass = 3,
 	__Projectile = true,
 	_spawn = {
 		{"*PLSSA", 6},
@@ -360,6 +362,7 @@ mtype = {
 	radius = 13,
 	height = 8,
 	damage = -100,
+	pass = 3,
 	__Projectile = true,
 	_spawn = {
 		{"*BFS1A", 4},

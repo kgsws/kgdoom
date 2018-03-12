@@ -135,6 +135,9 @@ typedef struct player_s
     // True if secret level has been done.
     boolean		didsecret;
 
+    // [kg] map reveal state
+    int			automap;
+
     // [kg] inventory; only used on level change
     struct inventory_s *inventory;
     int			health;

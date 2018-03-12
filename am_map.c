@@ -21,6 +21,7 @@
 
 #include "am_map.h"
 
+#define PLAYERRADIUS	(16*FRACUNIT)
 
 // For use if I do walls with outsides/insides
 #define REDS		(256-5*16)
@@ -131,7 +132,7 @@ typedef struct
 //  A line drawing of the player pointing right,
 //   starting from the middle.
 //
-#define R ((8*16)/7)
+#define R ((8*PLAYERRADIUS)/7)
 mline_t player_arrow[] = {
     { { -R+R/8, 0 }, { R, 0 } }, // -----
     { { R, 0 }, { R-R/2, R/4 } },  // ----->
@@ -144,7 +145,7 @@ mline_t player_arrow[] = {
 #undef R
 #define NUMPLYRLINES (sizeof(player_arrow)/sizeof(mline_t))
 
-#define R ((8*16)/7)
+#define R ((8*PLAYERRADIUS)/7)
 mline_t cheat_player_arrow[] = {
     { { -R+R/8, 0 }, { R, 0 } }, // -----
     { { R, 0 }, { R-R/2, R/6 } },  // ----->
@@ -385,14 +386,14 @@ void AM_findMinMaxBoundaries(void)
     max_w = max_x - min_x;
     max_h = max_y - min_y;
 
-    min_w = 2*16; // const? never changed?
-    min_h = 2*16;
+    min_w = 2*PLAYERRADIUS; // const? never changed?
+    min_h = 2*PLAYERRADIUS;
 
     a = FixedDiv(f_w<<FRACBITS, max_w);
     b = FixedDiv(f_h<<FRACBITS, max_h);
   
     min_scale_mtof = a < b ? a : b;
-    max_scale_mtof = FixedDiv(f_h<<FRACBITS, 2*16);
+    max_scale_mtof = FixedDiv(f_h<<FRACBITS, 2*PLAYERRADIUS);
 
 }
 
@@ -673,11 +674,6 @@ AM_Responder
 	  default:
 	    cheatstate=0;
 	    rc = false;
-	}
-	if (!sv_deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
-	{
-	    rc = false;
-	    cheating = (cheating+1) % 3;
 	}
     }
     else if (ev->type == ev_keyup)
@@ -1148,10 +1144,10 @@ void AM_drawWalls(void)
 		}
 	    }
 	}
-/*	else if (plr->powers[pw_allmap]) // TODO: all map
+	else if (plr->automap == 1)
 	{
 	    if (!(lines[i].flags & LINE_NEVERSEE)) AM_drawMline(&l, GRAYS+3);
-	}*/
+	}
     }
 }
 
@@ -1230,7 +1226,11 @@ AM_drawLineCharacter
 
 void AM_drawPlayers(void)
 {
-    int		i;
+    AM_drawLineCharacter
+	(player_arrow, NUMPLYRLINES, 0, plr->mo->angle,
+	 WHITE, plr->mo->x, plr->mo->y);
+
+/*    int		i;
     player_t*	p;
     static int 	their_colors[] = { GREENS, GRAYS, BROWNS, REDS };
     int		their_color = -1;
@@ -1260,16 +1260,16 @@ void AM_drawPlayers(void)
 	if (!playeringame[i])
 	    continue;
 
-/*	if (p->powers[pw_invisibility])
-	    color = 246; // *close* to black
-	else
-*/	    color = their_colors[their_color];
+//	if (p->powers[pw_invisibility])
+//	    color = 246; // *close* to black
+//	else
+	    color = their_colors[their_color];
 	
 	AM_drawLineCharacter
 	    (player_arrow, NUMPLYRLINES, 0, p->mo->angle,
 	     color, p->mo->x, p->mo->y);
     }
-
+*/
 }
 
 void
@@ -1323,6 +1323,12 @@ void AM_drawCrosshair(int color)
 void AM_Drawer (void)
 {
     if (!automapactive) return;
+
+    cheating = plr->automap - 1;
+    if(cheating < 0)
+	cheating = 0;
+    if(cheating > 2)
+	cheating = 2;
 
     AM_clearFB(BACKGROUND);
     if (grid)
