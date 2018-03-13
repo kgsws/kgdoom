@@ -229,15 +229,13 @@ I_StartSound
 
 void I_StopSound(int slot)
 {
-	channels[slot] = channelsend[slot];
+	channels[slot] = 0;
 }
 
 
 int I_SoundIsPlaying(int slot)
 {
-	if(!channels[slot])
-		return 0;
-	return channels[slot] < channelsend[slot];
+	return !!channels[slot];
 }
 
 
