@@ -943,7 +943,7 @@ void M_QuitResponse(int ch)
 	    S_StartSound(NULL,quitsounds2[(gametic>>2)&7],0);
 	else
 	    S_StartSound(NULL,quitsounds[(gametic>>2)&7],0);
-	I_WaitVBL(105);
+//	I_WaitVBL(105); TODO
     }
     I_Quit ();
 }
@@ -1651,9 +1651,9 @@ void M_Ticker (void)
 //
 void M_Init (void)
 {
+//    GrabMouse(1); // intentionaly disabled
     currentMenu = &MainDef;
     menuactive = 0;
-	GrabMouse(1);
     itemOn = currentMenu->lastOn;
     whichSkull = 0;
     skullAnimCounter = 10;

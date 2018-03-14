@@ -7,6 +7,9 @@
 #include "d_main.h"
 #include "z_zone.h"
 
+//#define VIDEO_STDOUT
+#include "t_text.h"
+
 typedef union
 {
 	struct
@@ -537,10 +540,6 @@ void I_ReadScreen (byte* scr)
 }
 
 //
-// Palette stuff.
-//
-
-//
 // I_SetPalette
 //
 void I_SetPalette (byte* palette)
@@ -597,6 +596,16 @@ void I_InitGraphics(void)
 	init_swizzle();
 	// init controls too
 	hmem = hid_get_shared_memory();
+#endif
+#ifdef VIDEO_STDOUT
+	T_Init();
+#endif
+}
+
+void I_StartGraphics()
+{
+#ifdef VIDEO_STDOUT
+	T_Enable(0);
 #endif
 }
 

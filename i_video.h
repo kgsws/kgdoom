@@ -15,7 +15,7 @@ void GrabMouse(int grab);
 // determines the hardware configuration
 // and sets up the video mode
 void I_InitGraphics (void);
-
+void I_StartGraphics();
 
 void I_ShutdownGraphics(void);
 

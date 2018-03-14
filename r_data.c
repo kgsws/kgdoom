@@ -525,20 +525,20 @@ void R_InitTextures (void)
 
     // 1/18/98 killough:  reduce the number of initialization dots
     // and make more accurate
-
+/*
     int temp3 = 8+(temp2-temp1+255)/128 + (numtextures+255)/128;  // killough
     putchar('[');
     for (i = 0; i < temp3; i++)
       putchar(' ');
     putchar(']');
     for (i = 0; i < temp3; i++)
-      putchar('\x8');
+      putchar('\x8');*/
   }
 
   for (i=0 ; i<numtextures ; i++, directory++)
     {
-      if (!(i&127))          // killough
-        putchar('.');
+//      if (!(i&127))          // killough
+//        putchar('.');
 
       if (i == numtextures1)
         {

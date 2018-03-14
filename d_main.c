@@ -438,7 +438,12 @@ void D_DoomMain (void)
     printf ("Z_Init: Init zone memory allocation daemon. \n");
     Z_Init ();
 
-    printf ("I_InitNetwork: init kgsws' multiplayer protocol\n");
+#ifndef SERVER
+    printf ("I_InitGraphics: Init video output.\n");
+    I_InitGraphics();
+#endif
+
+    printf ("I_InitNetwork: Init kgsws' multiplayer protocol.\n");
     I_InitNetwork();
 
     printf ("W_Init: Init WADfiles.\n");
@@ -734,10 +739,10 @@ void D_DoomMain (void)
     printf("L_Init: Init kgsws' DoomLUA\n");
     L_Init();
 
-    printf ("R_Init: Init DOOM refresh daemon - ");
+    printf ("R_Init: Init DOOM refresh daemon.\n");
     R_Init ();
 
-    printf ("\nP_Init: Init Playloop state.\n");
+    printf ("P_Init: Init Playloop state.\n");
     P_Init ();
 
     printf ("I_Init: Setting up machine state.\n");
@@ -754,6 +759,9 @@ void D_DoomMain (void)
 
     printf ("ST_Init: Init status bar.\n");
     ST_Init ();
+
+    printf ("I_StartGraphics: Disable text output.\n");
+    I_StartGraphics();
 
     if (netgame)
 	D_StartNet();
