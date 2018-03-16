@@ -229,13 +229,13 @@ I_StartSound
 
 void I_StopSound(int slot)
 {
-	channels[slot] = 0;
+	channels[slot] = channelsend[slot];
 }
 
 
 int I_SoundIsPlaying(int slot)
 {
-	return !!channels[slot];
+	return channels[slot] < channelsend[slot];
 }
 
 
@@ -308,7 +308,7 @@ void SND_Mix(void *unused, int16_t *mixbuffer, int samples)
 	for ( chan = 0; chan < NUM_SFX_CHANNELS; chan++ )
 	{
 	    // Check channel, if active.
-	    if (channels[ chan ])
+	    if (channels[chan] < channelsend[chan])
 	    {
 		// Get the raw data from the channel. 
 		sample = *channels[ chan ];
@@ -326,10 +326,6 @@ void SND_Mix(void *unused, int16_t *mixbuffer, int samples)
 			channelstep[chan] -= SAMPLERATE;
 			channels[chan]++;
 		}
-
-		// Check whether we are done.
-		if (channels[ chan ] >= channelsend[ chan ])
-		    channels[ chan ] = 0;
 	    }
 	}
 	

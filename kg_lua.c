@@ -346,6 +346,7 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"notInDeathmatch", MF_NOTDMATCH},
 	{"isMonster", MF_ISMONSTER},
 	{"noRadiusDamage", MF_NORADIUSDMG},
+	{"noRadiusDmgZ", MF_NORADIUSZ},
 	{"skullFly", MF_SKULLFLY},
 	{"noZChange", MF_NOZCHANGE},
 	{"troughMobj", MF_TROUGHMOBJ},
@@ -2252,6 +2253,7 @@ static int LUA_createMobjType(lua_State *L)
 		temp.lua_arg = LUA_REFNIL;
 		temp.stepheight = 24 * FRACUNIT;
 		temp.blocking = 0xFFFF;
+		temp.icon = -1;
 		// get states
 		state_mobjt = numstates;
 		LUA_MobjTypeStruct(L, &temp);
@@ -2277,40 +2279,26 @@ static int LUA_setPlayerType(lua_State *L)
 static int LUA_addWeaponType(lua_State *L)
 {
 	int type, amm0, amm1;
-	char icon[8];
-	const char *tmp;
-	char *str;
 	int top;
 
 	// type; required
 	type = LUA_GetMobjTypeParam(L, 1);
 
-	// icon; required, can be nil
-	if(lua_type(L, 2) == LUA_TNIL)
-		str = NULL;
-	else
-	{
-		luaL_checktype(L, 2, LUA_TSTRING);
-		tmp = lua_tostring(L, 2);
-		strncpy(icon, tmp, 8);
-		str = icon;
-	}
-
 	top = lua_gettop(L);
 
 	// primary ammo type; optional
-	if(top > 2)
-		amm0 = LUA_GetMobjTypeParam(L, 3);
+	if(top > 1)
+		amm0 = LUA_GetMobjTypeParam(L, 2);
 	else
 		amm0 = 0;
 
-	// primary ammo type; optional
-	if(top > 3)
-		amm1 = LUA_GetMobjTypeParam(L, 4);
+	// secondary ammo type; optional
+	if(top > 2)
+		amm1 = LUA_GetMobjTypeParam(L, 3);
 	else
 		amm1 = 0;
 
-	ST_AddWeaponType(type, str, amm0, amm1);
+	ST_AddWeaponType(type, amm0, amm1);
 
 	return 0;
 }
@@ -2318,17 +2306,8 @@ static int LUA_addWeaponType(lua_State *L)
 static int LUA_addKeyType(lua_State *L)
 {
 	int type;
-	char icon[8];
-	const char *tmp;
-
-	luaL_checktype(L, 2, LUA_TSTRING);
-
-	tmp = lua_tostring(L, 2);
-	strncpy(icon, tmp, 8);
-
 	type = LUA_GetMobjTypeParam(L, 1);
-	ST_AddKeyType(type, icon);
-
+	ST_AddKeyType(type);
 	return 0;
 }
 
@@ -2863,8 +2842,20 @@ static int LUA_setFakeContrast(lua_State *L)
 //
 // indirect LUA functions
 
+static int LUA_luaExit(lua_State *L)
+{
+	const char *tmp;
+
+	luaL_checktype(L, 1, LUA_TSTRING);
+	tmp = lua_tostring(L, 1);
+	strncpy(level_name, tmp, 8);
+	G_ExitLevel();
+	return 0;
+}
+
 static int LUA_doomExit(lua_State *L)
 {
+	level_name[0] = 0;
 	if(lua_gettop(L) > 0)
 	{
 		luaL_checktype(L, 1, LUA_TBOOLEAN);
@@ -4720,6 +4711,10 @@ static int LUA_GameInfoIndex(lua_State *L)
 	if(!strcmp(par, "DoomExit"))
 	{
 		lua_pushcfunction(L, LUA_doomExit);
+	} else
+	if(!strcmp(par, "Exit"))
+	{
+		lua_pushcfunction(L, LUA_luaExit);
 	} else
 	if(!strcmp(par, "deathMatch"))
 	{

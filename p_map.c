@@ -1531,12 +1531,15 @@ boolean PIT_RadiusAttack (mobj_t* thing)
 	dx = 0;
 
     // [kg] check z distance
-    dz = abs(thing->z - bombspot->z);
-    dz = dz - thing->height;
-    if(dz < 0)
-	dz = 0;
-
-    dist = dx > dz ? dx : dz;
+    if(!(thing->flags & MF_NORADIUSZ))
+    {
+	dz = abs(thing->z - bombspot->z);
+	if(thing->z < bombspot->z)
+	    dz = dz - thing->height;
+	if(dz < 0)
+	    dz = 0;
+	dist = dx > dz ? dx : dz;
+    }
 
     if (dist >= bombdist)
 	return true;	// out of range

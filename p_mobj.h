@@ -200,6 +200,9 @@ typedef enum
     // [kg] invulnerability
     MF_INVULNERABLE = 0x100000000,
 
+    // [kg] no Z check for explosions
+    MF_NORADIUSZ	= 0x200000000,
+
 } mobjflag_t;
 
 

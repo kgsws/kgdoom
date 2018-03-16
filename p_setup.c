@@ -803,22 +803,26 @@ P_SetupLevel
     // UNUSED W_Profile ();
     P_InitThinkers ();
 
-    // find map name
-    if ( gamemode == commercial)
+    if(level_name[0])
     {
-	if (map<10)
-	    sprintf (lumpname,"map0%i", map);
+	// [kg] custom map name
+	memcpy(lumpname, level_name, 8);
+    } else
+    {
+	// find map name
+	if ( gamemode == commercial)
+	{
+	    sprintf(lumpname,"MAP%02i", map);
+	    gameepisode = 0;
+	}
 	else
-	    sprintf (lumpname,"map%i", map);
-	gameepisode = 0;
-    }
-    else
-    {
-	lumpname[0] = 'E';
-	lumpname[1] = '0' + episode;
-	lumpname[2] = 'M';
-	lumpname[3] = '0' + map;
-	lumpname[4] = 0;
+	{
+	    lumpname[0] = 'E';
+	    lumpname[1] = '0' + episode;
+	    lumpname[2] = 'M';
+	    lumpname[3] = '0' + map;
+	    lumpname[4] = 0;
+	}
     }
 
     lumpnum = W_GetNumForName (lumpname);

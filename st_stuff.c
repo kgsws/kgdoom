@@ -851,31 +851,20 @@ void ST_loadGraphics(void)
 	pack_back = (patch_t *) W_CacheLumpName("BPAKA0");
 }
 
-static patch_t *get_patch(char *patch)
-{
-	int pnum;
-
-	if(!patch)
-		return NULL;
-
-	pnum = W_CheckNumForName(patch);
-
-	if(pnum < 0)
-		return NULL;
-
-	return W_CacheLumpNum(pnum);
-}
-
-void ST_AddWeaponType(int type, char *patch, int ammo0type, int ammo1type)
+void ST_AddWeaponType(int type, int ammo0type, int ammo1type)
 {
 	weaponlist_t *list;
+	int pnum = mobjinfo[type].icon;
 
 	list = malloc(sizeof(weaponlist_t));
 	if(!list)
 		I_Error("ST_AddWeaponType: memory allocation error");
 
 	list->next = NULL;
-	list->patch = get_patch(patch);
+	if(pnum >= 0)
+		list->patch = W_CacheLumpNum(pnum);
+	else
+		list->patch = NULL;
 	list->type = type;
 	list->owned = false;
 	list->ammo[0] = ammo0type;
@@ -915,16 +904,15 @@ void ST_CheckInventory(int type, int count)
 	}
 }
 
-void ST_AddKeyType(int type, char *patch)
+void ST_AddKeyType(int type)
 {
-	int pnum;
 	keylist_t *list;
+	int pnum = mobjinfo[type].icon;
 
 	list = malloc(sizeof(keylist_t));
 	if(!list)
 		I_Error("ST_AddKeyType: memory allocation error");
 
-	pnum = W_CheckNumForName(patch);
 	list->next = NULL;
 	if(pnum >= 0)
 		list->patch = W_CacheLumpNum(pnum);

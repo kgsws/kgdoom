@@ -34,7 +34,7 @@ void ST_Start (void);
 void ST_Init (void);
 
 // [kg] weapon selection menu
-void ST_AddWeaponType(int type, char *patch, int ammo0type, int ammo1type);
+void ST_AddWeaponType(int type, int ammo0type, int ammo1type);
 weapontype_t ST_GetNewWeapon();
 void ST_SetNewWeapon(weapontype_t wpn);
 void ST_ReadyWeapon(void *pl);
@@ -43,7 +43,7 @@ boolean ST_PickableWeapon(weapontype_t wpn);
 // [kg] other gfx
 void ST_ClearInventory();
 void ST_CheckInventory(int type, int count);
-void ST_AddKeyType(int type, char *patch);
+void ST_AddKeyType(int type);
 
 // States for status bar code.
 typedef enum
