@@ -361,7 +361,7 @@ mtype = {
 		"loop"
 	}
 }
-createMobjType(mtype)
+MT_INVULN = createMobjType(mtype)
 
 -- berserk
 mtype = {

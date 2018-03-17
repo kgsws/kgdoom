@@ -329,7 +329,7 @@ ST_Responder (event_t* ev)
 				weapon_select = wp_nochange;
 		}
 	} else
-	if(!(plr->cheats & CF_SPECTATOR))
+	if(!(plr->cheats & CF_SPECTATOR) && !plr->force_weapon && !plr->hide_stbar)
 	{
 //#ifdef LINUX
 #if 0
@@ -354,7 +354,7 @@ ST_Responder (event_t* ev)
 			// scan for current amount
 			while(list)
 			{
-//				if(list->owned)	// TODO: menu option
+//				if(list->owned)	// TODO: menu option - show owned weapons only
 				if(list->patch)
 					weapon_count++;
 				list = list->next;
@@ -690,6 +690,23 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 
 	if(!plyr->mo)
 		return;
+
+	if(plyr->hide_stbar)
+	{
+		if(in_weapon_menu)
+			GrabMouse(1);
+		in_weapon_menu = false;
+		weapon_change = wp_nochange;
+		return;
+	}
+
+	if(in_weapon_menu && plyr->force_weapon)
+	{
+		if(in_weapon_menu)
+			GrabMouse(1);
+		in_weapon_menu = false;
+		weapon_change = wp_nochange;
+	}
 
 	if(plyr->cheats & CF_SPECTATOR)
 		return;

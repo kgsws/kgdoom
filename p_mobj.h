@@ -191,17 +191,14 @@ typedef enum
     // [kg] ignore thing colisions
     MF_FULLVOLUME	= 0x20000000,
 
-    // [kg] holey rendering
-    MF_HOLEY = 0x40000000,
-
     // [kg] disable death 'pull'
-    MF_NODEATHPULL = 0x80000000,
+    MF_NODEATHPULL = 0x40000000,
 
     // [kg] invulnerability
-    MF_INVULNERABLE = 0x100000000,
+    MF_INVULNERABLE = 0x80000000,
 
     // [kg] no Z check for explosions
-    MF_NORADIUSZ	= 0x200000000,
+    MF_NORADIUSZ	= 0x100000000,
 
 } mobjflag_t;
 
@@ -258,6 +255,10 @@ typedef struct mobj_s
     // [kg] current animation ID
     int			animation;
 
+    // [kg] can be modified
+    fixed_t		speed;
+    int			mass;
+    int			gravity;
 
     uint64_t		flags;
     int			health;
@@ -300,6 +301,9 @@ typedef struct mobj_s
 
     // For nightmare respawn.
     mapthing_hexen_t		spawnpoint;
+
+    // [kg] tag
+    int tag;
 
     // [kg] blocking
     int blocking;

@@ -25,6 +25,35 @@ function(mobj)
 	end
 end
 
+a.BrainScream =
+function(mobj)
+	local i
+	local s
+	local e
+	local y
+	a.SoundDeath(mobj)
+	s = mobj.x - 196
+	e = mobj.x + 312
+	y = mobj.y - 320
+	for i=s,e,8 do
+		spawnMobj(MT_EXPLOSION, i, y, 128 + doomRandom() * 2)
+	end
+end
+
+a.BrainExplode =
+function(mobj)
+	spawnMobj(MT_EXPLOSION, mobj.x + (doomRandom() - doomRandom()) * 0.03125, mobj.y, 128 + doomRandom() * 2)
+end
+
+a.BrainDie =
+function(mobj)
+	if game.map == "MAP30" then
+		game.Exit("D2FINALE")
+	else
+		game.DoomExit()
+	end
+end
+
 a.SpawnFly =
 function(mobj)
 	if mobj.Distance(mobj.target, false) < 24 then
@@ -61,6 +90,19 @@ function(mobj)
 	end
 end
 
+-- MT_EXPLOSION (custom type)
+mtype = {
+	deathSound = "dsbarexp",
+	__noGravity = true,
+	__noBlockmap = true,
+	_spawn = {
+		{"*MISLB", 10, a.SoundDeath},
+		{"*MISLC", 10},
+		{"*MISLD", 10, a.BrainExplode}
+	}
+}
+MT_EXPLOSION = createMobjType(mtype)
+
 -- MT_BOSSBRAIN
 mtype = {
 	painSound = "dsbospn",
@@ -75,6 +117,7 @@ mtype = {
 	__solid = true,
 	__shootable = true,
 	__fullVolume = true,
+	__noRadiusDmgZ = true,
 	_spawn = {
 		{"BBRNA", -1}
 	},
@@ -83,8 +126,8 @@ mtype = {
 		"_spawn"
 	},
 	_death = {
-		{"BBRNA", 120, a.SoundDeath},
-		{"BBRNA", -1}
+		{"BBRNA", 120, a.BrainScream},
+		{"BBRNA", -1, a.BrainDie}
 	}
 }
 createMobjType(mtype)
@@ -156,3 +199,166 @@ mtype = {
 }
 MT_SPAWNFIRE = createMobjType(mtype)
 
+--
+-- custom Doom2 finale
+--
+
+function finalGetSpawnType(info)
+	if info == MT_POSSESSED then
+		return MT_SHOTGUY
+	elseif info == MT_SHOTGUY then
+		return MT_CHAINGUY
+	elseif info == MT_CHAINGUY then
+		return MT_TROOP
+	elseif info == MT_TROOP then
+		return MT_SERGEANT
+	elseif info == MT_SERGEANT then
+		return MT_SKULL
+	elseif info == MT_SKULL then
+		return MT_HEAD
+	elseif info == MT_HEAD then
+		return MT_KNIGHT
+	elseif info == MT_KNIGHT then
+		return MT_BRUISER
+	elseif info == MT_BRUISER then
+		return MT_BABY
+	elseif info == MT_BABY then
+		return MT_PAIN
+	elseif info == MT_PAIN then
+		return MT_UNDEAD
+	elseif info == MT_UNDEAD then
+		return MT_FATSO
+	elseif info == MT_FATSO then
+		return MT_VILE
+	elseif info == MT_VILE then
+		return MT_SPIDER
+	elseif info == MT_SPIDER then
+		return MT_CYBORG
+	elseif info == MT_CYBORG then
+		return MT_FINALPLAYER
+	end
+	return MT_POSSESSED
+end
+
+function finalePlayer(mobj)
+	local an
+	local sl
+	a.SoundAttack(mobj)
+	an, sl = mobj.AttackAim(true)
+	mobj.angle = an
+	an = an + (doomRandom() - doomRandom()) / 2
+	mobj.LineAttack(MT_PUFF, doomRandom(1, 5) * 3, an, sl)
+end
+
+function finaleRemove(mobj)
+	local info
+	info = mobj.info
+	if info ~= MT_PLAYER and info ~= MT_TELEPORTMAN then
+		mobj.Remove()
+	end
+end
+
+function finaleRespawn()
+	globalThingsIterator(finaleRemove)
+	thingTagIterator(1, finaleSpawn)
+end
+
+function finaleKill(mobj)
+	mobj.Damage(false, 0)
+	return false
+end
+
+function finaleGoKill(mobj)
+	thingTagIterator(666, finaleKill)
+end
+
+function finaleSpawn(mobj, target)
+	if target ~= nil then
+		mobj.target = target
+	end
+	local mo
+	local info
+	info = finalGetSpawnType(mobj.armortype)
+	mobj.armortype = info
+	mo = spawnMobj(info, mobj.x, mobj.y, mobj.z, mobj.angle, false)
+	mo.speed = 0
+	mo.tag = 666
+	mo.target = mobj.target
+	return false
+end
+
+function finaleTarget(mobj)
+	mobj.health = 1
+	mobj.radius = 0
+	mobj.height = 56
+	mobj.__invulnerable = true
+	mobj.__noRadiusDamage = true
+	mobj.__shootable = true
+	mobj.__noGravity = false
+	return false, mobj
+end
+
+function finaleInit()
+	local mo
+	mo = thingTagIterator(2, finaleTarget)
+	thingTagIterator(1, finaleSpawn, mo)
+	setBackground("BOSSBACK")
+end
+
+mtype = {
+	_wReady = {
+		{"UNKNZ", 1, a.WeaponReady},
+		"loop"
+	},
+	_wFireMain = {
+		{"UNKNZ", 70, finaleGoKill},
+		{"UNKNZ", 35, finaleRespawn},
+		"_wReady"
+	}
+}
+MT_FINALEWEAPON = createMobjType(mtype)
+
+mtype = {
+	deathSound = "dspldeth",
+	attackSound = "dspistol",
+	health = 100,
+	radius = 16,
+	height = 56,
+	mass = 100,
+	shootz = 32,
+	viewz = 41,
+	bobz = 16,
+	pass = 2,
+	action_crash = playerCrash,
+	__solid = true,
+	__shootable = true,
+	__dropOff = true,
+	__pickup = true,
+	__slide = true,
+	_spawn = {
+		{"PLAYA", 10, a.Look},
+		"loop"
+	},
+	_see = {
+		{"PLAYA", 4, a.Chase},
+		{"PLAYB", 4, a.Chase},
+		{"PLAYC", 4, a.Chase},
+		{"PLAYD", 4, a.Chase},
+		"loop"
+	},
+	_missile = {
+		{"PLAYE", 6},
+		{"*PLAYF", 6, finalePlayer},
+		"_spawn"
+	},
+	_death = {
+		{"PLAYH", 10},
+		{"PLAYI", 10, a.SoundDeath},
+		{"PLAYJ", 10, a.Fall},
+		{"PLAYK", 10},
+		{"PLAYL", 10},
+		{"PLAYM", 10},
+		{"PLAYN", -1}
+	}
+}
+MT_FINALPLAYER = createMobjType(mtype)

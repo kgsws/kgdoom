@@ -50,11 +50,13 @@ extern fixed_t		ds_xstep;
 extern fixed_t		ds_ystep;
 
 // start of a 64*64 tile image
-extern byte*		ds_source;		
+extern byte*		ds_source;
 
 extern uint8_t *dc_colormap;
 extern uint8_t *dc_translation;
 extern uint8_t *dc_lightcolor;
+
+extern int dc_holestep;
 
 // Span blitting for rows, floor/ceiling.
 // No Sepctre effect needed.
@@ -74,7 +76,8 @@ R_InitBuffer
 //  for player rendering etc.
 void	R_InitTranslationTables (void);
 
-
+// [kg] pick renderer
+void R_SetupRenderFunc(int style, void *table, void *translation);
 
 // Rendering function.
 void R_FillBackScreen (void);

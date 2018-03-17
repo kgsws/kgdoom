@@ -42,7 +42,7 @@
 
 // function export masks
 #define LUA_EXPORT_SETUP	1
-#define LUA_EXPORT_LEVEL	1
+#define LUA_EXPORT_LEVEL	2
 
 // used to export C functions
 typedef struct
@@ -102,6 +102,8 @@ static boolean lua_setup;
 static int linespec_table[256];
 int linedef_side;
 
+void *game_backpatch;
+
 static int generic_sector_removed;
 
 static lua_State *luaS_PIT;
@@ -133,7 +135,9 @@ static int LUA_globalThingsIterator(lua_State *L);
 static int LUA_globalSectorsIterator(lua_State *L);
 static int LUA_globalLinesIterator(lua_State *L);
 static int LUA_sectorTagIterator(lua_State *L);
+static int LUA_thingTagIterator(lua_State *L);
 static int LUA_setFakeContrast(lua_State *L);
+static int LUA_setBackground(lua_State *L);
 
 static int LUA_removeMobjFromMobj(lua_State *L);
 static int LUA_faceFromMobj(lua_State *L);
@@ -318,7 +322,9 @@ static const luafunc_t lua_functions[] =
 	{"globalSectorsIterator", LUA_globalSectorsIterator, LUA_EXPORT_LEVEL},
 	{"globalLinesIterator", LUA_globalLinesIterator, LUA_EXPORT_LEVEL},
 	{"sectorTagIterator", LUA_sectorTagIterator, LUA_EXPORT_LEVEL},
+	{"thingTagIterator", LUA_thingTagIterator, LUA_EXPORT_LEVEL},
 	{"fakeContrast", LUA_setFakeContrast, LUA_EXPORT_LEVEL},
+	{"setBackground", LUA_setBackground, LUA_EXPORT_LEVEL},
 };
 
 // all mobj flags
@@ -396,6 +402,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"height", offsetof(mobjinfo_t, height), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"mass", offsetof(mobjinfo_t, mass), LUA_TNUMBER},
 	{"damage", offsetof(mobjinfo_t, damage), LUA_TNUMBER},
+	{"gravity", offsetof(mobjinfo_t, gravity), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"viewz", offsetof(mobjinfo_t, viewz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"shootz", offsetof(mobjinfo_t, shootz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"bobz", offsetof(mobjinfo_t, bobz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
@@ -408,6 +415,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"render", offsetof(mobjinfo_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(mobjinfo_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
+	{"action_crash", offsetof(mobjinfo_t, crash_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	// states; keep same order as in 'mobjinfo_t'
 	{"_spawn", offsetof(mobjinfo_t, spawnstate), LUA_TTABLE, func_set_states},
 	{"_see", offsetof(mobjinfo_t, seestate), LUA_TTABLE, func_set_states},
@@ -452,6 +460,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"momx", offsetof(mobj_t, momx), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"momy", offsetof(mobj_t, momy), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"momz", offsetof(mobj_t, momz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"gravity", offsetof(mobj_t, gravity), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"movedir", offsetof(mobj_t, movedir), LUA_TNUMBER},
 	{"movecount", offsetof(mobj_t, movecount), LUA_TNUMBER},
 	{"target", offsetof(mobj_t, target), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
@@ -461,6 +470,9 @@ static const lua_table_model_t lua_mobj[] =
 	{"reactiontime", offsetof(mobj_t, reactiontime), LUA_TNUMBER},
 	{"threshold", offsetof(mobj_t, threshold), LUA_TNUMBER},
 	{"tics", offsetof(mobj_t, tics), LUA_TNUMBER},
+	{"tag", offsetof(mobj_t, tag), LUA_TNUMBER},
+	{"speed", offsetof(mobj_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"mass", offsetof(mobj_t, mass), LUA_TNUMBER},
 	{"render", offsetof(mobj_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"block", offsetof(mobj_t, blocking), LUA_TNUMBER},
 	{"pass", offsetof(mobj_t, canpass), LUA_TNUMBER},
@@ -513,7 +525,10 @@ static const lua_table_model_t lua_player[] =
 	{"refire", offsetof(player_t, refire), LUA_TNUMBER},
 	{"colormap", offsetof(player_t, viewmap), LUA_TSTRING, func_set_colormap, func_get_colormap},
 	{"extralight", offsetof(player_t, extralight), LUA_TNUMBER},
+	{"deltaviewheight", offsetof(player_t, deltaviewheight), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"map", offsetof(player_t, automap), LUA_TNUMBER},
+	{"hideStatusBar", offsetof(player_t, hide_stbar), LUA_TBOOLEAN},
+	{"forceWeapon", offsetof(player_t, force_weapon), LUA_TBOOLEAN},
 	// functions
 	{"Message", 0, LUA_TFUNCTION, func_set_readonly, func_setplayermessage},
 	{"SetWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},
@@ -576,6 +591,7 @@ static const lua_table_model_t lua_linedef[] =
 	{"arg3", offsetof(line_t, arg)+3, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"arg4", offsetof(line_t, arg)+4, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"tag", offsetof(line_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
+	{"render", offsetof(line_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	// sectors
 	{"sectorFront", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorF},
 	{"sectorBack", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorB},
@@ -2251,9 +2267,11 @@ static int LUA_createMobjType(lua_State *L)
 		temp.damagetype = NUMDAMAGETYPES;
 		temp.lua_action = LUA_REFNIL;
 		temp.lua_arg = LUA_REFNIL;
+		temp.crash_action = LUA_REFNIL;
 		temp.stepheight = 24 * FRACUNIT;
 		temp.blocking = 0xFFFF;
 		temp.icon = -1;
+		temp.gravity = GRAVITY;
 		// get states
 		state_mobjt = numstates;
 		LUA_MobjTypeStruct(L, &temp);
@@ -2352,15 +2370,15 @@ static int LUA_spawnMobj(lua_State *L)
 	fixed_t x, y, z;
 	angle_t ang;
 	int type;
+	boolean action;
 	int top = lua_gettop(L);
-
-	luaL_checktype(L, 2, LUA_TNUMBER); // x
-	luaL_checktype(L, 3, LUA_TNUMBER); // y
 
 	// type; required
 	type = LUA_GetMobjTypeParam(L, 1);
 
 	// x and y; required
+	luaL_checktype(L, 2, LUA_TNUMBER); // x
+	luaL_checktype(L, 3, LUA_TNUMBER); // y
 	x = lua_tonumber(L, 2) * (lua_Number)FRACUNIT;
 	y = lua_tonumber(L, 3) * (lua_Number)FRACUNIT;
 
@@ -2374,15 +2392,27 @@ static int LUA_spawnMobj(lua_State *L)
 
 	// angle; optional
 	if(top > 4)
+	{
+		luaL_checktype(L, 5, LUA_TNUMBER);
 		ang = lua_tonumber(L, 5) * (lua_Number)(1 << ANGLETOFINESHIFT);
-	else
+	} else
 		ang = 0;
+
+	// skip first action; optional
+	if(top > 5)
+	{
+		luaL_checktype(L, 6, LUA_TBOOLEAN);
+		action = lua_toboolean(L, 6);
+	} else
+		action = true;
 
 	// spawn
 	mo = P_SpawnMobj(x, y, z, type);
+	mo->angle = ang;
 
 	// play first action
-	P_SetMobjAnimation(mo, ANIM_SPAWN, 0);
+	if(action)
+		P_SetMobjAnimation(mo, ANIM_SPAWN, 0);
 
 	lua_pushlightuserdata(L, mo);
 
@@ -2832,10 +2862,97 @@ static int LUA_sectorTagIterator(lua_State *L)
 	return lua_gettop(L);
 }
 
+static int LUA_thingTagIterator(lua_State *L)
+{
+	int i, tag;
+	int arg, func;
+	int top = lua_gettop(L);
+	thinker_t *think;
+
+	if(top > 3)
+		return luaL_error(L, "thingTagIterator: incorrect number of arguments");
+
+	// tag; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	// function; required
+	luaL_checktype(L, 2, LUA_TFUNCTION);
+
+	tag = lua_tointeger(L, 1);
+
+	// arg; optional
+	if(top > 2)
+	{
+		arg = luaL_ref(L, LUA_REGISTRYINDEX);
+		LUA_DebugRef(arg, false);
+	} else
+		arg = LUA_REFNIL;
+
+	func = luaL_ref(L, LUA_REGISTRYINDEX);
+	LUA_DebugRef(func, false);
+
+	lua_settop(L, 0);
+
+	for(think = thinkercap.next; think != &thinkercap; think = think->next)
+	{
+		if(think->lua_type != TT_MOBJ)
+			continue;
+		if(((mobj_t*)think)->tag != tag)
+			continue;
+		// function to call
+		lua_rawgeti(L, LUA_REGISTRYINDEX, func);
+		// mobj to pass
+		lua_pushlightuserdata(L, think);
+		// parameter to pass
+		lua_rawgeti(L, LUA_REGISTRYINDEX, arg);
+		// do the call
+		if(lua_pcall(L, 2, LUA_MULTRET, 0))
+			// script error
+			return luaL_error(L, "ThingIterator: %s", lua_tostring(L, -1));
+
+		if(lua_gettop(L) == 0)
+			// no return means continue
+			continue;
+
+		// first return has to be continue flag
+		luaL_checktype(L, 1, LUA_TBOOLEAN);
+
+		if(lua_toboolean(L, 1))
+			// iteration will continue, discard all returns
+			lua_settop(L, 0);
+		else
+		{
+			// remove only this flag, rest will get returned
+			lua_remove(L, 1);
+			break;
+		}
+	}
+	LUA_DebugRef(func, true);
+	LUA_DebugRef(arg, true);
+	luaL_unref(L, LUA_REGISTRYINDEX, func);
+	luaL_unref(L, LUA_REGISTRYINDEX, arg);
+	return lua_gettop(L);
+}
+
 static int LUA_setFakeContrast(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TBOOLEAN);
 	r_fakecontrast = lua_toboolean(L, 1);
+	return 0;
+}
+
+static int LUA_setBackground(lua_State *L)
+{
+	const char *tex;
+	char temp[8];
+	int lump;
+
+	tex = lua_tostring(L, -1);
+	strncpy(temp, tex, sizeof(temp));
+	lump = W_CheckNumForName(temp);
+	if(lump >= 0)
+		game_backpatch = W_CacheLumpNum(lump);
+	else
+		game_backpatch = NULL;
 	return 0;
 }
 
@@ -2993,7 +3110,10 @@ static int LUA_ThinkerIndex(lua_State *L)
 		// index
 		if(field->get)
 			return field->get(L, ((void*)th) + field->offset, th);
-		lua_pushinteger(L, *(int*)(((void*)th) + field->offset));
+		if(field->ltype == LUA_TBOOLEAN)
+			lua_pushboolean(L, *(boolean*)(((void*)th) + field->offset));
+		else
+			lua_pushinteger(L, *(int*)(((void*)th) + field->offset));
 		return 1;
 	}
 
@@ -3003,7 +3123,10 @@ static int LUA_ThinkerIndex(lua_State *L)
 
 	if(field->set)
 		return field->set(L, ((void*)th) + field->offset, th);
-	*(int*)(((void*)th) + field->offset) = lua_tointeger(L, -1);
+	if(field->ltype == LUA_TBOOLEAN)
+		*(boolean*)(((void*)th) + field->offset) = lua_toboolean(L, -1);
+	else
+		*(int*)(((void*)th) + field->offset) = lua_tointeger(L, -1);
 
 	return 0;
 }
@@ -3013,6 +3136,9 @@ static int LUA_removeMobjFromMobj(lua_State *L)
 	mobj_t *mo;
 
 	mo = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(mo->player)
+		return luaL_error(L, "atempt to remove player mobj");
 
 	P_RemoveMobj(mo);
 
@@ -4229,12 +4355,20 @@ static int LUA_sectorSetDamage(lua_State *L)
 static int LUA_sectorAdd3DFloor(lua_State *L)
 {
 	sector_t *dst;
-	sector_t *src = LUA_GetSectorParam(L, 1, false);
-	line_t *line = LUA_GetLineParam(L, 2, false);
+	sector_t *src = LUA_GetSectorParam(L, 1, false); // source (sector model); required
+	line_t *line = LUA_GetLineParam(L, 2, false); // source (line model); required
+	int block = 0xFFFF;
+
+	// blocking; optional
+	if(lua_gettop(L) > 2)
+	{
+		luaL_checktype(L, 3, LUA_TNUMBER);
+		block = lua_tointeger(L, 3);
+	}
 
 	dst = lua_touserdata(L, lua_upvalueindex(1));
 
-	e3d_AddExtraFloor(dst, src, line);
+	e3d_AddExtraFloor(dst, src, line, block);
 
 	return 0;
 }
@@ -5020,6 +5154,8 @@ void L_Init()
 
 void L_SetupMap()
 {
+	// some resets
+	game_backpatch = NULL;
 	// start map load scripts
 	lua_getglobal(luaS_game, "mapLoaded");
 	if(lua_type(luaS_game, -1) == LUA_TFUNCTION)
@@ -5200,6 +5336,20 @@ boolean L_CrushThing(mobj_t *th, sector_t *sec, int lfunc, int larg)
 	lua_settop(luaS_game, 0);
 
 	return ret;
+}
+
+void L_CrashThing(mobj_t *th)
+{
+	if(th->info->crash_action == LUA_REFNIL)
+		return;
+	// function to call
+	lua_rawgeti(luaS_game, LUA_REGISTRYINDEX, th->info->crash_action);
+	// thing to pass
+	lua_pushlightuserdata(luaS_game, th);
+	// do the call
+	if(lua_pcall(luaS_game, 1, 0, 0))
+		// script error
+		I_Error("L_CrashThing: %s", lua_tostring(luaS_game, -1));
 }
 
 void L_RunGenericTickers(mobj_t *mo)

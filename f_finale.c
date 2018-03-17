@@ -191,10 +191,11 @@ void F_Ticker (void)
 	  break;
 				
       if (i < MAXPLAYERS)
-      {	
-	if (gamemap == 30)
-	  F_StartCast ();
-	else
+      {
+	// [kg] monster showdown is replaced by custom map
+//	if (gamemap == 30)
+//	  F_StartCast ();
+//	else
 	  gameaction = ga_worlddone;
       }
     }

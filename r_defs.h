@@ -217,6 +217,11 @@ typedef struct line_s
     // thinker_t for reversable actions
     // [kg] one for each side
     void*	specialdata[2];
+
+    // [kg] renderer
+    int renderstyle;
+    uint8_t *rendertable;
+
 } line_t;
 
 

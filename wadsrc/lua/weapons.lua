@@ -404,8 +404,9 @@ mtype = {
 	maxcount = 1,
 	radius = 20,
 	height = 16,
+	icon = "PUNCA0",
 	_spawn = {
-		{"FISTA", -1}
+		{"PUNCA", -1}
 	},
 	_wRaise = {
 		{"PUNGA", 1, a.WeaponRaise},
@@ -438,6 +439,7 @@ mtype = {
 	maxcount = 1,
 	radius = 20,
 	height = 16,
+	icon = "PISTA0",
 	__special = true,
 	_spawn = {
 		{"PISTA", -1}
@@ -477,6 +479,7 @@ mtype = {
 	ednum = 2001,
 	radius = 20,
 	height = 16,
+	icon = "SHOTA0",
 	__special = true,
 	_spawn = {
 		{"SHOTA", -1}
@@ -522,6 +525,7 @@ mtype = {
 	ednum = 82,
 	radius = 20,
 	height = 16,
+	icon = "SGN2A0",
 	__special = true,
 	_spawn = {
 		{"SGN2A", -1}
@@ -567,6 +571,7 @@ mtype = {
 	ednum = 2002,
 	radius = 20,
 	height = 16,
+	icon = "MGUNA0",
 	__special = true,
 	_spawn = {
 		{"MGUNA", -1}
@@ -608,6 +613,7 @@ mtype = {
 	ednum = 2003,
 	radius = 20,
 	height = 16,
+	icon = "LAUNA0",
 	__special = true,
 	_spawn = {
 		{"LAUNA", -1}
@@ -650,6 +656,7 @@ mtype = {
 	ednum = 2004,
 	radius = 20,
 	height = 16,
+	icon = "PLASA0",
 	__special = true,
 	_spawn = {
 		{"PLASA", -1}
@@ -690,6 +697,7 @@ mtype = {
 	ednum = 2006,
 	radius = 20,
 	height = 16,
+	icon = "BFUGA0",
 	__special = true,
 	_spawn = {
 		{"BFUGA", -1}
@@ -730,6 +738,7 @@ mtype = {
 	ednum = 2005,
 	radius = 20,
 	height = 16,
+	icon = "CSAWA0",
 	__special = true,
 	_spawn = {
 		{"CSAWA", -1}
@@ -769,13 +778,13 @@ MT_CHAINSAW = createMobjType(mtype)
 -- weapon menu
 --
 
-addWeaponType(MT_FIST, "UNKNA0")
-addWeaponType(MT_PISTOL, "UNKNB0", MT_CLIP)
-addWeaponType(MT_SHOTGUN, "SHOTA0", MT_SHELL)
-addWeaponType(MT_SUPERSHOTGUN, "SGN2A0", MT_SHELL)
-addWeaponType(MT_CHAINGUN, "MGUNA0", MT_CLIP)
-addWeaponType(MT_LAUNCHER, "LAUNA0", MT_ROCKETAMMO)
-addWeaponType(MT_PLASMAGUN, "PLASA0", MT_CELL)
-addWeaponType(MT_BFGW, "BFUGA0", MT_CELL)
-addWeaponType(MT_CHAINSAW, "CSAWA0")
+addWeaponType(MT_FIST)
+addWeaponType(MT_PISTOL, MT_CLIP)
+addWeaponType(MT_SHOTGUN, MT_SHELL)
+addWeaponType(MT_SUPERSHOTGUN, MT_SHELL)
+addWeaponType(MT_CHAINGUN, MT_CLIP)
+addWeaponType(MT_LAUNCHER, MT_ROCKETAMMO)
+addWeaponType(MT_PLASMAGUN, MT_CELL)
+addWeaponType(MT_BFGW, MT_CELL)
+addWeaponType(MT_CHAINSAW)
 

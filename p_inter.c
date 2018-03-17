@@ -195,7 +195,7 @@ P_DamageMobj
     if (inflictor
 	&& !(target->flags & MF_NOCLIP)
 	&& damage != INSTANTKILL && damage != INSTANTGIB
-	&& target->info->mass)
+	&& target->mass)
     {
 	ang = R_PointToAngle2 ( inflictor->x,
 				inflictor->y,
@@ -203,7 +203,7 @@ P_DamageMobj
 				target->y);
 
 	// [kg] use original damage value for pushing
-	thrust = origdmg*(FRACUNIT>>3)*100/target->info->mass;
+	thrust = origdmg*(FRACUNIT>>3)*100/target->mass;
 
 	// make fall forwards sometimes
 	if ( !(target->flags & MF_NODEATHPULL)

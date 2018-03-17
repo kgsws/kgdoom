@@ -6,10 +6,23 @@ function(sector)
 	sector.GenericCeiling(sector.FindLowestCeiling() - 4, 2, 0, "dsdoropn")
 end
 
+PIT_EggCheck =
+function(thing, info)
+	if thing.info == MT_INVULN then
+		return false, true
+	end
+end
+
 a.KeenDie =
 function(mobj)
 	if not globalThingsIterator(PIT_BossDeath, mobj.info) then
-		sectorTagIterator(666, PIT_KeenOpen)
+		if game.map == "MAP32" and mobj.attacker.info == MT_CYBORG and globalThingsIterator(PIT_EggCheck) then
+			-- easter egg
+			game.Exit("D2SECRET")
+		else
+			-- normal exit
+			sectorTagIterator(666, PIT_KeenOpen)
+		end
 	end
 end
 

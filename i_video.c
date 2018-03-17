@@ -7,7 +7,6 @@
 #include "d_main.h"
 #include "z_zone.h"
 
-//#define VIDEO_STDOUT
 #include "t_text.h"
 
 typedef union

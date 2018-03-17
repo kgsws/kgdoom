@@ -185,13 +185,24 @@ function mapSetupPlayers(player)
 		mobj.InventoryTake(MT_YELLOWSKULL)
 		mobj.InventoryTake(MT_REDSKULL)
 	end
+	-- doom 2 finale
+	if game.map == "MAP33" then
+		mobj.__invulnerable = true
+		mobj.mass = 0
+		mobj.reactiontime = -1
+		player.map = 3
+		player.SetWeapon(MT_FINALEWEAPON, true)
+		player.hideStatusBar = true
+	end
 end
 
 function mapLoaded()
 	globalSectorsIterator(mapLoadSector)
 	globalLinesIterator(mapLoadLine)
 	globalPlayersIterator(mapSetupPlayers)
-	-- test
-	fakeContrast(false)
+	-- doom 2 finale
+	if game.map == "MAP33" then
+		finaleInit()
+	end
 end
 

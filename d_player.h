@@ -138,6 +138,11 @@ typedef struct player_s
     // [kg] map reveal state
     int			automap;
 
+    // [kg] is status bad visible?
+    boolean		hide_stbar;
+    // [kg] can change weapon?
+    boolean		force_weapon;
+
     // [kg] inventory; only used on level change
     struct inventory_s *inventory;
     int			health;

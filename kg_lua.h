@@ -8,6 +8,7 @@
 #define STATE_OFFSHIFT	16
 
 extern int linedef_side;
+extern void *game_backpatch;
 
 int L_NoRef();
 void L_Unref(int *ref);
@@ -21,5 +22,6 @@ void L_SpawnPlayer(player_t *pl);
 int L_TouchSpecial(mobj_t *special, mobj_t *toucher);
 void L_FinishGeneric(generic_plane_t *gp, boolean forced);
 boolean L_CrushThing(mobj_t *th, sector_t *sec, int lfunc, int larg);
+void L_CrashThing(mobj_t *th);
 void L_RunGenericTickers(mobj_t *mo);
 

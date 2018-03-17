@@ -58,7 +58,16 @@ void T_PutChar(uint8_t c)
 		txt_x = 0;
 		if(txt_y + 16 >= SCREENHEIGHT)
 		{
-			memcpy(screens[0], screens[0] + 16 * SCREENWIDTH, txt_y * SCREENWIDTH);
+			uint8_t *ssrc = screens[0] + 16 * SCREENWIDTH;
+			uint8_t *end = screens[0] + txt_y * SCREENWIDTH;
+			dst = screens[0];
+
+			while(dst < end)
+			{
+				*dst = *ssrc;
+				dst++;
+				ssrc++;
+			}
 			memset(screens[0] + txt_y * SCREENWIDTH, 0, 16 * SCREENWIDTH);
 		} else
 			txt_y += 16;
@@ -129,15 +138,24 @@ void T_Enable(int en)
 {
 	if(en)
 	{
+		if(stdout == txt_f)
+			return;
 		stdout = txt_f;
 		txt_x = 0;
 		txt_y = 0;
 		txt_back = 0;
 		txt_color = 7;
 		memset(screens[0], 0, SCREENWIDTH * SCREENHEIGHT);
+		I_SetPalette(text_palette);
 		I_FinishUpdate();
 		txt_ptr = screens[0];
 	} else
 		stdout = old_stdout;
+}
+
+void T_Colors(int front, int back)
+{
+	txt_color = front;
+	txt_back = back;
 }
 

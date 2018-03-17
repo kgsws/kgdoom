@@ -27,7 +27,7 @@ clip_t *topclip;
 height3d_t height3top = {.height = ONCEILINGZ};
 height3d_t height3bot = {.height = ONFLOORZ};
 
-extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec, line_t *line)
+extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec, line_t *line, int block)
 {
 	extraplane_t *pl = *dest;
 	extraplane_t *new;
@@ -49,12 +49,14 @@ extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec, line_t *line
 	new->pic = &sec->ceilingpic;
 	new->lightlevel = &sec->lightlevel;
 	new->validcount = 0;
-	new->blocking = 0xFFFF; // TODO
+	new->blocking = block;
+	new->renderstyle = &line->renderstyle;
+	new->rendertable = &line->rendertable;
 
 	return new;
 }
 
-extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec, line_t *line)
+extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec, line_t *line, int block)
 {
 	extraplane_t *pl = *dest;
 	extraplane_t *new;
@@ -76,25 +78,46 @@ extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec, line_t *li
 	new->pic = &sec->floorpic;
 	new->lightlevel = &sec->lightlevel;
 	new->validcount = 0;
-	new->blocking = 0xFFFF; // TODO
+	new->blocking = block;
+	new->renderstyle = &line->renderstyle;
+	new->rendertable = &line->rendertable;
 
 	return new;
 }
 
-void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line)
+void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line, int block)
 {
 	// check
 	extraplane_t *pl = dst->exfloor;
 	while(pl)
 	{
 		if(pl->source == src)
-			// already added
+		{
+			// already added; change blocking and line
+			pl->line = line;
+			pl->blocking = block;
+			pl->renderstyle = &line->renderstyle;
+			pl->rendertable = &line->rendertable;
+			// do this for ceiling too
+			pl = dst->exceiling;
+			while(pl)
+			{
+				if(pl->source == src)
+				{
+					pl->line = line;
+					pl->blocking = block;
+					pl->renderstyle = &line->renderstyle;
+					pl->rendertable = &line->rendertable;
+				}
+				pl = pl->next;
+			}
 			return;
+		}
 		pl = pl->next;
 	}
 	// add planes
-	e3d_AddFloorPlane(&dst->exfloor, src, line);
-	e3d_AddCeilingPlane(&dst->exceiling, src, line);
+	e3d_AddFloorPlane(&dst->exfloor, src, line, block);
+	e3d_AddCeilingPlane(&dst->exceiling, src, line, block);
 }
 
 void e3d_CleanPlanes()

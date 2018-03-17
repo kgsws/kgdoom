@@ -3,6 +3,11 @@
 
 a.PainSkull =
 function(mobj)
+	if game.map == "MAP33" then
+		-- Doom2 finale map
+		mobj.SoundBody("dssklatk")
+		return
+	end
 	local x
 	local y
 	local d

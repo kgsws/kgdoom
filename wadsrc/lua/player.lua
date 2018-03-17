@@ -2,21 +2,31 @@
 -- player definition
 
 function playerSpawn(pl)
+	local mo
+	mo = pl.mo
 	-- give all ammo, even empty amount
-	pl.mo.InventoryGive(MT_CLIP, 50)
-	pl.mo.InventoryGive(MT_SHELL, 0)
-	pl.mo.InventoryGive(MT_ROCKETAMMO, 0)
-	pl.mo.InventoryGive(MT_CELL, 0)
+	mo.InventoryGive(MT_CLIP, 50)
+	mo.InventoryGive(MT_SHELL, 0)
+	mo.InventoryGive(MT_ROCKETAMMO, 0)
+	mo.InventoryGive(MT_CELL, 0)
 	-- give default weapons
-	pl.mo.InventoryGive(MT_FIST)
-	pl.mo.InventoryGive(MT_PISTOL)
+	mo.InventoryGive(MT_FIST)
+	mo.InventoryGive(MT_PISTOL)
 	-- set pistol
 	pl.SetWeapon(MT_PISTOL, true)
 end
 
+function playerCrash(mobj)
+	-- you can add fall damage or trampoline effect here
+	if mobj.momz < mobj.gravity * -8 then
+		mobj.SoundBody("dsoof")
+		mobj.player.deltaviewheight = mobj.momz / 8
+	end
+end
+
 function pain(mobj)
 	-- easter egg
-	if mobj.attacker and mobj.attacker ~= mobj then
+	if mobj.attacker and mobj.attacker ~= mobj and mobj.InventoryCheck(MT_REVENGERUNE) > 0 then
 		mobj.attacker.Damage(true, 0)
 	end
 end
@@ -25,6 +35,7 @@ mtype = {
 	painSound = "dsplpain",
 	deathSound = "dspldeth",
 	xdeathSound = "dsslop",
+	activeSound = "dsnoway",
 	health = 100,
 	radius = 16,
 	height = 56,
@@ -34,6 +45,7 @@ mtype = {
 	viewz = 41,
 	bobz = 16,
 	pass = 2,
+	action_crash = playerCrash,
 	__solid = true,
 	__shootable = true,
 	__dropOff = true,
@@ -86,5 +98,31 @@ mtype = {
 		{"POL5A0", -1, a.Crushed}
 	}
 }
-setPlayerType(createMobjType(mtype))
+MT_PLAYER = createMobjType(mtype)
+setPlayerType(MT_PLAYER)
+
+-- easter egg item
+function pickupRune(mobj, spec, arg)
+	if mobj.InventoryCheck(spec.info) > 0 then
+		return pickup.doNotPickup
+	end
+	mobj.InventoryGive(spec.info)
+	mobj.player.Message(arg)
+	return pickup.key
+end
+
+mtype = {
+	activeSound = "dsslop",
+	maxcount = 1,
+	action = pickupRune,
+	arg = "Picked up a revenge rune.",
+	radius = 16,
+	height = 16,
+	__special = true,
+	_spawn = {
+		{"REVEA", 2},
+		{"REVEB", 2}
+	}
+}
+MT_REVENGERUNE = createMobjType(mtype)
 

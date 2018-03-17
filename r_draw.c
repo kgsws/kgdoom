@@ -44,6 +44,7 @@ int			dc_yl;
 int			dc_yh; 
 fixed_t			dc_iscale; 
 fixed_t			dc_texturemid;
+int			dc_holestep;
 
 // [kg] updated handling of colorization
 uint8_t *dc_colormap; // this is light offset
@@ -116,7 +117,7 @@ void R_DrawColumnHoley (void)
     fixed_t		frac;
     fixed_t		fracstep;
 
-    int holestep = 0;
+    int holestep = dc_holestep;
  
     count = dc_yh - dc_yl; 
 
@@ -163,7 +164,7 @@ void R_DrawColumnHoley (void)
 //
 #define FUZZTABLE		50 
 #define FUZZOFF	(SCREENWIDTH)
-
+/*
 
 int	fuzzoffset[FUZZTABLE] =
 {
@@ -178,7 +179,7 @@ int	fuzzoffset[FUZZTABLE] =
 
 int	fuzzpos = 0; 
 
-
+*/
 //
 // Framebuffer postprocessing.
 // Creates a fuzzy image by copying pixels
@@ -260,11 +261,12 @@ void R_DrawFuzzColumn (void)
 	//  a pixel that is either one column
 	//  left or right of the current one.
 	// Add index from colormap to index.
-	*dest = colormaps[6*256+dest[fuzzoffset[fuzzpos]]]; 
+//	*dest = colormaps[6*256+dest[fuzzoffset[fuzzpos]]];
+	*dest = colormaps[6*256+dest[-FUZZOFF + (rand() & 1) * FUZZOFF * 2]]; // [kg] now random
 
 	// Clamp table lookup index.
-	if (++fuzzpos == FUZZTABLE) 
-	    fuzzpos = 0;
+//	if (++fuzzpos == FUZZTABLE) 
+//	    fuzzpos = 0;
 	
 	dest += SCREENWIDTH;
 
@@ -433,4 +435,33 @@ R_InitBuffer
     for (i=0 ; i<height ; i++)
 	ylookup[i] = screens[0] + (i+viewwindowy)*SCREENWIDTH; 
 } 
+
+
+//
+// [kg] setup correct rendering function
+//
+void R_SetupRenderFunc(int style, void *table, void *translation)
+{
+	// TODO: translation for effects (holey)
+	switch(style)
+	{
+		case RENDER_SHADOW:
+			colfunc = R_DrawFuzzColumn;
+		break;
+		case RENDER_HOLEY0:
+			colfunc = R_DrawColumnHoley;
+			dc_holestep = 0;
+		break;
+		case RENDER_HOLEY1:
+			colfunc = R_DrawColumnHoley;
+			dc_holestep = 1;
+		break;
+		default:
+			if(translation)
+				colfunc = R_DrawTranslatedColumn;
+			else
+				colfunc = R_DrawColumn;
+		break;
+	}
+}
 

@@ -82,7 +82,9 @@ function(mobj)
 	a.FaceTarget(mobj)
 	if mobj.CheckSight() then
 		mobj.target.Damage(20, 0, mobj, mobj)
-		mobj.target.momz = 1000 / mobj.target.info.mass
+		if mobj.target.info.mass then
+			mobj.target.momz = 1000 / mobj.target.info.mass
+		end
 		mobj.mobj.RadiusDamage(70, 70, 0, mobj, false)
 		mobj.mobj.SoundWeapon("dsbarexp")
 	end

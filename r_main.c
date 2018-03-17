@@ -10,8 +10,12 @@
 #include "r_sky.h"
 
 #include "p_local.h"
+#include "p_generic.h"
+
+#include "v_video.h"
 
 #include "kg_3dfloor.h"
+#include "kg_lua.h"
 
 // Fineangles in the SCREENWIDTH wide window.
 #define FIELDOFVIEW		2048	
@@ -765,7 +769,15 @@ void R_SetupFrame (player_t* player)
 // R_RenderView
 //
 void R_RenderPlayerView (player_t* player)
-{	
+{
+    // [kg] draw background patch (320x200) if requested
+    if(game_backpatch)
+    {
+	// TODO: center patch of any resolution; correct clearing
+	memset(screens[0], 0, SCREENWIDTH * SCREENHEIGHT);
+	V_DrawPatch(0, 0, 0, game_backpatch);
+    }
+
     R_SetupFrame (player);
 
     // Clear buffers.

@@ -23,6 +23,8 @@
 #include "network.h"
 #include "cl_cmds.h"
 
+#include "t_text.h"
+
 // for exit
 jmp_buf exitenv;
 
@@ -211,18 +213,29 @@ extern fixed_t viewz;
 
 void I_Error (char *error, ...)
 {
+#ifdef VIDEO_STDOUT
+	T_Enable(1);
+	T_Colors(9, 0);
+	printf("-= ERROR =-\n");
+	T_Colors(15, 0);
+#endif
+
 	va_list vl;
 	int ret;
 	va_start(vl, error);
 	ret = vprintf(error, vl);
 	va_end(vl);
 
-//	printf("\n");
+	printf("\n");
 
-	printf("\nAt %ix%ix%i\n", viewx / FRACUNIT, viewy / FRACUNIT, viewz / FRACUNIT);
+#ifdef VIDEO_STDOUT
+	sleep(5);
+#endif
 
-	I_FinishUpdate();
-	*((uint8_t*)1) = 1;
+//	printf("\nAt %ix%ix%i\n", viewx / FRACUNIT, viewy / FRACUNIT, viewz / FRACUNIT);
+
+//	I_FinishUpdate();
+//	*((uint8_t*)1) = 1;
 
 	longjmp(exitenv, 2);
 }

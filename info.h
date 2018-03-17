@@ -97,6 +97,7 @@ typedef struct
 	int	mass;
 	int	damage;
 	int	stepheight;
+	int	gravity;
 	uint64_t	flags;
 
 	// [kg] inventory stuff
@@ -122,6 +123,8 @@ typedef struct
 	// [kg] some Lua stuff
 	int lua_action;
 	int lua_arg;
+	// [kg] Lua; actor hit floor
+	int crash_action;
 } mobjinfo_t;
 
 extern int numobjtypes;

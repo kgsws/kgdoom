@@ -252,6 +252,8 @@ R_RenderMaskedSegRange
 		else
 		    dc_texturemid = *pl->height - viewz;
 		dc_texturemid += sides[pl->line->sidenum[0]].rowoffset;
+		// [kg] pick renderer
+		R_SetupRenderFunc(*pl->renderstyle, *pl->rendertable, NULL);
 		// draw the columns
 		R_DrawMaskedSegRange(x1, x2, texnum, topc, tops, botc, bots);
 	    }
@@ -278,6 +280,8 @@ R_RenderMaskedSegRange
 	    dc_texturemid = dc_texturemid - viewz;
 	}
 	dc_texturemid += curline->sidedef->rowoffset;
+	// [kg] pick renderer
+	R_SetupRenderFunc(curline->linedef->renderstyle, curline->linedef->rendertable, NULL);
 	// draw the columns
 	R_DrawMaskedSegRange(x1, x2, texnum, topc, tops, botc, bots);
     }

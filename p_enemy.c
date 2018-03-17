@@ -268,8 +268,8 @@ boolean P_Move (mobj_t*	actor)
     if (actor->movedir >= DI_NODIR)
 	return false;
 
-    tryx = actor->x + FixedMul(actor->info->speed, xspeed[actor->movedir]);
-    tryy = actor->y + FixedMul(actor->info->speed, yspeed[actor->movedir]);
+    tryx = actor->x + FixedMul(actor->speed, xspeed[actor->movedir]);
+    tryy = actor->y + FixedMul(actor->speed, yspeed[actor->movedir]);
 
     try_ok = P_TryMove (actor, tryx, tryy);
 
@@ -558,9 +558,11 @@ void A_Look (mobj_t* actor)
 	return;
 #endif
     mobj_t*	targ;
-	
+
     actor->threshold = 0;	// any shot will wake up
     targ = actor->subsector->sector->soundtarget;
+    if(actor->target)
+	targ = actor->target;
 
     if (targ
 	&& (targ->flags & MF_SHOOTABLE) )
@@ -575,11 +577,10 @@ void A_Look (mobj_t* actor)
 	else
 	    goto seeyou;
     }
-	
-	
+
     if (!P_LookForPlayers (actor, false) )
 	return;
-		
+
     // go into chase state
   seeyou:
     if (actor->info->seesound)
@@ -655,7 +656,9 @@ void A_Chase (mobj_t*	actor)
 	// look for a new target
 	if (P_LookForPlayers(actor,true))
 	    return; 	// got a new target
-	
+
+	actor->target = NULL;
+
 	P_SetMobjAnimation(actor, ANIM_SPAWN, 0);
 #ifdef SERVER
 	// tell clients about this

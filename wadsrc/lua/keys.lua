@@ -19,6 +19,7 @@ mtype = {
 	ednum = 5,
 	radius = 20,
 	height = 8,
+	icon = "STKEYS0",
 	__special = true,
 	__notInDeathmatch = true,
 	_spawn = {
@@ -38,6 +39,7 @@ mtype = {
 	ednum = 6,
 	radius = 20,
 	height = 8,
+	icon = "STKEYS1",
 	__special = true,
 	__notInDeathmatch = true,
 	_spawn = {
@@ -57,6 +59,7 @@ mtype = {
 	ednum = 13,
 	radius = 20,
 	height = 8,
+	icon = "STKEYS2",
 	__special = true,
 	__notInDeathmatch = true,
 	_spawn = {
@@ -76,6 +79,7 @@ mtype = {
 	ednum = 38,
 	radius = 20,
 	height = 8,
+	icon = "STKEYS5",
 	__special = true,
 	__notInDeathmatch = true,
 	_spawn = {
@@ -95,6 +99,7 @@ mtype = {
 	ednum = 39,
 	radius = 20,
 	height = 8,
+	icon = "STKEYS4",
 	__special = true,
 	__notInDeathmatch = true,
 	_spawn = {
@@ -114,6 +119,7 @@ mtype = {
 	ednum = 40,
 	radius = 20,
 	height = 8,
+	icon = "STKEYS3",
 	__special = true,
 	__notInDeathmatch = true,
 	_spawn = {
@@ -124,10 +130,10 @@ mtype = {
 }
 MT_BLUESKULL = createMobjType(mtype)
 
-addKeyType(MT_BLUECARD, "STKEYS0")
-addKeyType(MT_YELLOWCARD, "STKEYS1")
-addKeyType(MT_REDCARD, "STKEYS2")
-addKeyType(MT_BLUESKULL, "STKEYS3")
-addKeyType(MT_YELLOWSKULL, "STKEYS4")
-addKeyType(MT_REDSKULL, "STKEYS5")
+addKeyType(MT_BLUECARD)
+addKeyType(MT_YELLOWCARD)
+addKeyType(MT_REDCARD)
+addKeyType(MT_BLUESKULL)
+addKeyType(MT_YELLOWSKULL)
+addKeyType(MT_REDSKULL)
 

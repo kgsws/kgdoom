@@ -181,6 +181,8 @@ enum
 {
 	RENDER_NORMAL, // must be first
 	RENDER_SHADOW,
+	RENDER_HOLEY0,
+	RENDER_HOLEY1
 };
 
 // [kg] custom colormaps

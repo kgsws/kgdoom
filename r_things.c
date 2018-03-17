@@ -451,22 +451,12 @@ R_DrawVisSprite
 		dc_colormap = spritelights[index];
 	}
 
-	if(vis->translation)
-	{
-		colfunc = R_DrawTranslatedColumn;
-		dc_translation = vis->translation;
-	}
-
-	if(vis->mo->flags & MF_HOLEY)
-		colfunc = R_DrawColumnHoley;
-	if(vis->mo->renderstyle == RENDER_SHADOW)
-		colfunc = fuzzcolfunc;
+	R_SetupRenderFunc(vis->mo->renderstyle, vis->mo->rendertable, vis->translation);
 
     } else
     {
-	// player sprite
-	if(!dc_colormap)
-		colfunc = fuzzcolfunc;
+	mobj_t *mo = viewplayer->mo;
+	R_SetupRenderFunc(mo->renderstyle, mo->rendertable, NULL); // TODO: mo->translation.data; enable weapon recoloring?
     }
 
     dc_iscale = abs(vis->xiscale);

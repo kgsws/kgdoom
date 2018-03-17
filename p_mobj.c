@@ -380,24 +380,12 @@ void P_ZMovement (mobj_t* mo)
 	    mo->momz = -mo->momz;
 	}
 
-	if (mo->momz < 0)
+	if(mo->momz < 0 && !(mo->player && (mo->player->cheats & CF_SPECTATOR || local_player_predict)))
 	{
-#ifdef SERVER
-	    if (mo->player && mo->health > 0
-#else
-	    if (!local_player_predict && mo->player && mo->health > 0
-#endif
-		&& mo->momz < -GRAVITY*8 &&
-		!(mo->player->cheats & CF_SPECTATOR)
-	    ){
-		// Squat down.
-		// Decrease viewheight for a moment
-		// after hitting the ground (hard),
-		// and utter appropriate sound.
-		mo->player->deltaviewheight = mo->momz>>3;
-//		S_StartSound (mo, sfx_oof, SOUND_BODY);
-	    }
-	    if(!(mo->flags & MF_NOGRAVITY)) // [kg] added no gravity check
+	    // [kg] call 'floor hit' callback
+	    L_CrashThing(mo);
+	    // [kg] added no gravity check
+	    if(!(mo->flags & MF_NOGRAVITY))
 		mo->momz = 0;
 	}
 	mo->z = floorz;
@@ -419,9 +407,9 @@ void P_ZMovement (mobj_t* mo)
     else if (! (mo->flags & MF_NOGRAVITY) )
     {
 	if (mo->momz == 0)
-	    mo->momz = -GRAVITY*2;
+	    mo->momz = -mo->gravity*2;
 	else
-	    mo->momz -= GRAVITY;
+	    mo->momz -= mo->gravity;
     }
 	
     if (mo->z + mo->height > ceilingz)
@@ -653,6 +641,14 @@ P_SpawnMobj
     mobj->height = info->height;
     mobj->flags = info->flags;
     mobj->health = info->spawnhealth;
+    mobj->speed = info->speed;
+    mobj->mass = info->mass;
+    mobj->gravity = info->gravity;
+    mobj->blocking = info->blocking;
+    mobj->canpass = info->canpass;
+    mobj->renderstyle = info->renderstyle;
+    mobj->rendertable = info->rendertable;
+    memcpy(mobj->damagescale, mobj->info->damagescale, NUMDAMAGETYPES);
 
     // [kg] unique ID
 #ifdef SERVER
@@ -679,15 +675,9 @@ P_SpawnMobj
 
     // set subsector and/or block links
     P_SetThingPosition (mobj);
-	
+
     mobj->floorz = mobj->subsector->sector->floorheight;
     mobj->ceilingz = mobj->subsector->sector->ceilingheight;
-
-    mobj->blocking = mobj->info->blocking;
-    mobj->canpass = mobj->info->canpass;
-
-    mobj->renderstyle = mobj->info->renderstyle;
-    mobj->rendertable = mobj->info->rendertable;
 
     if (z == ONFLOORZ)
 	mobj->z = mobj->floorz;
@@ -698,9 +688,6 @@ P_SpawnMobj
 
     if(mobj->z <= mobj->floorz)
 	mobj->onground = true;
-
-    // [kg] copy damage resistence
-    memcpy(mobj->damagescale, mobj->info->damagescale, NUMDAMAGETYPES);
 
     mobj->thinker.function.acp1 = (actionf_p1)P_MobjThinker;
 	
@@ -997,6 +984,8 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
     mobj = P_SpawnMobj (x,y,z, i);
     mobj->spawnpoint = *mthing;
 
+    mobj->tag = mthing->tid;
+
     if(z != ONFLOORZ && z != ONCEILINGZ)
 	mobj->z = mobj->subsector->sector->floorheight + z;
 
@@ -1153,9 +1142,9 @@ P_SpawnMissile
 
     th->source = source;
     th->angle = ango;
-    th->momz = FixedMul(th->info->speed, slope);
-    th->momx = FixedMul(th->info->speed, finecosine[ango>>ANGLETOFINESHIFT]);
-    th->momy = FixedMul(th->info->speed, finesine[ango>>ANGLETOFINESHIFT]);
+    th->momz = FixedMul(th->speed, slope);
+    th->momx = FixedMul(th->speed, finecosine[ango>>ANGLETOFINESHIFT]);
+    th->momy = FixedMul(th->speed, finesine[ango>>ANGLETOFINESHIFT]);
 
     P_CheckMissileSpawn (th);
 #ifdef SERVER

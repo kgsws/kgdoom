@@ -328,8 +328,8 @@ void P_PlayerThink (player_t* player)
 	// The actual changing of the weapon is done
 	//  when the weapon psprite can do it
 	//  (read: not in the middle of an attack).
-	// [kg] only allow to pick owned weapons that have icon
-	if(P_CheckInventory(player->mo, &mobjinfo[cmd->weapon], NULL) && ST_PickableWeapon(cmd->weapon))
+	// [kg] only allow to pick owned weapons that have icon, if allowed to change weapon
+	if(P_CheckInventory(player->mo, &mobjinfo[cmd->weapon], NULL) && ST_PickableWeapon(cmd->weapon) && !player->force_weapon && !player->hide_stbar)
 	{
 		player->pendingweapon = cmd->weapon;
 		player->lua_weapon_change = 0;
