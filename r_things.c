@@ -799,6 +799,7 @@ void R_DrawPlayerSprites (void)
     int		i;
     int		lightnum;
     pspdef_t*	psp;
+    extraplane_t *pl;
 
     if(!viewplayer)
 	return;
@@ -824,6 +825,18 @@ void R_DrawPlayerSprites (void)
     // get light level
     lightnum = (viewplayer->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT) + extralight;
     dc_lightcolor = viewplayer->mo->subsector->sector->colormap.data;
+
+	pl = viewplayer->mo->subsector->sector->exfloor;
+	while(pl)
+	{
+		if(viewz <= *pl->height)
+		{
+			lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT) + extralight;
+			dc_lightcolor = pl->source->colormap.data;
+			break;
+		}
+		pl = pl->next;
+	}
 
     if (lightnum < 0)		
 	spritelights = scalelight[0];

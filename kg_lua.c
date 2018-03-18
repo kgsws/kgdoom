@@ -2007,6 +2007,20 @@ static int func_set_renderstyle(lua_State *L, void *dst, void *o)
 		return 0;
 	}
 
+	if(!strcmp(tmp, "!HOLEY0"))
+	{
+		*style = RENDER_HOLEY0;
+		*table = NULL;
+		return 0;
+	}
+
+	if(!strcmp(tmp, "!HOLEY1"))
+	{
+		*style = RENDER_HOLEY1;
+		*table = NULL;
+		return 0;
+	}
+
 	return luaL_error(L, "invalid render style '%s'", tmp);
 }
 
@@ -2025,6 +2039,12 @@ static int func_get_renderstyle(lua_State *L, void *dst, void *o)
 		break;
 		case RENDER_SHADOW:
 			lua_pushstring(L, "!SHADOW");
+		break;
+		case RENDER_HOLEY0:
+			lua_pushstring(L, "!HOLEY0");
+		break;
+		case RENDER_HOLEY1:
+			lua_pushstring(L, "!HOLEY1");
 		break;
 	}
 

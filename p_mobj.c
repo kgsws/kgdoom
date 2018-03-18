@@ -676,15 +676,17 @@ P_SpawnMobj
     // set subsector and/or block links
     P_SetThingPosition (mobj);
 
-    mobj->floorz = mobj->subsector->sector->floorheight;
-    mobj->ceilingz = mobj->subsector->sector->ceilingheight;
-
     if (z == ONFLOORZ)
 	mobj->z = mobj->floorz;
     else if (z == ONCEILINGZ)
 	mobj->z = mobj->ceilingz - mobj->info->height;
     else 
 	mobj->z = z;
+
+    // [kg] force 3D floor detection
+    P_CheckPosition(mobj, mobj->x, mobj->y);
+    mobj->floorz = mobj->subsector->sector->floorheight;
+    mobj->ceilingz = mobj->subsector->sector->ceilingheight;
 
     if(mobj->z <= mobj->floorz)
 	mobj->onground = true;
@@ -816,10 +818,12 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     if (p->playerstate == PST_REBORN)
 	G_PlayerReborn (mthing->type-1);
 
-    x 		= mthing->x << FRACBITS;
-    y 		= mthing->y << FRACBITS;
-    z		= ONFLOORZ;
-    mobj	= P_SpawnMobj (x,y,z, MT_PLAYER);
+    x = mthing->x << FRACBITS;
+    y = mthing->y << FRACBITS;
+    z = ONFLOORZ;
+    mobj = P_SpawnMobj (x,y,z, MT_PLAYER);
+
+    mobj->z = mobj->subsector->sector->floorheight + (mthing->z << FRACBITS);
 
     // set color translations for player sprites; TODO: change
 //    if (mthing->type > 1)

@@ -40,12 +40,15 @@
 #include "am_map.h"
 
 #include "p_setup.h"
+#include "p_local.h"
 #include "r_local.h"
 
 #include "d_main.h"
 
 #include "p_generic.h"
 #include "kg_lua.h"
+
+#include "t_text.h"
 
 //
 // D-DoomLoop()
@@ -524,6 +527,8 @@ void D_DoomMain (void)
     respawnparm = M_CheckParm ("-respawn");
 //    fastparm = M_CheckParm ("-fast");
 
+    T_Colors(11, 4);
+
     switch ( gamemode )
     {
       case retail:
@@ -548,6 +553,7 @@ void D_DoomMain (void)
 		 VERSION/100,VERSION%100);
 	break;
       case commercial:
+	T_Colors(15, 1);
 	sprintf (title,
 		 "                         "
 		 "DOOM 2: Hell on Earth v%i.%i"
@@ -578,8 +584,9 @@ void D_DoomMain (void)
 		 VERSION/100,VERSION%100);
 	break;
     }
-    
+
     printf ("%s\n",title);
+    T_Colors(7, 0);
 
 //    if (devparm)
 //	printf(D_DEVSTR);
@@ -604,62 +611,6 @@ void D_DoomMain (void)
 	sidemove[1] = sidemove[1]*scale/100;
     }
     
-    // add any files specified on the command line with -file wadfile
-    // to the wad list
-    //
-    // convenience hack to allow -wart e m to add a wad file
-    // prepend a tilde to the filename so wadfile will be reloadable
-/*    p = M_CheckParm ("-wart");
-    if (p)
-    {
-	myargv[p][4] = 'p';     // big hack, change to -warp
-
-	// Map name handling.
-	switch (gamemode )
-	{
-	  case shareware:
-	  case retail:
-	  case registered:
-	    sprintf (file,"~"DEVMAPS"E%cM%c.wad",
-		     myargv[p+1][0], myargv[p+2][0]);
-	    printf("Warping to Episode %s, Map %s.\n",
-		   myargv[p+1],myargv[p+2]);
-	    break;
-	    
-	  case commercial:
-	  default:
-	    p = atoi (myargv[p+1]);
-	    if (p<10)
-	      sprintf (file,"~"DEVMAPS"cdata/map0%i.wad", p);
-	    else
-	      sprintf (file,"~"DEVMAPS"cdata/map%i.wad", p);
-	    break;
-	}
-	D_AddFile (file);
-    }
-
-    p = M_CheckParm ("-file");
-    if (p)
-    {
-	// the parms after p are wadfile/lump names,
-	// until end of parms or another - preceded parm
-	modifiedgame = true;            // homebrew levels
-	while (++p != myargc && myargv[p][0] != '-')
-	    D_AddFile (myargv[p]);
-    }
-
-    p = M_CheckParm ("-playdemo");
-
-    if (!p)
-	p = M_CheckParm ("-timedemo");
-
-    if (p && p < myargc-1)
-    {
-	sprintf (file,"%s.lmp", myargv[p+1]);
-	D_AddFile (file);
-	printf("Playing demo %s.lmp.\n",myargv[p+1]);
-    }
-*/
     // get skill / episode / map from parms
     startskill = sk_medium;
     startepisode = 1;
@@ -684,17 +635,28 @@ void D_DoomMain (void)
 	autostart = true;
     }
 
-    p = M_CheckParm ("-warp");
-    if (p && p < myargc-1)
+    p = M_CheckParm ("-map");
+    if(p && p < myargc-1 && strlen(myargv[p+1]) < 9)
     {
-	if (gamemode == commercial)
+	startepisode = 1;
+	startmap = 1;
+	strcpy(level_name, myargv[p+1]);
+	autostart = true;
+    } else
+    p = M_CheckParm ("-warp");
+    if (p)
+    {
+	if (gamemode == commercial  && p < myargc-1)
+	{
 	    startmap = atoi (myargv[p+1]);
-	else
+	    autostart = true;
+	} else
+	if(p < myargc-2)
 	{
 	    startepisode = myargv[p+1][0]-'0';
 	    startmap = myargv[p+2][0]-'0';
+	    autostart = true;
 	}
-	autostart = true;
     }
 
 #ifndef SERVER    

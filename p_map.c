@@ -1126,26 +1126,21 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	pl = backsector->exfloor;
 	if(pl)
 	{
-		boolean block = false;
 		dz = FixedMul(aimslope, FixedMul(in->frac, attackrange));
 		z = shootz + dz;
 		while(pl)
 		{
 			if(canopass & pl->blocking && z >= pl->source->floorheight && z <= pl->source->ceilingheight && pl->source->floorheight < backsector->ceilingheight && pl->source->ceilingheight > backsector->floorheight)
-				block = true;
-			if(z < *pl->height)
-				pl->validcount = validcount;
+				goto hitline;
+			pl->hitover = z >= *pl->height;
 			pl = pl->next;
 		}
 		pl = backsector->exceiling;
 		while(pl)
 		{
-			if(z > *pl->height)
-				pl->validcount = validcount;
+			pl->hitover = z >= *pl->height;
 			pl = pl->next;
 		}
-		if(block)
-			goto hitline;
 	}
 
       hitline_check3d:
@@ -1162,7 +1157,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 				z = frontsector->floorheight;
 			while(pl)
 			{
-				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((z < *pl->height && pl->validcount != validcount) || (z > *pl->height && pl->validcount == validcount)))
+				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((pl->hitover && z < *pl->height) || (!pl->hitover && z >= *pl->height)))
 				{
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
@@ -1187,7 +1182,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 				z = frontsector->ceilingheight;
 			while(pl)
 			{
-				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((z < *pl->height && pl->validcount == validcount) || (z > *pl->height && pl->validcount != validcount)))
+				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((pl->hitover && z < *pl->height) || (!pl->hitover && z >= *pl->height)))
 				{
 					// position a bit closer
 					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
@@ -1394,8 +1389,6 @@ P_LineAttack
 		y1 += FixedMul(xo, finesine[(angle+ANG90)>>ANGLETOFINESHIFT]);
 	}
 
-	// validcount++; // it is added in 'P_PathTraverse' !
-
 	angle >>= ANGLETOFINESHIFT;
 	shootthing = t1;
 	la_damage = damage;
@@ -1413,15 +1406,13 @@ P_LineAttack
 	{
 		while(pl)
 		{
-			if(shootz < *pl->height)
-				pl->validcount = validcount+1;
+			pl->hitover = shootz >= *pl->height;
 			pl = pl->next;
 		}
 		pl = t1->subsector->sector->exceiling;
 		while(pl)
 		{
-			if(shootz > *pl->height)
-				pl->validcount = validcount+1;
+			pl->hitover = shootz >= *pl->height;
 			pl = pl->next;
 		}
 	}

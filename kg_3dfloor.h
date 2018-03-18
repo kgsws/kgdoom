@@ -19,6 +19,8 @@ typedef struct extraplane_s
 	int validcount;
 	short *clip;
 	uint16_t blocking;
+	// hitscan
+	boolean hitover;
 	// renderer
 	int *renderstyle;
 	uint8_t **rendertable;

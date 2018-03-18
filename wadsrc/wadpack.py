@@ -2,6 +2,7 @@
 import sys
 import os
 from struct import pack
+from struct import unpack_from
 
 # single color map generation
 def split_range(par):
@@ -55,6 +56,28 @@ class lump_gen():
 			lumps.append([name, data, len(data), loffs])
 			# advance offset
 			loffs += len(data)
+	def wad(name, par):
+		# add wad file
+		global lumps
+		global loffs
+		f = open(os.path.join(basepath, par), "rb")
+		data = f.read()
+		f.close()
+		ipwad = unpack_from("<III", data, 0)
+		if ipwad[0] != 0x44415749 and ipwad[0] != 0x44415750:
+			raise ValueError(par + " is not a WAD file")
+		for i in range(0, ipwad[1]):
+			offset = i * 16
+			entry = unpack_from("<II", data, ipwad[2] + offset)
+			name = data[ipwad[2] + offset + 8:ipwad[2] + offset + 16].decode("UTF-8")
+			if entry[1] > 0:
+				ldata = data[entry[0]:entry[0]+entry[1]]
+				# add this lump
+				lumps.append([name, ldata, entry[1], loffs])
+				# advance offset
+				loffs += len(ldata)
+			else:
+				lumps.append([name])
 
 # add lump from file
 def add_lump(name, path):
@@ -115,7 +138,7 @@ for line in f:
 		line[0] = line[0].upper()
 		# check lump name
 		if len(bytearray(line[0], "UTF-8")) > 8:
-			raise ValueError("- too long lump name " + line[0])
+			raise ValueError("too long lump name " + line[0])
 		# check lump type
 		if len(line) > 2:
 			# generate this lump

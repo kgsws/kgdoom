@@ -162,24 +162,13 @@ void R_DrawColumnHoley (void)
 //
 // Spectre/Invisibility.
 //
-#define FUZZTABLE		50 
 #define FUZZOFF	(SCREENWIDTH)
-/*
 
-int	fuzzoffset[FUZZTABLE] =
+int fuzzoffset[] =
 {
-    FUZZOFF,-FUZZOFF,FUZZOFF,-FUZZOFF,FUZZOFF,FUZZOFF,-FUZZOFF,
-    FUZZOFF,FUZZOFF,-FUZZOFF,FUZZOFF,FUZZOFF,FUZZOFF,-FUZZOFF,
-    FUZZOFF,FUZZOFF,FUZZOFF,-FUZZOFF,-FUZZOFF,-FUZZOFF,-FUZZOFF,
-    FUZZOFF,-FUZZOFF,-FUZZOFF,FUZZOFF,FUZZOFF,FUZZOFF,FUZZOFF,-FUZZOFF,
-    FUZZOFF,-FUZZOFF,FUZZOFF,FUZZOFF,-FUZZOFF,-FUZZOFF,FUZZOFF,
-    FUZZOFF,-FUZZOFF,-FUZZOFF,-FUZZOFF,-FUZZOFF,FUZZOFF,FUZZOFF,
-    FUZZOFF,FUZZOFF,-FUZZOFF,FUZZOFF,FUZZOFF,-FUZZOFF,FUZZOFF 
+    FUZZOFF,-FUZZOFF
 }; 
 
-int	fuzzpos = 0; 
-
-*/
 //
 // Framebuffer postprocessing.
 // Creates a fuzzy image by copying pixels
@@ -261,8 +250,7 @@ void R_DrawFuzzColumn (void)
 	//  a pixel that is either one column
 	//  left or right of the current one.
 	// Add index from colormap to index.
-//	*dest = colormaps[6*256+dest[fuzzoffset[fuzzpos]]];
-	*dest = colormaps[6*256+dest[-FUZZOFF + (rand() & 1) * FUZZOFF * 2]]; // [kg] now random
+	*dest = colormaps[6*256+dest[fuzzoffset[rand() & 1]]]; // [kg] now random
 
 	// Clamp table lookup index.
 //	if (++fuzzpos == FUZZTABLE) 
@@ -357,7 +345,7 @@ int			dscount;
 
 //
 // Draws the actual span.
-void R_DrawSpan (void) 
+void R_DrawSpan (void)
 { 
     fixed_t		xfrac;
     fixed_t		yfrac; 
@@ -399,6 +387,40 @@ void R_DrawSpan (void)
 	xfrac += ds_xstep; 
 	yfrac += ds_ystep;
 	
+    } while (count--); 
+}
+
+void R_DrawSpanShadow (void)
+{ 
+    byte*		dest; 
+    int			count;
+
+    if(!ds_y) 
+	return;
+    if(ds_y == viewheight-1) 
+	return;
+
+#ifdef RANGECHECK 
+    if (ds_x2 < ds_x1
+	|| ds_x1<0
+	|| ds_x2>=SCREENWIDTH  
+	|| (unsigned)ds_y>SCREENHEIGHT)
+    {
+	I_Error( "R_DrawSpan: %i to %i at %i",
+		 ds_x1,ds_x2,ds_y);
+    }
+//	dscount++; 
+#endif 
+
+    dest = ylookup[ds_y] + columnofs[ds_x1];
+
+    // We do not check for zero spans here?
+    count = ds_x2 - ds_x1; 
+
+    do 
+    {
+	*dest = colormaps[6*256+dest[fuzzoffset[rand() & 1]]];
+	dest++;
     } while (count--); 
 } 
 
@@ -447,20 +469,24 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 	{
 		case RENDER_SHADOW:
 			colfunc = R_DrawFuzzColumn;
+//			spanfunc = R_DrawSpanShadow;
 		break;
 		case RENDER_HOLEY0:
 			colfunc = R_DrawColumnHoley;
 			dc_holestep = 0;
+//			spanfunc = R_DrawSpan; // TODO
 		break;
 		case RENDER_HOLEY1:
 			colfunc = R_DrawColumnHoley;
 			dc_holestep = 1;
+//			spanfunc = R_DrawSpan; // TODO
 		break;
 		default:
 			if(translation)
 				colfunc = R_DrawTranslatedColumn;
 			else
 				colfunc = R_DrawColumn;
+//			spanfunc = R_DrawSpan; // TODO
 		break;
 	}
 }

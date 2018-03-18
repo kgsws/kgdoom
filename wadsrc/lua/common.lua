@@ -140,6 +140,11 @@ function mapLoadSector(sector)
 	elseif spec == 17 then
 		sector.special = sector.lightlevel + 16
 		sector.GenericCaller(4, lightFlickerBlink, sector.FindMinimalLight())
+	elseif spec == 244 then
+		-- easter egg map
+		if game.map == "D2SECRET" then
+			sector.color = "LIGHTMAP"
+		end
 	end
 end
 
@@ -165,6 +170,10 @@ function mapLoadLine(line)
 			line.special = 0
 		end
 	end
+	-- easter egg map
+	if line.special == 255 and game.map == "D2SECRET" then
+		eggAddFloor(line)
+	end
 end
 
 function mapSetupPlayers(player)
@@ -186,7 +195,7 @@ function mapSetupPlayers(player)
 		mobj.InventoryTake(MT_REDSKULL)
 	end
 	-- doom 2 finale
-	if game.map == "MAP33" then
+	if game.map == "D2FINALE" then
 		mobj.__invulnerable = true
 		mobj.mass = 0
 		mobj.reactiontime = -1
@@ -201,8 +210,12 @@ function mapLoaded()
 	globalLinesIterator(mapLoadLine)
 	globalPlayersIterator(mapSetupPlayers)
 	-- doom 2 finale
-	if game.map == "MAP33" then
+	if game.map == "D2FINALE" then
 		finaleInit()
+	end
+	-- easter egg map
+	if game.map == "D2SECRET" then
+		fakeContrast(false)
 	end
 end
 
