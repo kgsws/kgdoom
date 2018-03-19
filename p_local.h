@@ -191,6 +191,7 @@ extern fixed_t		tmceilingz;
 extern	line_t*		ceilingline;
 
 boolean P_CheckPosition (mobj_t *thing, fixed_t x, fixed_t y);
+void P_GetPosition(mobj_t *thing);
 boolean P_TryMove (mobj_t* thing, fixed_t x, fixed_t y);
 boolean P_TeleportMove (mobj_t* thing, fixed_t x, fixed_t y);
 void	P_SlideMove (mobj_t* mo);

@@ -23,7 +23,7 @@ end
 
 -- MT_PUFF
 mtype = {
-	radius = 8,
+	radius = 1,
 	height = 12,
 	pass = 3,
 	__noBlockmap = true,
@@ -46,7 +46,7 @@ MT_PUFF = createMobjType(mtype)
 
 -- MT_PUFF_MELEE (new type)
 mtype = {
-	radius = 8,
+	radius = 1,
 	height = 12,
 	pass = 3,
 	__noBlockmap = true,

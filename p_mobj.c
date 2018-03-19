@@ -676,17 +676,15 @@ P_SpawnMobj
     // set subsector and/or block links
     P_SetThingPosition (mobj);
 
-    if (z == ONFLOORZ)
-	mobj->z = mobj->floorz;
-    else if (z == ONCEILINGZ)
-	mobj->z = mobj->ceilingz - mobj->info->height;
-    else 
-	mobj->z = z;
+    mobj->z = z;
 
-    // [kg] force 3D floor detection
-    P_CheckPosition(mobj, mobj->x, mobj->y);
-    mobj->floorz = mobj->subsector->sector->floorheight;
-    mobj->ceilingz = mobj->subsector->sector->ceilingheight;
+    // [kg] force 3D detection
+    P_GetPosition(mobj);
+
+    if(z == ONFLOORZ)
+	mobj->z = mobj->floorz;
+    else if(z == ONCEILINGZ)
+	mobj->z = mobj->ceilingz - mobj->info->height;
 
     if(mobj->z <= mobj->floorz)
 	mobj->onground = true;
@@ -793,6 +791,9 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 
     playerstate_t oldst;
 
+    x = mthing->x << FRACBITS;
+    y = mthing->y << FRACBITS;
+
     p = &players[mthing->type-1];
 
 #ifdef SERVER
@@ -804,7 +805,15 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     {
 	// start spectator player
 	if(players[consoleplayer].mo)
+        {
+	    // only update position
+	    P_UnsetThingPosition(players[consoleplayer].mo);
+	    players[consoleplayer].mo->x = x;
+	    players[consoleplayer].mo->y = y;
+	    P_SetThingPosition(players[consoleplayer].mo);
+	    players[consoleplayer].mo->z = players[consoleplayer].mo->subsector->sector->floorheight;
 	    return;
+        }
 	p = &players[consoleplayer];
     } else
     {
@@ -818,12 +827,11 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     if (p->playerstate == PST_REBORN)
 	G_PlayerReborn (mthing->type-1);
 
-    x = mthing->x << FRACBITS;
-    y = mthing->y << FRACBITS;
-    z = ONFLOORZ;
+    if(isHexen)
+	z = R_PointInSubsector(x,y)->sector->floorheight + (mthing->z << FRACBITS);
+    else
+	z = ONFLOORZ;
     mobj = P_SpawnMobj (x,y,z, MT_PLAYER);
-
-    mobj->z = mobj->subsector->sector->floorheight + (mthing->z << FRACBITS);
 
     // set color translations for player sprites; TODO: change
 //    if (mthing->type > 1)

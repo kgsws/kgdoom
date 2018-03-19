@@ -523,6 +523,81 @@ P_CheckPosition
     return true;
 }
 
+//
+// [kg] used to set thing floorz / ceilingz with 3D floors / midtextures
+void P_GetPosition(mobj_t *thing)
+{
+    int			xl;
+    int			xh;
+    int			yl;
+    int			yh;
+    int			bx;
+    int			by;
+    sector_t*		sector;
+    extraplane_t	*pl;
+
+    tmthing = thing;
+    tmflags = thing->flags;
+
+    tmx = thing->x;
+    tmy = thing->y;
+
+    tmbbox[BOXTOP] = tmy + tmthing->radius;
+    tmbbox[BOXBOTTOM] = tmy - tmthing->radius;
+    tmbbox[BOXRIGHT] = tmx + tmthing->radius;
+    tmbbox[BOXLEFT] = tmx - tmthing->radius;
+
+    sector = thing->subsector->sector;
+    ceilingline = NULL;
+    floorline = NULL;
+    
+    // The base floor / ceiling is from the subsector
+    // that contains the point.
+    // Any contacted lines the step closer together
+    // will adjust them.
+    tmfloorz = tmdropoffz = sector->floorheight;
+    tmceilingz = sector->ceilingheight;
+    thing->floorz = tmfloorz;
+    thing->ceilingz = tmceilingz;
+
+    // [kg] 3D floors check
+    pl = sector->exfloor;
+    while(pl)
+    {
+	if(*pl->height > tmthing->z)
+	    break;
+	if(*pl->height > tmfloorz)
+	    tmfloorz = *pl->height;
+	pl = pl->next;
+    }
+    // [kg] 3D ceilings check
+    pl = sector->exceiling;
+    while(pl)
+    {
+	if(*pl->height <= tmthing->z)
+	    break;
+	if(*pl->height < tmfloorz)
+	    tmfloorz = *pl->height;
+	pl = pl->next;
+    }
+
+    validcount++;
+    numspechit = 0;
+
+    // [kg] new blockmap handling does not need MAXRADIUS
+    xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
+    xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
+    yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
+    yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
+
+    // check lines
+    for (bx=xl ; bx<=xh ; bx++)
+	for (by=yl ; by<=yh ; by++)
+	    P_BlockLinesIterator(bx,by,PIT_CheckLine);
+
+    thing->floorz = tmfloorz;
+    thing->ceilingz = tmceilingz;
+}
 
 //
 // P_TryMove

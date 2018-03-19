@@ -483,8 +483,10 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 		break;
 		default:
 			if(translation)
+			{
+				dc_translation = translation;
 				colfunc = R_DrawTranslatedColumn;
-			else
+			} else
 				colfunc = R_DrawColumn;
 //			spanfunc = R_DrawSpan; // TODO
 		break;
