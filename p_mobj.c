@@ -784,10 +784,8 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     fixed_t		x;
     fixed_t		y;
     fixed_t		z;
-
     mobj_t*		mobj;
-
-    int			i;
+    boolean		isDoll = false;
 
     playerstate_t oldst;
 
@@ -831,6 +829,24 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 	z = R_PointInSubsector(x,y)->sector->floorheight + (mthing->z << FRACBITS);
     else
 	z = ONFLOORZ;
+
+    if(p->mo)
+    {
+	// spawn voodoo doll
+	x = p->mo->x;
+	y = p->mo->y;
+	z = p->mo->z;
+	// move player to new location
+	P_UnsetThingPosition(p->mo);
+	p->mo->x = mthing->x << FRACBITS;
+	p->mo->y = mthing->y << FRACBITS;
+	p->mo->z = R_PointInSubsector(p->mo->x, p->mo->y)->sector->floorheight;
+	if(isHexen)
+	    p->mo->z += mthing->z << FRACBITS;
+	P_SetThingPosition(p->mo);
+	isDoll = true;
+    }
+
     mobj = P_SpawnMobj (x,y,z, MT_PLAYER);
 
     // set color translations for player sprites; TODO: change
@@ -840,6 +856,9 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
     mobj->angle	= ANG45 * (mthing->angle/45);
     mobj->player = p;
     mobj->reactiontime = 2;
+
+    if(isDoll)
+	return;
 
     p->mo = mobj;
     p->playerstate = PST_LIVE;	

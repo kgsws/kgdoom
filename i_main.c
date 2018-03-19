@@ -235,7 +235,7 @@ void I_Error (char *error, ...)
 //	printf("\nAt %ix%ix%i\n", viewx / FRACUNIT, viewy / FRACUNIT, viewz / FRACUNIT);
 
 //	I_FinishUpdate();
-//	*((uint8_t*)1) = 1;
+	*((uint8_t*)1) = 1;
 
 	longjmp(exitenv, 2);
 }

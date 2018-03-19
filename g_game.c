@@ -641,10 +641,8 @@ void G_PlayerFinishLevel (int player)
 	p->inventory = p->mo->inventory; // back up inventory
 	p->mo->inventory = NULL; // avoid inventory deletion on map load
     }
+}
 
-    p->mo->player = NULL;
-} 
- 
 
 //
 // G_PlayerReborn
