@@ -725,6 +725,9 @@ void D_DoomMain (void)
     printf ("I_StartGraphics: Disable text output.\n");
     I_StartGraphics();
 
+    // [kg] ticker, message screen
+    D_InitNet();
+
     if (netgame)
 	D_StartNet();
     else

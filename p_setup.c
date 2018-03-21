@@ -767,8 +767,10 @@ P_SetupLevel
     wminfo.partime = 180;
     for (i=0 ; i<MAXPLAYERS ; i++)
     {
-	players[i].killcount = players[i].secretcount 
-	    = players[i].itemcount = 0;
+	players[i].killcount = 0;
+	players[i].secretcount = 0;
+	players[i].itemcount = 0;
+	players[i].mo = NULL;
     }
 
     // Initial height of PointOfView
@@ -785,6 +787,7 @@ P_SetupLevel
 	switch(think->lua_type)
 	{
 		case TT_MOBJ:
+			((mobj_t*)think)->player = NULL;
 			P_RemoveInventory((mobj_t*)think);
 			P_RemoveMobjTickers((mobj_t*)think);
 		break;

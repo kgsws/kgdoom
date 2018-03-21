@@ -12,6 +12,7 @@
 #include "m_menu.h"
 #include "hu_stuff.h"
 #include "m_swap.h"
+#include "kg_record.h"
 
 // [kg] new gameplay stuff
 
@@ -56,18 +57,22 @@ void NetUpdate (void)
 //
 // [kg] network screen
 
-void D_StartNet()
+void D_InitNet()
 {
 	int lump = W_CheckNumForName("INTERPIC");
 
 	if(lump < 0)
 		lump = W_CheckNumForName("WIMAP0");
 
-	gamestate = GS_NETWORK;
 	background = (patch_t*)W_CacheLumpNum(lump);
-	V_DrawPatch(0, 0, 0, background);
 
 	gametime = I_GetTime();
+}
+
+void D_StartNet()
+{
+	V_DrawPatch(0, 0, 0, background);
+	gamestate = GS_NETWORK;
 }
 
 void D_NetDrawer()
@@ -77,10 +82,10 @@ void D_NetDrawer()
 	char *msg = network_message;
 	char *ptr = network_message;
 
-	if(!netgame)
+	if(!netgame && rec_is_playback <= 1)
 		return;
 
-	if(gamestate == GS_NETWORK || netgame < 3)
+	if(gamestate == GS_NETWORK || netgame < 3 || rec_is_playback > 1)
 		V_DrawPatch(0, 0, 0, background);
 
 	// message
@@ -115,10 +120,43 @@ void D_NetDrawer()
 
 extern	boolean	advancedemo;
 
+static void RunOneTic()
+{
+#ifndef SERVER
+	I_StartTic();
+	D_ProcessEvents();
+	if(!rec_is_playback)
+		G_BuildTiccmd(&players[consoleplayer].cmd);
+	if(advancedemo)
+		D_DoAdvanceDemo();
+	M_Ticker();
+#endif
+	G_Ticker();
+	gametic++;
+}
+
 void TryRunTics (void)
 {
 	int newtics;
 	int nowtime;
+
+	if(rec_is_playback > 1)
+	{
+		// [kg] loading a "save" is in fact demo playback at full speed
+		if(rec_is_playback == 2)
+		{
+			// show "loading"
+			memset(screens[0], 0, SCREENWIDTH * SCREENHEIGHT);
+			sprintf(network_message, "LOADING ...");
+			D_NetDrawer();
+			I_FinishUpdate();
+			network_message[0] = 0;
+		}
+		while(rec_is_playback > 1)
+			RunOneTic();
+		gametime = I_GetTime();
+		return;
+	}
 
 	// check time
 	nowtime = I_GetTime();
@@ -133,16 +171,7 @@ void TryRunTics (void)
 		if(( (!netgame && in_weapon_menu) || sv_slowmo ) && (gametime+nowtime) & 1)
 			// half speed
 			continue;
-#ifndef SERVER
-		I_StartTic ();
-		D_ProcessEvents ();
-		G_BuildTiccmd(&players[consoleplayer].cmd);
-		if (advancedemo)
-			D_DoAdvanceDemo ();
-		M_Ticker ();
-#endif
-		G_Ticker ();
-		gametic++;
+		RunOneTic();
 	}
 }
 

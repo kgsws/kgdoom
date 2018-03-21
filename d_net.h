@@ -47,6 +47,7 @@ void D_QuitNetGame (void);
 void TryRunTics (void);
 
 // [kg] network screen
+void D_InitNet();
 void D_StartNet();
 void D_NetDrawer();
 

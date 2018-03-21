@@ -5,6 +5,8 @@
 
 #include "p_inventory.h"
 
+#include "kg_record.h"
+
 #ifdef SERVER
 #include "sv_cmds.h"
 #else
@@ -119,7 +121,7 @@ void P_Ticker (void)
 #ifndef SERVER
     // pause if in menu and at least one tic has been run
     if ( !netgame
-	 && menuactive
+	 && (menuactive && !rec_is_playback)
 	 && players[consoleplayer].playerstate != PST_DEAD)
     {
 	return;

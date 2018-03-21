@@ -40,6 +40,8 @@
 #include "p_inventory.h"
 #include "p_generic.h"
 
+#include "kg_record.h"
+
 //
 // STATUS BAR DATA
 //
@@ -329,7 +331,7 @@ ST_Responder (event_t* ev)
 				weapon_select = wp_nochange;
 		}
 	} else
-	if(!(plr->cheats & CF_SPECTATOR) && !plr->force_weapon && !plr->hide_stbar)
+	if(!(plr->cheats & CF_SPECTATOR) && !plr->force_weapon && !plr->hide_stbar && !rec_is_playback)
 	{
 //#ifdef LINUX
 #if 0

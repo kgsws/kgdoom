@@ -314,7 +314,7 @@ static const luafunc_t lua_functions[] =
 	{"addWeaponType", LUA_addWeaponType, LUA_EXPORT_SETUP},
 	{"addKeyType", LUA_addKeyType, LUA_EXPORT_SETUP},
 	// map stage
-	{"doomRandom", LUA_doomRandom, LUA_EXPORT_SETUP | LUA_EXPORT_LEVEL},
+	{"doomRandom", LUA_doomRandom, LUA_EXPORT_LEVEL},
 	{"spawnMobj", LUA_spawnMobj, LUA_EXPORT_LEVEL},
 	{"blockThingsIterator", LUA_blockThingsIterator, LUA_EXPORT_LEVEL},
 	{"globalPlayersIterator", LUA_globalPlayersIterator, LUA_EXPORT_LEVEL},
@@ -685,7 +685,8 @@ lua_intvalue_t lua_linespec[] =
 //
 // debug
 
-#define LUA_DebugRef(r, f)	LUA_DebugRefTxt(r, f, __FUNCTION__)
+//#define LUA_DebugRef(r, f)	LUA_DebugRefTxt(r, f, __FUNCTION__)
+#define LUA_DebugRef(r, f)
 
 void LUA_DebugRefTxt(int ref, boolean free, const char *func)
 {
@@ -2380,7 +2381,7 @@ static int LUA_doomRandom(lua_State *L)
 		from = top;
 	}
 
-	lua_pushinteger(L, from + (rand() % ((to - from)+1)) );
+	lua_pushinteger(L, from + (F_Random() % ((to - from)+1)) );
 	return 1;
 }
 

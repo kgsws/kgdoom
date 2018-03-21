@@ -836,7 +836,7 @@ boolean PTR_SlideTraverse (intercept_t* in)
 		
     li = in->d.line;
 
-    if( ~slidemo->canpass & li->blocking )
+    if( ! (li->flags & LF_TWOSIDED) )
     {
 	if (P_PointOnLineSide (slidemo->x, slidemo->y, li))
 	{

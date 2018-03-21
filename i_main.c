@@ -23,6 +23,8 @@
 #include "network.h"
 #include "cl_cmds.h"
 
+#include "kg_record.h"
+
 #include "t_text.h"
 
 // for exit
@@ -322,6 +324,8 @@ void I_InitNetwork()
 		// singleplayer game
 		consoleplayer = 0;
 		playercount = 1;
+		// init save / recording
+		rec_init();
 	}
 	displayplayer = consoleplayer;
 	playeringame[consoleplayer] = true;

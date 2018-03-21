@@ -13,7 +13,6 @@
 #include "i_system.h"
 
 #include "p_setup.h"
-#include "p_saveg.h"
 #include "p_tick.h"
 
 #include "d_main.h"
@@ -42,6 +41,8 @@
 #include "r_sky.h"
 
 #include "g_game.h"
+
+#include "kg_record.h"
 
 #ifdef SERVER
 #include <netinet/in.h>
@@ -172,8 +173,10 @@ int             joyxmove2;
 int		joyymove2;
 boolean		joybuttons[NUM_JOYCON_BUTTONS];
 
-int		savegameslot; 
+int		savegameslot;
 char		savedescription[32];
+
+static char	savename[256];
 
 // [kg] joycon info
 extern int i_ctrl_roles;
@@ -331,6 +334,37 @@ void G_DoLoadLevel (void)
     //  setting one.
     skyflatnum = R_FlatNumForName ( SKYFLATNAME );
 
+    levelstarttic = gametic;        // for time calculation
+
+    gamestate = GS_LEVEL; 
+
+#ifdef SERVER
+    for (i=0 ; i<MAXPLAYERS ; i++) 
+#else
+    for (i=0 ; i<=MAXPLAYERS ; i++) 
+#endif
+    { 
+	if (playeringame[i] && players[i].playerstate == PST_DEAD) 
+	    players[i].playerstate = PST_REBORN; 
+	memset (players[i].frags,0,sizeof(players[i].frags)); 
+    }
+
+#ifndef SERVER
+    if(gameaction == ga_loadgame)
+    {
+	rec_load(savename, 2);
+    } else
+    {
+#endif
+	// [kg] new random
+	M_ClearRandom();
+#ifndef SERVER
+	// [kg] prepare recording / savegame
+	if(!netgame)
+	    rec_reset();
+    }
+#endif
+
     // DOOM determines the sky texture to be used
     // depending on the current episode, and the game version.
     if ( (gamemode == commercial)
@@ -345,21 +379,6 @@ void G_DoLoadLevel (void)
 		skytexture = R_TextureNumForName ("SKY2");
     }
 
-    levelstarttic = gametic;        // for time calculation
-    
-    gamestate = GS_LEVEL; 
-
-#ifdef SERVER
-    for (i=0 ; i<MAXPLAYERS ; i++) 
-#else
-    for (i=0 ; i<=MAXPLAYERS ; i++) 
-#endif
-    { 
-	if (playeringame[i] && players[i].playerstate == PST_DEAD) 
-	    players[i].playerstate = PST_REBORN; 
-	memset (players[i].frags,0,sizeof(players[i].frags)); 
-    } 
-		 
     P_SetupLevel (gameepisode, gamemap, 0, gameskill);    
     displayplayer = consoleplayer;		// view the guy you are playing    
     starttime = I_GetTime (); 
@@ -372,8 +391,8 @@ void G_DoLoadLevel (void)
     joyxmove2 = joyymove2 = 0;
     mousex = mousey = 0; 
     sendpause = sendsave = paused = false; 
-    memset (mousearray, 0, sizeof(mousearray)); 
-    memset (joybuttons, 0, sizeof(joybuttons)); 
+    memset (mousearray, 0, sizeof(mousearray));
+    memset (joybuttons, 0, sizeof(joybuttons));
 }
 
 #ifndef SERVER
@@ -542,7 +561,7 @@ void G_Ticker (void)
 	    break; 
 #ifndef SERVER
 	  case ga_loadgame: 
-	    G_DoLoadGame (); 
+	    G_DoLoadLevel ();
 	    break; 
 	  case ga_savegame: 
 	    G_DoSaveGame (); 
@@ -641,10 +660,8 @@ void G_PlayerFinishLevel (int player)
 	p->inventory = p->mo->inventory; // back up inventory
 	p->mo->inventory = NULL; // avoid inventory deletion on map load
     }
+}
 
-    p->mo->player = NULL;
-} 
- 
 
 //
 // G_PlayerReborn
@@ -1076,69 +1093,11 @@ void G_DoWorldDone (void)
 extern boolean setsizeneeded;
 void R_ExecuteSetViewSize (void);
 
-char	savename[256];
-
 void G_LoadGame (char* name) 
-{ 
-    strcpy (savename, name); 
-    gameaction = ga_loadgame; 
-} 
- 
-#define VERSIONSIZE		16 
-
-void G_DoLoadGame (void) 
-{ 
-/*    int		length; 
-    int		i; 
-    int		a,b,c; 
-    char	vcheck[VERSIONSIZE]; 
-	 
-    gameaction = ga_nothing; 
-	 
-    length = M_ReadFile (savename, &savebuffer); 
-    save_p = savebuffer + SAVESTRINGSIZE;
-    
-    // skip the description field 
-    memset (vcheck,0,sizeof(vcheck)); 
-    sprintf (vcheck,"version %i",VERSION); 
-    if (strcmp (save_p, vcheck)) 
-	return;				// bad version 
-    save_p += VERSIONSIZE; 
-			 
-    gameskill = *save_p++; 
-    gameepisode = *save_p++; 
-    gamemap = *save_p++; 
-    for (i=0 ; i<MAXPLAYERS ; i++) 
-	playeringame[i] = *save_p++; 
-
-    // load a base level 
-    G_InitNew (gameskill, gameepisode, gamemap); 
- 
-    // get the times 
-    a = *save_p++; 
-    b = *save_p++; 
-    c = *save_p++; 
-    leveltime = (a<<16) + (b<<8) + c; 
-	 
-    // dearchive all the modifications
-    P_UnArchivePlayers (); 
-    P_UnArchiveWorld (); 
-    P_UnArchiveThinkers (); 
-    P_UnArchiveSpecials (); 
- 
-    if (*save_p != 0x1d) 
-	I_Error ("Bad savegame");
-    
-    // done 
-    Z_Free (savebuffer); 
- 
-    if (setsizeneeded)
-	R_ExecuteSetViewSize ();
-    
-    // draw the pattern into the back screen
-//    R_FillBackScreen ();   */
-} 
- 
+{
+    strcpy (savename, name);
+    gameaction = ga_loadgame;
+}
 
 //
 // G_SaveGame
@@ -1150,61 +1109,16 @@ G_SaveGame
 ( int	slot,
   char*	description ) 
 { 
-    savegameslot = slot; 
-    strcpy (savedescription, description); 
-    sendsave = true; 
+    savegameslot = slot;
+    strcpy(savedescription, description); 
+    gameaction = ga_savegame;
 } 
- 
+
 void G_DoSaveGame (void) 
 { 
-/*    char	name[100]; 
-    char	name2[VERSIONSIZE]; 
-    char*	description; 
-    int		length; 
-    int		i; 
-	
-    if (M_CheckParm("-cdrom"))
-	sprintf(name,"c:\\doomdata\\"SAVEGAMENAME"%d.dsg",savegameslot);
-    else
-	sprintf (name,SAVEGAMENAME"%d.dsg",savegameslot); 
-    description = savedescription; 
-	 
-    save_p = savebuffer = screens[1]+0x4000; 
-	 
-    memcpy (save_p, description, SAVESTRINGSIZE); 
-    save_p += SAVESTRINGSIZE; 
-    memset (name2,0,sizeof(name2)); 
-    sprintf (name2,"version %i",VERSION); 
-    memcpy (save_p, name2, VERSIONSIZE); 
-    save_p += VERSIONSIZE; 
-	 
-    *save_p++ = gameskill; 
-    *save_p++ = gameepisode; 
-    *save_p++ = gamemap; 
-    for (i=0 ; i<MAXPLAYERS ; i++) 
-	*save_p++ = playeringame[i]; 
-    *save_p++ = leveltime>>16; 
-    *save_p++ = leveltime>>8; 
-    *save_p++ = leveltime; 
- 
-    P_ArchivePlayers (); 
-    P_ArchiveWorld (); 
-    P_ArchiveThinkers (); 
-    P_ArchiveSpecials (); 
-	 
-    *save_p++ = 0x1d;		// consistancy marker 
-	 
-    length = save_p - savebuffer; 
-    if (length > SAVEGAMESIZE) 
-	I_Error ("Savegame buffer overrun"); 
-    M_WriteFile (name, savebuffer, length); 
-    gameaction = ga_nothing; 
-    savedescription[0] = 0;		 
-	 
-    players[consoleplayer].message = GGSAVED; 
-
-    // draw the pattern into the back screen
-//    R_FillBackScreen ();	*/
+	sprintf(savename, SAVEGAMENAME"%d.kdsg", savegameslot);
+	rec_save(savename);
+	gameaction = ga_nothing;
 } 
 #endif
 
@@ -1296,18 +1210,14 @@ G_InitNew
       if (episode > 3)
 	episode = 3;
     }
-    
 
-  
     if (map < 1) 
 	map = 1;
     
     if ( (map > 9)
 	 && ( gamemode != commercial) )
       map = 9; 
-		 
-    M_ClearRandom (); 
-	 
+
     if (skill == sk_nightmare || respawnparm )
 	respawnmonsters = true;
     else

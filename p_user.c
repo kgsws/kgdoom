@@ -6,6 +6,9 @@
 #include "p_inventory.h"
 #include "st_stuff.h"
 
+#include "i_system.h"
+#include "kg_record.h"
+
 #include "doomstat.h"
 
 #ifndef SERVER
@@ -270,8 +273,22 @@ void P_PlayerThink (player_t* player)
     else
 	player->mo->flags &= ~MF_NOCLIP;
     
-    // chain saw run forward
     cmd = &player->cmd;
+
+#ifndef SERVER
+    // [kg] recording / savegame
+    if(rec_is_playback)
+    {
+	if(player->playerstate == PST_LIVE)
+	    rec_get_ticcmd(&player->cmd);
+	else
+	    player->cmd = *I_BaseTiccmd();
+    }
+    if(!netgame && !rec_is_playback)
+	rec_ticcmd(cmd);
+#endif
+
+    // chain saw run forward
     if (player->mo->flags & MF_JUSTATTACKED)
     {
 	cmd->forwardmove = 0xc800/512;
@@ -286,6 +303,11 @@ void P_PlayerThink (player_t* player)
 	    player->playerstate = PST_LIVE;
 	else
 	{
+	    if(rec_is_playback)
+	    {
+		rec_is_playback = 0;
+		player->cmd.buttons = 0;
+	    }
 	    P_DeathThink (player);
 	    return;
 	}

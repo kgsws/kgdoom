@@ -8,6 +8,8 @@
 #include "w_wad.h"
 #include "st_stuff.h"
 
+#include "kg_record.h"
+
 #ifdef LINUX
 #include <SDL/SDL.h>
 #endif
@@ -167,6 +169,10 @@ I_StartSound
   int		priority,
   int slot )
 {
+    if(rec_is_playback > 1)
+	// [kg] loading a "saved" game
+	return slot;
+
     // set slot sound
     int		i;
     int		rc = -1;

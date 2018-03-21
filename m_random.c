@@ -2,6 +2,8 @@
 // M_Random
 // Returns a 0-255 number
 //
+#include "doomdef.h"
+
 unsigned char rndtable[256] = {
     0,   8, 109, 220, 222, 241, 149, 107,  75, 248, 254, 140,  16,  66 ,
     74,  21, 211,  47,  80, 242, 154,  27, 205, 128, 161,  89,  77,  36 ,
@@ -27,6 +29,9 @@ unsigned char rndtable[256] = {
 int	rndindex = 0;
 int	prndindex = 0;
 
+uint32_t rand_m_z;
+uint32_t rand_m_w;
+
 // Which one is deterministic?
 int P_Random (void)
 {
@@ -42,6 +47,19 @@ int M_Random (void)
 
 void M_ClearRandom (void)
 {
-    rndindex = prndindex = 0;
+    rndindex = rand();
+    prndindex = (rndindex >> 8) & 0xFF;
+    rndindex &= 0xFF;
+    rand_m_z = rand();
+    rand_m_w = rand();
+}
+
+// [kg] bigger random
+// https://www.codeproject.com/Articles/25172/Simple-Random-Number-Generation
+uint32_t F_Random()
+{
+    rand_m_z = 36969 * (rand_m_z & 65535) + (rand_m_z >> 16);
+    rand_m_w = 18000 * (rand_m_w & 65535) + (rand_m_w >> 16);
+    return (rand_m_z << 16) + rand_m_w;
 }
 

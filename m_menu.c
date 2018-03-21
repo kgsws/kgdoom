@@ -198,8 +198,8 @@ enum
 {
     newgame = 0,
     options,
-//    loadgame,
-//    savegame,
+    loadgame,
+    savegame,
     readthis,
     quitdoom,
     main_end
@@ -209,8 +209,8 @@ menuitem_t MainMenu[]=
 {
     {"M_NGAME",M_NewGame, 1},
     {"M_OPTION",M_Options, 1},
-//    {"M_LOADG",M_LoadGame, 1},
-//    {"M_SAVEG",M_SaveGame, 1},
+    {"M_LOADG",M_LoadGame, 1},
+    {"M_SAVEG",M_SaveGame, 1},
     // Another hickup with Special edition.
     {"M_RDTHIS",M_ReadThis, 1},
     {"M_QUITG",M_QuitDOOM, 1}
@@ -510,25 +510,24 @@ void M_DrawOptions()
 //
 void M_ReadSaveStrings(void)
 {
-    int             handle;
-    int             count;
-    int             i;
-    char    name[256];
+    FILE *f;
+    int i;
+//    char name[256];
 	
     for (i = 0;i < load_end;i++)
     {
-	sprintf(name,SAVEGAMENAME"%d.dsg",i);
+	sprintf(&savegamestrings[i][0], "SLOT %d", i);
+//	sprintf(name,SAVEGAMENAME"%d.kdsg",i);
 
-//	handle = open (name, O_RDONLY | 0, 0666);
-//	if (handle == -1)
-	{
+//	f = fopen();
+
+/*	{
 	    strcpy(&savegamestrings[i][0],EMPTYSTRING);
 	    LoadMenu[i].status = 0;
 	    continue;
 	}
-//	count = read (handle, &savegamestrings[i], SAVESTRINGSIZE);
-//	close (handle);
-//	LoadMenu[i].status = 1;
+*/
+	LoadMenu[i].status = 1;
     }
 }
 
@@ -577,10 +576,7 @@ void M_LoadSelect(int choice)
 {
     char    name[256];
 	
-    if (M_CheckParm("-cdrom"))
-	sprintf(name,"c:\\doomdata\\"SAVEGAMENAME"%d.dsg",choice);
-    else
-	sprintf(name,SAVEGAMENAME"%d.dsg",choice);
+    sprintf(name,SAVEGAMENAME"%d.kdsg",choice);
     G_LoadGame (name);
     M_ClearMenus ();
 }

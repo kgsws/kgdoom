@@ -281,8 +281,29 @@ P_DamageMobj
     target->attacker = source;
     target->damagercv = damagetype;
 
+    // [kg] voodoo doll check
+    if(target->player && target != target->player->mo)
+    {
+	// damage
+	target->player->mo->health -= damage;
+	if(target->player->mo->health <= 0)
+	{
+	    // [kg] new cheat
+	    if(player && player->cheats & CF_INFHEALTH)
+		target->player->mo->health = 1;
+	    else
+	    {
+		P_KillMobj (source, target->player->mo);
+#ifdef SERVER
+		SV_UpdateMobj(target->player->mo, SV_MOBJF_AUTO | SV_MOBJF_HEALTH | SV_MOBJF_STATE | SV_MOBJF_TARGET);
+#endif
+		return;
+	    }
+	}
+    }
+
     // do the damage	
-    target->health -= damage;	
+    target->health -= damage;
     if (target->health <= 0)
     {
 	// [kg] new cheat
