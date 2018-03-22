@@ -5,6 +5,8 @@
 #include "m_swap.h"
 #include "m_bbox.h"
 
+#include "m_random.h"
+
 #include "g_game.h"
 
 #include "i_system.h"
@@ -21,6 +23,7 @@
 #include "p_inventory.h"
 #include "kg_lua.h"
 #include "kg_3dfloor.h"
+#include "kg_record.h"
 
 void	P_SpawnMapThing (mapthing_hexen_t*	mthing);
 
@@ -91,8 +94,8 @@ mapthing_hexen_t*	deathmatch_p;
 mapthing_hexen_t	playerstarts[MAXPLAYERS];
 
 
-
-
+extern char	savename[256];
+extern  int	skytexture;
 
 //
 // P_LoadVertexes
@@ -831,6 +834,58 @@ P_SetupLevel
     lumpnum = W_GetNumForName (lumpname);
 
     level_lump = lumpnum;
+
+    // [kg] game saving / loading
+
+#ifndef SERVER
+    if(gameaction == ga_loadgame)
+    {
+	rec_load(savename, 2);
+	lumpnum = level_lump;
+    }
+    if(!rec_is_playback)
+    {
+#endif
+	// [kg] new random
+	M_ClearRandom();
+#ifndef SERVER
+	// [kg] prepare recording / savegame
+	if(!netgame)
+	    rec_reset();
+    }
+#endif
+
+    // DOOM determines the sky texture to be used
+    // depending on the current episode, and the game version.
+    // set the sky map for the episode
+    if ( gamemode == commercial)
+    {
+	skytexture = R_TextureNumForName ("SKY3");
+	if (gamemap < 12)
+	    skytexture = R_TextureNumForName ("SKY1");
+	else
+	    if (gamemap < 21)
+		skytexture = R_TextureNumForName ("SKY2");
+    }
+    else
+	switch (episode) 
+	{ 
+	  case 1: 
+	    skytexture = R_TextureNumForName ("SKY1"); 
+	    break; 
+	  case 2: 
+	    skytexture = R_TextureNumForName ("SKY2"); 
+	    break; 
+	  case 3: 
+	    skytexture = R_TextureNumForName ("SKY3"); 
+	    break; 
+	  case 4:	// Special Edition sky
+	    skytexture = R_TextureNumForName ("SKY4");
+	    break;
+	} 
+
+    // [kg] continue loading
+
     {
 	char *tmp = W_LumpNumName(level_lump);
 	level_name[8] = 0;
@@ -844,10 +899,10 @@ P_SetupLevel
 		if(ptr && *((uint64_t*)ptr) == 0x524f495641484542)
 		{
 			isHexen = 1;
-			printf("HEXEN MAP FORMAT\n");
+			printf("%s; HEXEN MAP FORMAT\n", level_name);
 		} else {
 			isHexen = 0;
-			printf("DOOM MAP FORMAT\n");
+			printf("%s; DOOM MAP FORMAT\n", level_name);
 		}
 	}
 	

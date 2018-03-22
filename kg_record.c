@@ -84,6 +84,13 @@ void rec_reset()
 	rec_add_uint32(RECORDING_VER);
 	// TODO: WADs checksum
 	rec_add_uint32(0xFFAA5581);
+	// map lump
+	rec_add_uint32(level_lump);
+	// doom map numbers
+	rec_add_uint8(gamemap);
+	rec_add_uint8(gameepisode);
+	rec_add_uint8(gameskill);
+	rec_add_uint8(0);
 	// PRNG seeds
 	rec_add_uint32(prndindex);
 	rec_add_uint32(rand_m_z);
@@ -150,41 +157,58 @@ void rec_load(const char *path, int type)
 {
 	uint32_t tmp;
 	int size;
+
 	FILE *f = fopen(path, "rb");
-	if(f)
+	if(!f)
+		I_Error("savegame file does not exist");
+
+	// clear inventory & stuff
+	if(players[consoleplayer].inventory)
 	{
-		rec_ticnt = 0;
-		fseek(f, 0, SEEK_END);
-		size = ftell(f);
-		fseek(f, 0, SEEK_SET);
-		if(size & 3 || size < 32)
-			I_Error("invalid saved size");
-		fread(rec_buff, 1, size, f);
-		fclose(f);
-		rec_ptr = rec_buff;
-		rec_end = rec_buff + size;
-		// header check
-		rec_get_uint32(&tmp);
-		if(tmp != RECORDING_HEAD)
-			I_Error("invalid save file");
-		// version check
-		rec_get_uint32(&tmp);
-		if(tmp != RECORDING_VER)
-			I_Error("invalid save version");
-		// TODO: WADs checksum
-		rec_get_uint32(&tmp);
-		// prandom index
-		rec_get_uint32(&tmp);
-		prndindex = tmp & 0xFF;
-		rec_get_uint32(&rand_m_z);
-		rec_get_uint32(&rand_m_w);
-		// player state
-		rec_get_uint32(&tmp);
-		if(tmp)
-			I_Error("TODO: alive player inventory");
-		players[consoleplayer].playerstate = PST_REBORN;
-		rec_is_playback = type;
+		P_DestroyInventory(players[consoleplayer].inventory);
+		players[consoleplayer].inventory = NULL;
 	}
+
+	// load state
+	rec_ticnt = 0;
+	fseek(f, 0, SEEK_END);
+	size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	if(size & 3 || size < 48)
+		I_Error("invalid saved size");
+	fread(rec_buff, 1, size, f);
+	fclose(f);
+	rec_ptr = rec_buff;
+	rec_end = rec_buff + size;
+	// header check
+	rec_get_uint32(&tmp);
+	if(tmp != RECORDING_HEAD)
+		I_Error("invalid save file");
+	// version check
+	rec_get_uint32(&tmp);
+	if(tmp != RECORDING_VER)
+		I_Error("invalid save version");
+	// TODO: WADs checksum
+	rec_get_uint32(&tmp);
+	// map lump
+	rec_get_uint32(&tmp);
+	level_lump = tmp; // TODO: check validity
+	// doom level numbers
+	rec_get_uint32(&tmp);
+	gamemap = tmp & 0xFF;
+	gameepisode = (tmp >> 8) & 0xFF;
+	gameskill = (tmp >> 16) & 0xFF;
+	// prandom index
+	rec_get_uint32(&tmp);
+	prndindex = tmp & 0xFF;
+	rec_get_uint32(&rand_m_z);
+	rec_get_uint32(&rand_m_w);
+	// player state
+	rec_get_uint32(&tmp);
+	if(tmp)
+		I_Error("TODO: alive player inventory");
+	players[consoleplayer].playerstate = PST_REBORN;
+	rec_is_playback = type;
 }
 
 void rec_get_ticcmd(ticcmd_t *cmd)

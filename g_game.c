@@ -176,7 +176,7 @@ boolean		joybuttons[NUM_JOYCON_BUTTONS];
 int		savegameslot;
 char		savedescription[32];
 
-static char	savename[256];
+char	savename[256];
 
 // [kg] joycon info
 extern int i_ctrl_roles;
@@ -347,36 +347,6 @@ void G_DoLoadLevel (void)
 	if (playeringame[i] && players[i].playerstate == PST_DEAD) 
 	    players[i].playerstate = PST_REBORN; 
 	memset (players[i].frags,0,sizeof(players[i].frags)); 
-    }
-
-#ifndef SERVER
-    if(gameaction == ga_loadgame)
-    {
-	rec_load(savename, 2);
-    } else
-    {
-#endif
-	// [kg] new random
-	M_ClearRandom();
-#ifndef SERVER
-	// [kg] prepare recording / savegame
-	if(!netgame)
-	    rec_reset();
-    }
-#endif
-
-    // DOOM determines the sky texture to be used
-    // depending on the current episode, and the game version.
-    if ( (gamemode == commercial)
-	 || ( gamemode == pack_tnt )
-	 || ( gamemode == pack_plut ) )
-    {
-	skytexture = R_TextureNumForName ("SKY3");
-	if (gamemap < 12)
-	    skytexture = R_TextureNumForName ("SKY1");
-	else
-	    if (gamemap < 21)
-		skytexture = R_TextureNumForName ("SKY2");
     }
 
     P_SetupLevel (gameepisode, gamemap, 0, gameskill);    
@@ -1141,6 +1111,7 @@ G_DeferedInitNew
     d_episode = episode; 
     d_map = map; 
     gameaction = ga_newgame;
+    level_name[0] = 0;
 }
 
 
@@ -1257,34 +1228,7 @@ G_InitNew
     automapactive = false; 
 #endif
     viewactive = true;
-    
-    // set the sky map for the episode
-    if ( gamemode == commercial)
-    {
-	skytexture = R_TextureNumForName ("SKY3");
-	if (gamemap < 12)
-	    skytexture = R_TextureNumForName ("SKY1");
-	else
-	    if (gamemap < 21)
-		skytexture = R_TextureNumForName ("SKY2");
-    }
-    else
-	switch (episode) 
-	{ 
-	  case 1: 
-	    skytexture = R_TextureNumForName ("SKY1"); 
-	    break; 
-	  case 2: 
-	    skytexture = R_TextureNumForName ("SKY2"); 
-	    break; 
-	  case 3: 
-	    skytexture = R_TextureNumForName ("SKY3"); 
-	    break; 
-	  case 4:	// Special Edition sky
-	    skytexture = R_TextureNumForName ("SKY4");
-	    break;
-	} 
- 
+
     G_DoLoadLevel (); 
 } 
 
