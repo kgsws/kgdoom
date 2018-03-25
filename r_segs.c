@@ -101,6 +101,8 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
     unsigned	index;
     column_t*	col;
 
+    dc_src_height = textureheight[texnum] >> FRACBITS;
+
     for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
     {
 	// [kg] add 3D clip
@@ -243,15 +245,26 @@ R_RenderMaskedSegRange
 	{
 	    spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
 	    // texture
-	    texnum = texturetranslation[sides[pl->line->sidenum[0]].midtexture];
+	    if(pl->line->flags & LF_DONTPEGTOP)
+	    {
+		dc_texturemid = curline->sidedef->rowoffset;
+		if(pl->line->flags & 0x8000)
+		    texnum = curline->sidedef->toptexture;
+		else
+		    texnum = curline->sidedef->bottomtexture;
+	    } else
+	    {
+		texnum = sides[pl->line->sidenum[0]].midtexture;
+		dc_texturemid = sides[pl->line->sidenum[0]].rowoffset;
+	    }
+	    texnum = texturetranslation[texnum];
 	    if(texnum)
 	    {
 		// find positioning
 		if(pl->line->flags & LF_DONTPEGBOTTOM)
-		    dc_texturemid = (*pl->height + textureheight[texnum]) - viewz;
+		    dc_texturemid += (*pl->height + textureheight[texnum]) - viewz;
 		else
-		    dc_texturemid = *pl->height - viewz;
-		dc_texturemid += sides[pl->line->sidenum[0]].rowoffset;
+		    dc_texturemid += *pl->height - viewz;
 		// [kg] pick renderer
 		R_SetupRenderFunc(*pl->renderstyle, *pl->rendertable, NULL);
 		// draw the columns
@@ -331,7 +344,7 @@ void R_RenderSegLoop (int horizon)
 	// mark floor / ceiling areas
 
 	if(horizon)
-		yl = (viewheight / 2)+1;
+		yl = centery + 1;
 	else
 		yl = (topfrac+HEIGHTUNIT-1)>>HEIGHTBITS;
 
@@ -355,7 +368,7 @@ void R_RenderSegLoop (int horizon)
 	}
 		
 	if(horizon)
-		yh = viewheight / 2;
+		yh = centery;
 	else
 		yh = bottomfrac>>HEIGHTBITS;
 
@@ -401,6 +414,7 @@ void R_RenderSegLoop (int horizon)
 	    dc_yh = yh;
 	    dc_texturemid = rw_midtexturemid;
 	    dc_source = R_GetColumn(midtexture,texturecolumn);
+	    dc_src_height = textureheight[midtexture] >> FRACBITS;
 	    colfunc ();
 	    ceilingclip[rw_x] = viewheight;
 	    floorclip[rw_x] = -1;
@@ -423,6 +437,7 @@ void R_RenderSegLoop (int horizon)
 		    dc_yh = mid;
 		    dc_texturemid = rw_toptexturemid;
 		    dc_source = R_GetColumn(toptexture,texturecolumn);
+		    dc_src_height = textureheight[toptexture] >> FRACBITS;
 		    colfunc ();
 		    ceilingclip[rw_x] = mid;
 		}
@@ -451,8 +466,8 @@ void R_RenderSegLoop (int horizon)
 		    dc_yl = mid;
 		    dc_yh = yh;
 		    dc_texturemid = rw_bottomtexturemid;
-		    dc_source = R_GetColumn(bottomtexture,
-					    texturecolumn);
+		    dc_source = R_GetColumn(bottomtexture, texturecolumn);
+		    dc_src_height = textureheight[bottomtexture] >> FRACBITS;
 		    colfunc ();
 		    floorclip[rw_x] = mid;
 		}
@@ -548,6 +563,7 @@ void R_RenderSegLoopStripe()
 	    dc_yh = midT;
 	    dc_texturemid = stripetexturemid;
 	    dc_source = R_GetColumn(stripetexture,texturecolumn);
+	    dc_src_height = textureheight[stripetexture] >> FRACBITS;
 	    colfunc ();
 	}
 

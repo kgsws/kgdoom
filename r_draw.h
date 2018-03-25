@@ -51,6 +51,7 @@ extern fixed_t		ds_ystep;
 
 // start of a 64*64 tile image
 extern byte*		ds_source;
+extern int		dc_src_height;
 
 extern uint8_t *dc_colormap;
 extern uint8_t *dc_translation;

@@ -1087,7 +1087,7 @@ G_SaveGame
 void G_DoSaveGame (void) 
 { 
 	sprintf(savename, SAVEGAMENAME"%d.kdsg", savegameslot);
-	rec_save(savename);
+	rec_save(savename, savedescription);
 	gameaction = ga_nothing;
 } 
 #endif
@@ -1111,7 +1111,11 @@ G_DeferedInitNew
     d_episode = episode; 
     d_map = map; 
     gameaction = ga_newgame;
-    level_name[0] = 0;
+
+    if(!d_episode)
+	d_episode = 1;
+    else
+	level_name[0] = 0;
 }
 
 
@@ -1154,7 +1158,6 @@ G_InitNew
 	paused = false; 
 	S_ResumeSound (); 
     } 
-	
 
     if (skill > sk_nightmare) 
 	skill = sk_nightmare;

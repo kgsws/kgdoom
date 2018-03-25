@@ -780,6 +780,9 @@ int cb_FlatNumForName(int lump)
 
 int R_FlatNumForName (char* name)
 {
+	if(name[0] == '-' && name[1] == 0)
+		return 0;
+
 	flat_lump = -1;
 	W_ForEachName(name, cb_FlatNumForName);
 

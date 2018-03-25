@@ -495,8 +495,8 @@ R_DrawVisSprite
 	    I_Error ("R_DrawSpriteRange: bad texturecolumn");
 //	break;
 #endif
-	column = (column_t *) ((byte *)patch +
-			       LONG(patch->columnofs[texturecolumn]));
+	column = (column_t *) ((byte *)patch + LONG(patch->columnofs[texturecolumn]));
+	dc_src_height = patch->height;
 	R_DrawMaskedColumn (column);
     }
 

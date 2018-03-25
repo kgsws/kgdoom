@@ -10,3 +10,194 @@ end
 function eggAddFloor(line)
 	sectorTagIterator(line.arg0, eggSpawnFloor, line)
 end
+
+function eggSpawnEffect(thing)
+	return false, thing
+end
+
+function eggParticle(mobj)
+	if egg_target ~= nil then
+		local mt
+		an, sl = mobj.AttackAim(false, egg_target)
+		mobj.angle = an
+		if mobj.health == 2991 then
+			mt = MT_EGGPARTBIG
+		else
+			mt = MT_EGGPARTICLE
+		end
+		mobj.SpawnMissile(mt, an, sl, doomRandom(0, 80) * 0.1, doomRandom(-40, 40) * 0.1, doomRandom(-40, 41) * 0.1)
+	end
+end
+
+function eggParticleOrange(mobj)
+	local mt
+	local mo
+	local rnd
+	rnd = doomRandom()
+	if rnd < mobj.health then
+		mt = MT_EGGPARTBIG
+	else
+		mt = MT_EGGPARTICLE
+	end
+	mo = spawnMobj(mt, mobj.x + doomRandom(-40, 40) * 0.1, mobj.y + doomRandom(-40, 41) * 0.1, mobj.z + 128)
+	mo.translation = "LIGHTMAP"
+	mo.momz = -2.7
+	if rnd + 128 < mobj.health then
+		mobj._pain()
+		mobj.translation = "LIGHTMAP"
+	else
+		mobj.translation = "-"
+	end
+end
+
+function eggParticleDisable(mobj)
+	local spot
+	mobj.armor = mobj.armor + 1
+	spot = thingTagIterator(mobj.armor, eggSpawnEffect)
+	spot._death()
+end
+
+function eggParticleSelf(mobj)
+	an, sl = mobj.AttackAim(false, egg_target)
+	mobj.Thrust(3)
+	mobj.momz = sl * 3
+end
+
+function eggOrangify(mobj)
+	if mobj.info == MT_EGGPARTICLE or mobj.info == MT_EGGEFFECT then
+		mobj.translation = "LIGHTMAP"
+		mobj.health = 2991
+	end
+end
+
+function eggOrangeTakeover()
+	globalThingsIterator(eggOrangify)
+	egg_target._death()
+end
+
+function eggOrangeBigger()
+	egg_target.health = egg_target.health + 2
+	if egg_target.health < 384 then
+		return true
+	else
+		egg_target.TickerSet(2991, 35, nil, eggOrangeTakeover)
+	end
+end
+
+function eggOrangeStart()
+	egg_target._see()
+	egg_target.TickerSet(2990, 2, nil, eggOrangeBigger)
+end
+
+function eggNextSpawn()
+	egg_target = spawnMobj(MT_EGGBIG, egg_target.x, egg_target.y, egg_target.z)
+	egg_target.TickerSet(2991, 35, nil, eggOrangeStart)
+end
+
+function eggStartSpawn()
+	egg_target = thingTagIterator(5, eggSpawnEffect)
+	egg_target.TickerSet(2991, 42, nil, eggNextSpawn)
+end
+
+function eggSwitch(mobj, line)
+	local spot
+	local mo
+	line.DoButton("dsswtchn", "dsswtchn")
+	spot = thingTagIterator(line.arg0, eggSpawnEffect)
+	mo = spawnMobj(MT_EGGEFFECT, spot.x, spot.y, spot.z)
+	mo.tag = line.arg0
+	spot.Remove()
+	egg_count = egg_count + 1
+	if egg_count == 4 then
+		mobj.TickerSet(2991, 2*35, nil, eggStartSpawn)
+	end
+end
+
+linefunc[253] = eggSwitch
+
+mtype = {
+	__noClip = true,
+	__noBlockmap = true,
+	__noGravity = true,
+	_spawn = {
+		{"*TFOGI", 3, eggParticle},
+		{"*TFOGJ", 3, eggParticle},
+		"loop"
+	},
+	_death = {
+		{"*TFOGH", 0, eggParticleSelf},
+		{"*TFOGI", 3},
+		{"*TFOGJ", 3},
+		{"*TFOGI", 3},
+		{"*TFOGJ", 3},
+		{"*TFOGI", 3},
+		{"*TFOGJ", 3},
+		{"*TFOGI", 3},
+		{"*TFOGJ", 3},
+		{"*TFOGI", 3},
+		{"*TFOGJ", 3},
+		{"*TFOGI", 3},
+		{"*TFOGJ", 3},
+		{"*TFOGI", 3}
+	}
+}
+MT_EGGEFFECT = createMobjType(mtype)
+
+mtype = {
+	speed = 3,
+	__Projectile = true,
+	__noClip = true,
+	_spawn = {
+		{"*TFOGG", 40}
+	}
+}
+MT_EGGPARTICLE = createMobjType(mtype)
+
+mtype = {
+	translation = "LIGHTMAP",
+	speed = 3,
+	__Projectile = true,
+	__noClip = true,
+	_spawn = {
+		{"*TFOGH", 40}
+	}
+}
+MT_EGGPARTBIG = createMobjType(mtype)
+
+mtype = {
+	__noClip = true,
+	__noBlockmap = true,
+	__noGravity = true,
+	_spawn = {
+		{"*TFOGF", 3},
+		{"*TFOGE", 3},
+		{"*TFOGD", 3},
+		{"*TFOGC", 3},
+		{"*TFOGB", 3},
+		"_spawn+3"
+	},
+	_see = {
+		{"*TFOGC", 3, eggParticleOrange},
+		{"*TFOGB", 3, eggParticleOrange},
+		"loop"
+	},
+	_pain = {
+		{"*TFOGA", 2},
+		"_see"
+	},
+	_death = {
+		{"*TFOGA", 4*35},
+		{"*TFOGA", 15, eggParticleDisable},
+		{"*TFOGA", 15, eggParticleDisable},
+		{"*TFOGA", 15, eggParticleDisable},
+		{"*TFOGA", 15, eggParticleDisable},
+		{"*TFOGA", 4*35},
+		{"*TFOGD", 3},
+		{"*TFOGE", 3},
+		{"*TFOGF", 3},
+		{"*TFOGH", 3},
+		{"*TFOGG", 3}
+	}
+}
+MT_EGGBIG = createMobjType(mtype)
+

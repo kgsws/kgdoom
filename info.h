@@ -98,6 +98,7 @@ typedef struct
 	int	damage;
 	int	stepheight;
 	int	gravity;
+	int	bounce;
 	uint64_t	flags;
 
 	// [kg] inventory stuff
@@ -113,6 +114,7 @@ typedef struct
 	int icon;
 
 	// [kg] renderer
+	colormap_t translation;
 	int renderstyle;
 	uint8_t *rendertable;
 

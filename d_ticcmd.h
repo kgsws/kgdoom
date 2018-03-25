@@ -22,7 +22,5 @@ typedef struct
 	uint8_t	buttons;
 } ticcmd_t;
 
-
-
 #endif
 

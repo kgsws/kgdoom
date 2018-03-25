@@ -50,7 +50,8 @@ void I_StartTic (void);
 // This ticcmd will then be modified by the gameloop
 // for normal input.
 ticcmd_t* I_BaseTiccmd (void);
-
+// [kg] compare
+boolean I_CompareTiccmd(ticcmd_t *t1, ticcmd_t *t2);
 
 // Called by M_Responder when quit is selected.
 // Clean exit, displays sell blurb.

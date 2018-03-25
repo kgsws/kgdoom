@@ -142,7 +142,7 @@ function mapLoadSector(sector)
 		sector.GenericCaller(4, lightFlickerBlink, sector.FindMinimalLight())
 	elseif spec == 244 then
 		-- easter egg map
-		if game.map == "D2SECRET" then
+		if game.map == "KGSECRET" then
 			sector.color = "LIGHTMAP"
 		end
 	end
@@ -171,8 +171,14 @@ function mapLoadLine(line)
 		end
 	end
 	-- easter egg map
-	if line.special == 255 and game.map == "D2SECRET" then
-		eggAddFloor(line)
+	if game.map == "KGSECRET" then
+		if line.special == 255 then
+			eggAddFloor(line)
+		end
+		if line.special == 254 then
+			line.horizon = true
+			line.special = 0
+		end
 	end
 end
 
@@ -214,7 +220,9 @@ function mapLoaded()
 		finaleInit()
 	end
 	-- easter egg map
-	if game.map == "D2SECRET" then
+	if game.map == "KGSECRET" then
+		egg_target = nil
+		egg_count = 0
 		fakeContrast(false)
 	end
 end

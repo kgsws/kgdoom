@@ -18,7 +18,7 @@ function(mobj)
 	if not globalThingsIterator(PIT_BossDeath, mobj.info) then
 		if game.map == "MAP32" and mobj.attacker.info == MT_CYBORG and globalThingsIterator(PIT_EggCheck) then
 			-- easter egg
-			game.Exit("D2SECRET")
+			game.Exit("KGSECRET")
 		else
 			-- normal exit
 			sectorTagIterator(666, PIT_KeenOpen)

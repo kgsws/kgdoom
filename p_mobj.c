@@ -374,18 +374,12 @@ void P_ZMovement (mobj_t* mo)
 	// hit the floor
 	mo->onground = true;
 
-	if (mo->flags & MF_SKULLFLY)
-	{
-	    // the skull slammed into something
-	    mo->momz = -mo->momz;
-	}
-
 	if(mo->momz < 0 && !(mo->player && (mo->player->cheats & CF_SPECTATOR || local_player_predict)))
 	{
 	    // [kg] call 'floor hit' callback
 	    L_CrashThing(mo);
-	    // [kg] added no gravity check
-	    if(!(mo->flags & MF_NOGRAVITY))
+	    // [kg] added bounce effect
+	    if(!mo->bounce || mo->momz > -FRACUNIT / 256)
 		mo->momz = 0;
 	}
 	mo->z = floorz;
@@ -400,9 +394,14 @@ void P_ZMovement (mobj_t* mo)
 		P_RemoveMobj (mo);
 #endif
 	    else
+	    if(!mo->bounce)
+	    {
 		P_ExplodeMissile (mo);
-	    return;
+		return;
+	    }
 	}
+	if(mo->bounce)
+	    mo->momz = FixedMul(-mo->momz, mo->bounce);
     }
     else if (! (mo->flags & MF_NOGRAVITY) )
     {
@@ -415,16 +414,13 @@ void P_ZMovement (mobj_t* mo)
     if (mo->z + mo->height > ceilingz)
     {
 	// hit the ceiling
-	if (mo->momz > 0 && !(mo->flags & MF_NOGRAVITY))  // [kg] added no gravity check
+
+	// [kg] added bounce effect
+	if(!mo->bounce || mo->momz < FRACUNIT / 256)
 	    mo->momz = 0;
 
 	mo->z = ceilingz - mo->height;
 
-	if (mo->flags & MF_SKULLFLY)
-	{	// the skull slammed into something
-	    mo->momz = -mo->momz;
-	}
-	
 	if ( (mo->flags & MF_MISSILE)
 	     && !(mo->flags & MF_NOCLIP) )
 	{
@@ -435,9 +431,14 @@ void P_ZMovement (mobj_t* mo)
 		P_RemoveMobj (mo);
 #endif
 	    else
+	    if(!mo->bounce)
+	    {
 		P_ExplodeMissile (mo);
-	    return;
+		return;
+	    }
 	}
+	if(mo->bounce)
+	    mo->momz = FixedMul(-mo->momz, mo->bounce);
     }
 }
 
@@ -644,8 +645,10 @@ P_SpawnMobj
     mobj->speed = info->speed;
     mobj->mass = info->mass;
     mobj->gravity = info->gravity;
+    mobj->bounce = info->bounce;
     mobj->blocking = info->blocking;
     mobj->canpass = info->canpass;
+    mobj->translation = info->translation;
     mobj->renderstyle = info->renderstyle;
     mobj->rendertable = info->rendertable;
     memcpy(mobj->damagescale, mobj->info->damagescale, NUMDAMAGETYPES);
@@ -678,8 +681,13 @@ P_SpawnMobj
 
     mobj->z = z;
 
-    // [kg] force 3D detection
-    P_GetPosition(mobj);
+    if(is_setup)
+    {
+	mobj->floorz = mobj->subsector->sector->floorheight;
+	mobj->ceilingz = mobj->subsector->sector->ceilingheight;
+    } else
+	// [kg] force 3D detection
+	P_GetPosition(mobj);
 
     if(z == ONFLOORZ)
 	mobj->z = mobj->floorz;
@@ -958,7 +966,7 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
 #endif
 
     // check for apropriate skill level
-    if (!netgame && (mthing->flags & 16) )
+    if (!isHexen && !netgame && (mthing->flags & 16) )
 	return;
 
     if (gameskill == sk_baby)
@@ -971,6 +979,31 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
     if (!(mthing->flags & bit) )
 	return;
 	
+    if(isHexen)
+    {
+	if(!netgame)
+	{
+		if(mthing->flags & 0x0400 && !sv_deathmatch)
+			return;
+		if(mthing->flags & 0x0200 && sv_deathmatch)
+			return;
+	} else
+	{
+		if(mthing->flags & 0x0100)
+			// single player only
+			return;
+	}
+    } else
+    {
+	// [kg] spawn network weapons only in deathmatch
+	if(netgame && mthing->flags & 16)
+	{
+	    if(!(mobjinfo[i].flags & MF_ISMONSTER) && !sv_deathmatch)
+		// it's not a monster, don't spawn
+		return;
+	}
+    }
+
     // find which type to spawn
     for (i=0 ; i< numobjtypes ; i++)
 	if (mthing->type == mobjinfo[i].doomednum)
@@ -981,15 +1014,7 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
 	printf("P_SpawnMapThing: Unknown type %i at (%i, %i)\n", mthing->type, mthing->x, mthing->y);
 	i = MT_UNKNOWN;
     }
-#ifdef SERVER
-    // [kg] spawn network weapons only in deathmatch
-    if(netgame && mthing->flags & 16)
-    {
-	if(!(mobjinfo[i].flags & MF_ISMONSTER) && !sv_deathmatch)
-		// it's not a monster, don't spawn
-		return;
-    }
-#endif
+
     // don't spawn keycards and players in deathmatch
     if (sv_deathmatch && mobjinfo[i].flags & MF_NOTDMATCH)
 	return;

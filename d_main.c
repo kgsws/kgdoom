@@ -638,24 +638,26 @@ void D_DoomMain (void)
     p = M_CheckParm ("-map");
     if(p && p < myargc-1 && strlen(myargv[p+1]) < 9)
     {
-	startepisode = 1;
+	startepisode = 0;
 	startmap = 1;
 	strcpy(level_name, myargv[p+1]);
 	autostart = true;
     } else
-    p = M_CheckParm ("-warp");
-    if (p)
     {
-	if (gamemode == commercial  && p < myargc-1)
+	p = M_CheckParm ("-warp");
+	if (p)
 	{
-	    startmap = atoi (myargv[p+1]);
-	    autostart = true;
-	} else
-	if(p < myargc-2)
-	{
-	    startepisode = myargv[p+1][0]-'0';
-	    startmap = myargv[p+2][0]-'0';
-	    autostart = true;
+	    if (gamemode == commercial  && p < myargc-1)
+	    {
+		startmap = atoi (myargv[p+1]);
+		autostart = true;
+	    } else
+	    if(p < myargc-2)
+	    {
+		startepisode = myargv[p+1][0]-'0';
+		startmap = myargv[p+2][0]-'0';
+		autostart = true;
+	    }
 	}
     }
 

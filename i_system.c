@@ -39,6 +39,22 @@ ticcmd_t*	I_BaseTiccmd(void)
     return &emptycmd;
 }
 
+boolean I_CompareTiccmd(ticcmd_t *t1, ticcmd_t *t2)
+{
+	int len = sizeof(ticcmd_t) / sizeof(uint64_t);
+	uint64_t *p1 = (uint64_t*)t1;
+	uint64_t *p2 = (uint64_t*)t2;
+
+	while(len--)
+	{
+		if(*p1 != *p2)
+			return false;
+		p1++;
+		p2++;
+	}
+	return true;
+}
+
 
 int  I_GetHeapSize (void)
 {

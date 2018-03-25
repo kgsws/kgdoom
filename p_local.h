@@ -40,6 +40,8 @@
 extern int level_lump;
 // and this one for Lua
 extern char level_name[9];
+// [kg] level loading
+extern boolean is_setup;
 
 // [kg] moved here
 #define STOPSPEED		0x1000

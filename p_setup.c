@@ -93,6 +93,8 @@ mapthing_hexen_t	deathmatchstarts[MAX_DEATHMATCH_STARTS];
 mapthing_hexen_t*	deathmatch_p;
 mapthing_hexen_t	playerstarts[MAXPLAYERS];
 
+boolean is_setup;
+
 
 extern char	savename[256];
 extern  int	skytexture;
@@ -572,6 +574,8 @@ void P_LoadLineDefs_H(int lump)
 		    ld->blocking |= 3; // players and monsters
 		if(ld->flags & LF_BLOCKMONSTERS)
 		    ld->blocking |= 2; // monsters
+		if(ld->flags & ELF_BLOCK_PLAYER)
+		    ld->blocking |= 1; // players
 
 		// [kg] soundorg
 		ld->soundorg.x = ((v2->x - v1->x) / 2) + v1->x;
@@ -765,6 +769,8 @@ P_SetupLevel
     char	lumpname[9];
     int		lumpnum;
     thinker_t *think;
+
+    is_setup = true;
 	
     totalkills = totalitems = totalsecret = wminfo.maxfrags = 0;
     wminfo.partime = 180;
@@ -967,6 +973,8 @@ P_SetupLevel
     //	UNUSED P_ConnectSubsectors ();
 
     //printf ("free memory: 0x%x\n", Z_FreeMemory());
+
+    is_setup = false;
 
     // [kg] do Lua stuff now
     L_SetupMap();

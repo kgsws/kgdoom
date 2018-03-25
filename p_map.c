@@ -490,8 +490,8 @@ P_CheckPosition
     {
 	if(*pl->height <= tmthing->z)
 	    break;
-	if(*pl->height < tmfloorz)
-	    tmfloorz = *pl->height;
+	if(*pl->height < tmceilingz)
+	    tmceilingz = *pl->height;
 	pl = pl->next;
     }
 
@@ -576,8 +576,8 @@ void P_GetPosition(mobj_t *thing)
     {
 	if(*pl->height <= tmthing->z)
 	    break;
-	if(*pl->height < tmfloorz)
-	    tmfloorz = *pl->height;
+	if(*pl->height < tmceilingz)
+	    tmceilingz = *pl->height;
 	pl = pl->next;
     }
 

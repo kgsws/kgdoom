@@ -7,6 +7,8 @@
 #include "p_local.h"
 #include "p_inventory.h"
 #include "m_random.h"
+#include "z_zone.h"
+#include "st_stuff.h"
 #include "kg_record.h"
 
 int rec_is_playback;
@@ -16,6 +18,9 @@ static void *rec_ptr;
 static void *rec_end;
 
 static int rec_ticnt;
+static int rec_ticdup;
+
+static ticcmd_t rec_old_cmd;
 
 static void rec_add_uint8(uint8_t in)
 {
@@ -76,6 +81,8 @@ void rec_reset()
 	player_t *p = &players[consoleplayer];
 
 	rec_ticnt = 0;
+	rec_ticdup = 0;
+	rec_old_cmd = *I_BaseTiccmd();
 
 	// reset pointer
 	rec_ptr = rec_buff;
@@ -86,6 +93,11 @@ void rec_reset()
 	rec_add_uint32(0xFFAA5581);
 	// map lump
 	rec_add_uint32(level_lump);
+	// title (16 bytes); filled later
+	rec_add_uint32(0x6f6d6564);
+	rec_add_uint32(0);
+	rec_add_uint32(0);
+	rec_add_uint32(0);
 	// doom map numbers
 	rec_add_uint8(gamemap);
 	rec_add_uint8(gameepisode);
@@ -101,10 +113,6 @@ void rec_reset()
 	{
 		int i;
 		inventory_t *inv;
-		// full player state
-		rec_add_uint32(p->health);
-		rec_add_uint32(p->armorpoints);
-		rec_add_uint32(p->armortype - mobjinfo);
 		// inventory size
 		i = 0;
 		inv = p->inventory;
@@ -113,7 +121,13 @@ void rec_reset()
 			i++;
 			inv = inv->next;
 		}
-		rec_add_uint32(i);
+		// full player state
+		rec_add_uint32(p->health);
+		rec_add_uint32(p->armorpoints);
+		rec_add_uint16(p->armortype - mobjinfo);
+		rec_add_uint16(i);
+		rec_add_uint16(p->readyweapon);
+		rec_add_uint16(p->pendingweapon);
 		// inventory items
 		inv = p->inventory;
 		while(inv)
@@ -128,6 +142,22 @@ void rec_reset()
 
 void rec_ticcmd(ticcmd_t *cmd)
 {
+	if(I_CompareTiccmd(cmd, &rec_old_cmd))
+	{
+		// duplicate tic
+		rec_ticdup++;
+		return;
+	}
+
+	if(rec_ticdup)
+	{
+		// store dupliacate count
+		rec_add_uint32(rec_ticdup << 8);
+		rec_ticdup = 0;
+	}
+
+	rec_old_cmd = *cmd;
+
 	rec_add_uint8(1); // full
 	rec_add_uint8(cmd->forwardmove);
 	rec_add_uint8(cmd->sidemove);
@@ -143,9 +173,21 @@ void rec_ticcmd(ticcmd_t *cmd)
 	}
 }
 
-void rec_save(const char *path)
+void rec_save(const char *path, const char *title)
 {
-	FILE *f = fopen(path, "wb");
+	FILE *f;
+
+	if(title)
+		strncpy(rec_buff + 16, title, 16);
+
+	if(rec_ticdup)
+	{
+		// store dupliacate count
+		rec_add_uint32(rec_ticdup << 8);
+		rec_ticdup = 0;
+	}
+
+	f = fopen(path, "wb");
 	if(f)
 	{
 		fwrite(rec_buff, 1, rec_ptr - rec_buff, f);
@@ -156,25 +198,30 @@ void rec_save(const char *path)
 void rec_load(const char *path, int type)
 {
 	uint32_t tmp;
-	int size;
+	int size, count;
+	inventory_t **inv;
+	inventory_t *prev;
+	player_t *p = &players[consoleplayer];
 
 	FILE *f = fopen(path, "rb");
 	if(!f)
 		I_Error("savegame file does not exist");
 
 	// clear inventory & stuff
-	if(players[consoleplayer].inventory)
+	if(p->inventory)
 	{
-		P_DestroyInventory(players[consoleplayer].inventory);
-		players[consoleplayer].inventory = NULL;
+		P_DestroyInventory(p->inventory);
+		p->inventory = NULL;
 	}
 
 	// load state
+	rec_old_cmd = *I_BaseTiccmd();
 	rec_ticnt = 0;
+	rec_ticdup = 0;
 	fseek(f, 0, SEEK_END);
 	size = ftell(f);
 	fseek(f, 0, SEEK_SET);
-	if(size & 3 || size < 48)
+	if(size & 3 || size < 64)
 		I_Error("invalid saved size");
 	fread(rec_buff, 1, size, f);
 	fclose(f);
@@ -193,6 +240,11 @@ void rec_load(const char *path, int type)
 	// map lump
 	rec_get_uint32(&tmp);
 	level_lump = tmp; // TODO: check validity
+	// skip title
+	rec_get_uint32(&tmp);
+	rec_get_uint32(&tmp);
+	rec_get_uint32(&tmp);
+	rec_get_uint32(&tmp);
 	// doom level numbers
 	rec_get_uint32(&tmp);
 	gamemap = tmp & 0xFF;
@@ -204,38 +256,96 @@ void rec_load(const char *path, int type)
 	rec_get_uint32(&rand_m_z);
 	rec_get_uint32(&rand_m_w);
 	// player state
+	ST_ClearInventory();
 	rec_get_uint32(&tmp);
 	if(tmp)
-		I_Error("TODO: alive player inventory");
-	players[consoleplayer].playerstate = PST_REBORN;
+	{
+		p->playerstate = PST_LIVE;
+		// health
+		rec_get_uint32(&tmp);
+		p->health = tmp;
+		// armor count
+		rec_get_uint32(&tmp);
+		p->armorpoints = tmp;
+		// armor type
+		rec_get_uint32(&tmp);
+		if((tmp & 0xFFFF) >= numobjtypes)
+			I_Error("invalid armor type");
+		p->armortype = &mobjinfo[tmp & 0xFFFF];
+		// inventory count
+		count = tmp >> 16;
+		// weapon
+		rec_get_uint32(&tmp);
+		p->readyweapon = tmp & 0xFFFF;
+		p->pendingweapon = tmp >> 16;
+		if(p->readyweapon >= numobjtypes || p->pendingweapon >= numobjtypes)
+			I_Error("invalid weapon type");
+		// inventory
+		prev = NULL;
+		inv = &p->inventory;
+		while(count--)
+		{
+			int32_t max, cnt;
+			inventory_t *new;
+
+			if(rec_get_uint32(&tmp))
+				I_Error("incomplete save");
+			if(tmp >= numobjtypes)
+				I_Error("invalid item type");
+			rec_get_uint32((uint32_t*)&cnt);
+			rec_get_uint32((uint32_t*)&max);
+			new = Z_Malloc(sizeof(inventory_t), PU_STATIC, NULL);
+			new->prev = prev;
+			new->type = &mobjinfo[tmp];
+			new->count = cnt;
+			new->maxcount = max;
+			prev = new;
+			*inv = new;
+			inv = &new->next;
+			ST_CheckInventory(tmp, cnt);
+		}
+		*inv = NULL;
+	} else
+		p->playerstate = PST_REBORN;
 	rec_is_playback = type;
 }
 
 void rec_get_ticcmd(ticcmd_t *cmd)
 {
-	// TODO: record ending
-	uint8_t tmp8;
 	uint32_t tmp32;
 
-	if(rec_get_uint8(&tmp8))
+	if(rec_ticdup)
+	{
+		rec_ticdup--;
+		*cmd = rec_old_cmd;
+		return;
+	}
+
+	if(rec_get_uint32(&tmp32))
 	{
 		rec_is_playback = 0;
 		rec_end = rec_buff + RECORDING_SIZE;
 		return;
 	}
 
-	if(tmp8 != 1)
-		I_Error("TODO: same ticcmd");
+	if(!(tmp32 & 0xFF))
+	{
+		rec_ticdup = (tmp32 >> 8) - 1;
+		*cmd = rec_old_cmd;
+		return;
+	}
 
-	rec_get_uint8((uint8_t*)&cmd->forwardmove);
-	rec_get_uint8((uint8_t*)&cmd->sidemove);
-	rec_get_uint8((uint8_t*)&cmd->buttons);
+	cmd->forwardmove = (int8_t)((tmp32 >> 8) & 0xFF);
+	cmd->sidemove = (int8_t)((tmp32 >> 16) & 0xFF);
+	cmd->buttons = (int8_t)((tmp32 >> 24) & 0xFF);
 	rec_get_uint32((uint32_t*)&cmd->angle);
 	rec_get_uint32((uint32_t*)&cmd->pitch);
 	rec_get_uint32(&tmp32);
 	if(tmp32 >= numobjtypes)
 		I_Error("invalid weapon type");
 	cmd->weapon = tmp32;
+
+	rec_old_cmd = *cmd;
 
 	rec_ticnt++;
 

@@ -286,6 +286,8 @@ static int func_get_sideset(lua_State *L, void *dst, void *o);
 
 static int func_set_walltexture(lua_State *L, void *dst, void *o);
 static int func_get_walltexture(lua_State *L, void *dst, void *o);
+static int func_set_line_horizon(lua_State *L, void *dst, void *o);
+static int func_get_line_horizon(lua_State *L, void *dst, void *o);
 static int func_get_linedefsectorF(lua_State *L, void *dst, void *o);
 static int func_get_linedefsectorB(lua_State *L, void *dst, void *o);
 static int func_getlinefunc_ptr(lua_State *L, void *dst, void *o);
@@ -403,6 +405,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"mass", offsetof(mobjinfo_t, mass), LUA_TNUMBER},
 	{"damage", offsetof(mobjinfo_t, damage), LUA_TNUMBER},
 	{"gravity", offsetof(mobjinfo_t, gravity), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"bounce", offsetof(mobjinfo_t, bounce), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"viewz", offsetof(mobjinfo_t, viewz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"shootz", offsetof(mobjinfo_t, shootz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"bobz", offsetof(mobjinfo_t, bobz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
@@ -412,6 +415,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"pass", offsetof(mobjinfo_t, canpass), LUA_TNUMBER},
 	{"icon", offsetof(mobjinfo_t, icon), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
+	{"translation", offsetof(mobjinfo_t, translation), LUA_TSTRING, func_set_colormap, func_get_colormap},
 	{"render", offsetof(mobjinfo_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(mobjinfo_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
@@ -461,6 +465,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"momy", offsetof(mobj_t, momy), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"momz", offsetof(mobj_t, momz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"gravity", offsetof(mobj_t, gravity), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"bounce", offsetof(mobjinfo_t, bounce), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"movedir", offsetof(mobj_t, movedir), LUA_TNUMBER},
 	{"movecount", offsetof(mobj_t, movecount), LUA_TNUMBER},
 	{"target", offsetof(mobj_t, target), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
@@ -592,6 +597,7 @@ static const lua_table_model_t lua_linedef[] =
 	{"arg4", offsetof(line_t, arg)+4, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"tag", offsetof(line_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
 	{"render", offsetof(line_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
+	{"horizon", 0, LUA_TBOOLEAN, func_set_line_horizon, func_get_line_horizon},
 	// sectors
 	{"sectorFront", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorF},
 	{"sectorBack", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorB},
@@ -1812,6 +1818,31 @@ static int func_get_walltexture(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
+// set line 'horizon' effect
+static int func_set_line_horizon(lua_State *L, void *dst, void *o)
+{
+	line_t *l = o;
+
+	if(l->sidenum[1] >= 0)
+		return 0;
+
+	if(lua_toboolean(L, -1))
+		l->sidenum[1] = -2;
+	else
+		l->sidenum[1] = -1;
+
+	return 0;
+}
+
+// get line 'horizon' effect
+static int func_get_line_horizon(lua_State *L, void *dst, void *o)
+{
+	line_t *l = o;
+
+	lua_pushboolean(L, l->sidenum[1] == -2);
+	return 1;
+}
+
 // return line function from selected side
 static int func_getlinefunc_ptr(lua_State *L, void *dst, void *o)
 {
@@ -2380,8 +2411,8 @@ static int LUA_doomRandom(lua_State *L)
 		to = from;
 		from = top;
 	}
-
-	lua_pushinteger(L, from + (F_Random() % ((to - from)+1)) );
+	from = from + (F_Random() % ((to - from)+1));
+	lua_pushinteger(L, from);
 	return 1;
 }
 
@@ -3199,8 +3230,11 @@ static int LUA_faceFromMobj(lua_State *L)
 	} else
 	{
 		dest = LUA_GetMobjParam(L, 1, true);
-		mo->angle = R_PointToAngle2(mo->x, mo->y, dest->x, dest->y);
-		mo->pitch = P_AimLineAttack(mo, mo->angle, MISSILERANGE, dest);
+		if(dest)
+		{
+			mo->angle = R_PointToAngle2(mo->x, mo->y, dest->x, dest->y);
+			mo->pitch = P_AimLineAttack(mo, mo->angle, MISSILERANGE, dest);
+		}
 	}
 
 	return 0;
@@ -5534,6 +5568,10 @@ boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)
 					return false;
 				}
 			break;
+			case EXTRA_BUMP:
+				if((line->flags & ELF_ACT_TYPE_MASK) != ELF_HIT_PLAYER || (!mobj->player && !(line->flags & ELF_ANY_ACT)))
+					return false;
+			break;
 		}
 	}
 
@@ -5554,6 +5592,9 @@ boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act)
 	if(lua_pcall(luaS_game, 4, 1, 0))
 		// script error
 		I_Error("P_ExtraLineSpecial: %s", lua_tostring(luaS_game, -1));
+
+	if(isHexen && !(line->flags & ELF_ACT_REPEAT))
+		line->special = 0;
 
 	if(lua_type(luaS_game, -1) == LUA_TBOOLEAN)
 		ret = lua_toboolean(luaS_game, -1);

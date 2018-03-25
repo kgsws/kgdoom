@@ -258,7 +258,8 @@ typedef struct mobj_s
     // [kg] can be modified
     fixed_t		speed;
     int			mass;
-    int			gravity;
+    fixed_t		gravity;
+    fixed_t		bounce;
 
     uint64_t		flags;
     int			health;

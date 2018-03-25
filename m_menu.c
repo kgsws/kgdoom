@@ -10,7 +10,7 @@
 #include "w_wad.h"
 
 #include "r_local.h"
-
+#include "p_local.h"
 
 #include "hu_stuff.h"
 
@@ -26,6 +26,7 @@
 // Data.
 #include "m_menu.h"
 
+#include "kg_record.h"
 
 
 extern patch_t*		hu_font[HU_FONTSIZE];
@@ -510,25 +511,34 @@ void M_DrawOptions()
 //
 void M_ReadSaveStrings(void)
 {
-    FILE *f;
-    int i;
-//    char name[256];
-	
-    for (i = 0;i < load_end;i++)
-    {
-	sprintf(&savegamestrings[i][0], "SLOT %d", i);
-//	sprintf(name,SAVEGAMENAME"%d.kdsg",i);
+	FILE *f;
+	int i;
+	char name[256];
+	char title[16];
+	uint32_t id, ver;
 
-//	f = fopen();
-
-/*	{
-	    strcpy(&savegamestrings[i][0],EMPTYSTRING);
-	    LoadMenu[i].status = 0;
-	    continue;
+	for (i = 0;i < load_end;i++)
+	{
+		strcpy(&savegamestrings[i][0],EMPTYSTRING);
+		LoadMenu[i].status = 0;
 	}
-*/
-	LoadMenu[i].status = 1;
-    }
+
+	for (i = 0;i < load_end;i++)
+	{
+		sprintf(name,SAVEGAMENAME"%d.kdsg",i);
+		f = fopen(name, "rb");
+		if(!f)
+			continue;
+		fread(&id, 1, sizeof(uint32_t), f);
+		fread(&ver, 1, sizeof(uint32_t), f);
+		fseek(f, 16, SEEK_SET);
+		fread(&title, 1, sizeof(title), f);
+		fclose(f);
+		if(id != RECORDING_HEAD || ver != RECORDING_VER)
+			continue;
+		strncpy(savegamestrings[i], title, sizeof(title));
+		LoadMenu[i].status = 1;
+	}
 }
 
 
@@ -637,13 +647,19 @@ void M_DoSave(int slot)
 void M_SaveSelect(int choice)
 {
     // we are going to be intercepting all chars
-    saveStringEnter = 1;
+/*    saveStringEnter = 1;
     
     saveSlot = choice;
     strcpy(saveOldString,savegamestrings[choice]);
     if (!strcmp(savegamestrings[choice],EMPTYSTRING))
 	savegamestrings[choice][0] = 0;
     saveCharIndex = strlen(savegamestrings[choice]);
+*/
+	// [kg] just save right away
+	int sec = leveltime / TICRATE;
+	saveSlot = choice;
+	sprintf(savegamestrings[choice], "%s %02i:%02i", level_name, sec / 60, sec % 60);
+	M_DoSave(saveSlot);
 }
 
 //

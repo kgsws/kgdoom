@@ -52,7 +52,8 @@ uint8_t *dc_translation; // this is color remap (for sprites)
 uint8_t *dc_lightcolor; // this is sector light color
 
 // first pixel in a column (possibly virtual) 
-byte*			dc_source;		
+byte*			dc_source;
+int	dc_src_height;
 
 // just for profiling 
 int			dccount;
@@ -92,7 +93,12 @@ void R_DrawColumn (void)
     // Determine scaling,
     //  which is the only mapping to be done.
     fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+    {
+	fixed_t tx = dc_src_height << FRACBITS;
+	frac += ((-frac + (tx-1)) / tx) * tx;
+    }
 
     // Inner loop that does the actual texture mapping,
     //  e.g. a DDA-lile scaling.
@@ -101,7 +107,7 @@ void R_DrawColumn (void)
     {
 	// Re-map color indices from wall texture column
 	//  using a lighting/special effects LUT.
-	*dest = dc_colormap[dc_lightcolor[dc_source[(frac>>FRACBITS)&127]]];
+	*dest = dc_colormap[dc_lightcolor[dc_source[(frac>>FRACBITS) % dc_src_height]]];
 	
 	dest += SCREENWIDTH; 
 	frac += fracstep;
@@ -150,7 +156,7 @@ void R_DrawColumnHoley (void)
 	// Re-map color indices from wall texture column
 	//  using a lighting/special effects LUT.
 	if((holestep ^ dc_x ^ dc_yl) & 1)
-	*dest = dc_colormap[dc_lightcolor[dc_source[(frac>>FRACBITS)&127]]];
+	*dest = dc_colormap[dc_lightcolor[dc_source[(frac>>FRACBITS) % dc_src_height]]];
 	
 	dest += SCREENWIDTH; 
 	frac += fracstep;
