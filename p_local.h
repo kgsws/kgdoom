@@ -191,6 +191,7 @@ extern fixed_t		tmceilingz;
 
 
 extern	line_t*		ceilingline;
+extern	line_t*		floorline;
 
 boolean P_CheckPosition (mobj_t *thing, fixed_t x, fixed_t y);
 void P_GetPosition(mobj_t *thing);

@@ -83,9 +83,10 @@ typedef struct
 	int	seesound; // must be first
 	int	attacksound;
 	int	painsound;
-	int	activesound; // also pickup sound
+	int	activesound;
 	int	deathsound;
 	int	xdeathsound;
+	int	bouncesound;
 
 	int	doomednum;
 	int	spawnhealth;

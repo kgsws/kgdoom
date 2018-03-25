@@ -200,6 +200,10 @@ typedef enum
     // [kg] no Z check for explosions
     MF_NORADIUSZ	= 0x100000000,
 
+    // [kg] bounce
+    MF_WALLBOUNCE	= 0x200000000,
+    MF_MOBJBOUNCE	= 0x400000000,
+
 } mobjflag_t;
 
 

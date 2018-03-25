@@ -254,6 +254,9 @@ void P_LoadSectors (int lump)
 	ss->damagetype = 0;
 	ss->damagetick = 0;
 	ss->flags = 0;
+	// [kg] no 3D
+	ss->exfloor = NULL;
+	ss->exceiling = NULL;
 	// [kg] default color
 	ss->colormap.lump = colormap_lump;
 	ss->colormap.idx = 0;
@@ -409,6 +412,7 @@ void P_LoadLineDefs (int lump)
 	v2 = ld->v2 = &vertexes[v2idx];
 	ld->dx = v2->x - v1->x;
 	ld->dy = v2->y - v1->y;
+	ld->angle = R_PointToAngle2 (0,0, ld->dx, ld->dy);
 
 	if (!ld->dx)
 	    ld->slopetype = ST_VERTICAL;
@@ -511,6 +515,7 @@ void P_LoadLineDefs_H(int lump)
 		v2 = ld->v2 = &vertexes[v2idx];
 		ld->dx = v2->x - v1->x;
 		ld->dy = v2->y - v1->y;
+		ld->angle = R_PointToAngle2 (0,0, ld->dx, ld->dy);
 
 		if (!ld->dx)
 			ld->slopetype = ST_VERTICAL;
@@ -806,9 +811,6 @@ P_SetupLevel
 		break;
 	}
     }
-
-    // [kg] cleanup any 3D planes
-    e3d_CleanPlanes();
 
     Z_FreeTags (PU_LEVEL, PU_PURGELEVEL-1);
 

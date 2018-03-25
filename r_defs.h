@@ -188,6 +188,9 @@ typedef struct line_s
     fixed_t	dx;
     fixed_t	dy;
 
+    // [kg] also add angle
+    angle_t	angle;
+
     // stuff
     uint16_t	flags;
     uint16_t	tag;

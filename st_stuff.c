@@ -880,7 +880,7 @@ void ST_AddWeaponType(int type, int ammo0type, int ammo1type)
 		I_Error("ST_AddWeaponType: memory allocation error");
 
 	list->next = NULL;
-	if(pnum >= 0)
+	if(pnum > 0)
 		list->patch = W_CacheLumpNum(pnum);
 	else
 		list->patch = NULL;
@@ -933,7 +933,7 @@ void ST_AddKeyType(int type)
 		I_Error("ST_AddKeyType: memory allocation error");
 
 	list->next = NULL;
-	if(pnum >= 0)
+	if(pnum > 0)
 		list->patch = W_CacheLumpNum(pnum);
 	else
 		list->patch = NULL;

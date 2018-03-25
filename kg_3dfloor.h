@@ -34,7 +34,6 @@ extern extraplane_t *fakeplane;
 extern height3d_t height3top;
 extern height3d_t height3bot;
 
-void e3d_CleanPlanes();
 void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line, int block);
 
 void e3d_Reset();

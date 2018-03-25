@@ -55,6 +55,24 @@ function eggParticleDisable(mobj)
 	mobj.armor = mobj.armor + 1
 	spot = thingTagIterator(mobj.armor, eggSpawnEffect)
 	spot._death()
+	if mobj.armor > 2 then
+		eggParticleBoom(mobj)
+	end
+end
+
+function eggParticleBoom(mobj)
+	local i
+	for i=0,8 do
+		mobj.SpawnMissile(MT_EGGPARTBNC, doomRandom(0, 8191), doomRandom(-10, 10) * 0.1, doomRandom(-160, 320) * 0.1, doomRandom(-160, 160) * 0.1, doomRandom(-160, 161) * 0.1)
+	end
+end
+
+function eggParticleBang(mobj)
+	local i
+	for i=0,64 do
+		mobj.SpawnMissile(MT_EGGPARTBNC, doomRandom(0, 8191), doomRandom(-10, 10) * 0.1, doomRandom(0, 640) * 0.1, doomRandom(-240, 240) * 0.1, doomRandom(-240, 241) * 0.1)
+	end
+	mobj.SpawnMissile(MT_REVENGERUNE, doomRandom(0, 8191), -0.1, 16)
 end
 
 function eggParticleSelf(mobj)
@@ -186,12 +204,13 @@ mtype = {
 		"_see"
 	},
 	_death = {
-		{"*TFOGA", 4*35},
-		{"*TFOGA", 15, eggParticleDisable},
-		{"*TFOGA", 15, eggParticleDisable},
-		{"*TFOGA", 15, eggParticleDisable},
-		{"*TFOGA", 15, eggParticleDisable},
-		{"*TFOGA", 4*35},
+		{"*TFOGA", 70},
+		{"*TFOGA", 20, eggParticleDisable},
+		{"*TFOGA", 20, eggParticleDisable},
+		{"*TFOGA", 20, eggParticleDisable},
+		{"*TFOGA", 20, eggParticleDisable},
+		{"*TFOGA", 20, eggParticleBoom},
+		{"*TFOGA", 3, eggParticleBang},
 		{"*TFOGD", 3},
 		{"*TFOGE", 3},
 		{"*TFOGF", 3},
@@ -200,4 +219,59 @@ mtype = {
 	}
 }
 MT_EGGBIG = createMobjType(mtype)
+
+mtype = {
+	translation = "LIGHTMAP",
+	speed = 1,
+	damage = 10000,
+	radius = 8,
+	height = 8,
+	pass = 3,
+	bounce = 0.6,
+	__missile = true,
+	__noBlockmap = true,
+	__dropOff = true,
+	__noZChange = true,
+	__wallBounce = true,
+	__mobjBounce = true,
+	_spawn = {
+		{"*SPRKA", 2},
+		{"*SPRKB", 2},
+		"loop"
+	},
+	_death = {
+		{"*SPRKA", 1}
+	}
+}
+MT_EGGPARTBNC = createMobjType(mtype)
+
+-- easter egg item
+function eggExit()
+	game.DoomExit()
+end
+
+function pickupRune(mobj, spec, arg)
+	mobj.InventoryGive(spec.info)
+	mobj.player.Message(arg)
+	mobj.TickerSet(2991, 2*35, nil, eggExit)
+	return pickup.item
+end
+
+mtype = {
+	activeSound = "dsslop",
+	gravity = 0.01,
+	speed = 1,
+	maxcount = 1,
+	action = pickupRune,
+	arg = "Picked up a revenge rune.",
+	radius = 16,
+	height = 16,
+	__special = true,
+	_spawn = {
+		{"REVEA", 2},
+		{"REVEB", 2},
+		"loop"
+	}
+}
+MT_REVENGERUNE = createMobjType(mtype)
 

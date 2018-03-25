@@ -376,7 +376,7 @@ boolean PIT_CheckThing (mobj_t* thing)
 	
 	// damage / explode
 	damage = tmthing->info->damage;
-	if(damage)
+	if(damage && !(tmthing->flags & MF_MOBJBOUNCE))
 	{
 	    if(damage < 0) // Doom random
 		damage = ((P_Random()%8)+1)*-damage;
@@ -800,7 +800,7 @@ void P_HitSlideLine (line_t* ld)
 	
     side = P_PointOnLineSide (slidemo->x, slidemo->y, ld);
 	
-    lineangle = R_PointToAngle2 (0,0, ld->dx, ld->dy);
+    lineangle = ld->angle;
 
     if (side == 1)
 	lineangle += ANG180;

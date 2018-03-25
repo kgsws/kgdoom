@@ -101,28 +101,3 @@ mtype = {
 MT_PLAYER = createMobjType(mtype)
 setPlayerType(MT_PLAYER)
 
--- easter egg item
-function pickupRune(mobj, spec, arg)
-	if mobj.InventoryCheck(spec.info) > 0 then
-		return pickup.doNotPickup
-	end
-	mobj.InventoryGive(spec.info)
-	mobj.player.Message(arg)
-	return pickup.key
-end
-
-mtype = {
-	activeSound = "dsslop",
-	maxcount = 1,
-	action = pickupRune,
-	arg = "Picked up a revenge rune.",
-	radius = 16,
-	height = 16,
-	__special = true,
-	_spawn = {
-		{"REVEA", 2},
-		{"REVEB", 2}
-	}
-}
-MT_REVENGERUNE = createMobjType(mtype)
-

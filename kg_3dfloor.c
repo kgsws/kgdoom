@@ -137,33 +137,6 @@ fcheck:
 			P_BlockThingsIterator(x, y, PIT_Check3DSectorSpawn);
 }
 
-void e3d_CleanPlanes()
-{
-	int i;
-
-	for(i = 0; i < numsectors; i++)
-	{
-		extraplane_t *pl;
-		sector_t *sec = sectors + i;
-
-		pl = sec->exfloor;
-		while(pl)
-		{
-			extraplane_t *fr = pl;
-			pl = pl->next;
-			free(fr);
-		}
-
-		pl = sec->exceiling;
-		while(pl)
-		{
-			extraplane_t *fr = pl;
-			pl = pl->next;
-			free(fr);
-		}
-	}
-}
-
 void e3d_Reset()
 {
 	clip_t *cl = topclip;

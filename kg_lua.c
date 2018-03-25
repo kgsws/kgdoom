@@ -361,6 +361,8 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"fullVolume", MF_FULLVOLUME},
 	{"noDeathPull", MF_NODEATHPULL},
 	{"invulnerable", MF_INVULNERABLE},
+	{"wallBounce", MF_WALLBOUNCE},
+	{"mobjBounce", MF_MOBJBOUNCE},
 	// flag combinations
 	{"Monster", MF_ISMONSTER | MF_COUNTKILL | MF_SOLID | MF_SHOOTABLE},
 	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF | MF_NOZCHANGE},
@@ -445,6 +447,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"activeSound", offsetof(mobjinfo_t, activesound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"deathSound", offsetof(mobjinfo_t, deathsound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"xdeathSound", offsetof(mobjinfo_t, xdeathsound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
+	{"bounceSound", offsetof(mobjinfo_t, bouncesound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	// damage scales
 	{"damageScale", 0, LUA_TTABLE, func_set_damagescale},
 };

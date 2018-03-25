@@ -202,9 +202,9 @@ void P_XYMovement (mobj_t* mo)
 		{
 		    sector_t *sec;
 		    if(P_PointOnLineSide(mo->x, mo->y, ceilingline))
-			sec = ceilingline->frontsector;
-		    else
 			sec = ceilingline->backsector;
+		    else
+			sec = ceilingline->frontsector;
 		    // explode a missile
 		    if(sec->ceilingpic == skyflatnum && mo->z + mo->height >= sec->ceilingheight)
 		    {
@@ -219,6 +219,23 @@ void P_XYMovement (mobj_t* mo)
 			return;
 		    }
 		}
+		if(hitmobj && mo->flags & MF_MOBJBOUNCE)
+		{
+			mo->angle = ((mo->angle - ANG180) - ANG45) + (P_Random() << 22);
+			mo->momx = FixedMul(mo->speed, finecosine[mo->angle>>ANGLETOFINESHIFT]);
+			mo->momy = FixedMul(mo->speed, finesine[mo->angle>>ANGLETOFINESHIFT]);
+			if(mo->info->bouncesound)
+				S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
+		} else
+		if((ceilingline || floorline) && mo->flags & MF_WALLBOUNCE)
+		{
+			line_t *l = ceilingline ? ceilingline : floorline;
+			mo->angle = 2 * l->angle - mo->angle;
+			mo->momx = FixedMul(mo->speed, finecosine[mo->angle>>ANGLETOFINESHIFT]);
+			mo->momy = FixedMul(mo->speed, finesine[mo->angle>>ANGLETOFINESHIFT]);
+			if(mo->info->bouncesound)
+				S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
+		} else
 		P_ExplodeMissile (mo);
 #ifdef SERVER
 		// [kg] explode clientside projectile
@@ -379,7 +396,7 @@ void P_ZMovement (mobj_t* mo)
 	    // [kg] call 'floor hit' callback
 	    L_CrashThing(mo);
 	    // [kg] added bounce effect
-	    if(!mo->bounce || mo->momz > -FRACUNIT / 256)
+	    if(!mo->bounce || mo->momz > -FRACUNIT*3)
 		mo->momz = 0;
 	}
 	mo->z = floorz;
@@ -387,21 +404,25 @@ void P_ZMovement (mobj_t* mo)
 	if ( (mo->flags & MF_MISSILE)
 	     && !(mo->flags & MF_NOCLIP) )
 	{
-	    if(mo->subsector->sector->floorpic == skyflatnum)
+	    if(mo->subsector->sector->floorpic == skyflatnum && floorz == mo->subsector->sector->floorheight)
 #ifdef SERVER
 		P_RemoveMobj (mo, false);
 #else
 		P_RemoveMobj (mo);
 #endif
 	    else
-	    if(!mo->bounce)
+	    if(!mo->bounce || !mo->momz)
 	    {
 		P_ExplodeMissile (mo);
 		return;
 	    }
 	}
 	if(mo->bounce)
+	{
 	    mo->momz = FixedMul(-mo->momz, mo->bounce);
+	    if(mo->info->bouncesound)
+		S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
+	}
     }
     else if (! (mo->flags & MF_NOGRAVITY) )
     {
@@ -416,7 +437,7 @@ void P_ZMovement (mobj_t* mo)
 	// hit the ceiling
 
 	// [kg] added bounce effect
-	if(!mo->bounce || mo->momz < FRACUNIT / 256)
+	if(!mo->bounce || mo->momz < FRACUNIT*3)
 	    mo->momz = 0;
 
 	mo->z = ceilingz - mo->height;
@@ -424,21 +445,25 @@ void P_ZMovement (mobj_t* mo)
 	if ( (mo->flags & MF_MISSILE)
 	     && !(mo->flags & MF_NOCLIP) )
 	{
-	    if(mo->subsector->sector->ceilingpic == skyflatnum)
+	    if(mo->subsector->sector->ceilingpic == skyflatnum && ceilingz == mo->subsector->sector->ceilingheight)
 #ifdef SERVER
 		P_RemoveMobj (mo, false);
 #else
 		P_RemoveMobj (mo);
 #endif
 	    else
-	    if(!mo->bounce)
+	    if(!mo->bounce || !mo->momz)
 	    {
 		P_ExplodeMissile (mo);
 		return;
 	    }
 	}
 	if(mo->bounce)
+	{
 	    mo->momz = FixedMul(-mo->momz, mo->bounce);
+	    if(mo->info->bouncesound)
+		S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
+	}
     }
 }
 

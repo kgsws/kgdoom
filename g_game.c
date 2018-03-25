@@ -939,6 +939,13 @@ void G_DoCompleted (void)
     wminfo.didsecret = players[consoleplayer].didsecret; 
     wminfo.epsd = gameepisode -1; 
     wminfo.last = gamemap -1;
+
+    if(level_name[0])
+    {
+	// [kg] do not advance doom numbers
+	wminfo.next = gamemap - 1;
+	goto skip_next;
+    }
     
     // wminfo.next is 0 biased, unlike gamemap
     if ( gamemode == commercial)
@@ -983,7 +990,9 @@ void G_DoCompleted (void)
 	else 
 	    wminfo.next = gamemap;          // go to next level 
     }
-		 
+
+skip_next:
+
     wminfo.maxkills = totalkills; 
     wminfo.maxitems = totalitems; 
     wminfo.maxsecret = totalsecret; 
