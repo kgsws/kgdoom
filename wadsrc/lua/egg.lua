@@ -11,6 +11,28 @@ function eggAddFloor(line)
 	sectorTagIterator(line.arg0, eggSpawnFloor, line)
 end
 
+function PIT_EggCheck(thing, info)
+	if thing.info == info then
+		return false, true
+	end
+end
+
+function eggCheckSecret(mobj)
+	if game.map ~= "E1M9" then
+		return false
+	end
+	if mobj.InventoryCheck(MT_BACKPACK) < 1 then
+		return false
+	end
+	if not globalThingsIterator(PIT_EggCheck, MT_BACKPACK) then
+		return false
+	end
+	if globalThingsIterator(PIT_EggCheck, MT_CHAINSAW) then
+		return false
+	end
+	return true
+end
+
 function eggSpawnEffect(thing)
 	return false, thing
 end

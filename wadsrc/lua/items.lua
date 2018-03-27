@@ -194,7 +194,7 @@ mtype = {
 		{"BPAKA", -1}
 	}
 }
-createMobjType(mtype)
+MT_BACKPACK = createMobjType(mtype)
 
 -- megasphere
 mtype = {

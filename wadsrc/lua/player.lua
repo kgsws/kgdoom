@@ -24,10 +24,23 @@ function playerCrash(mobj)
 	end
 end
 
-function pain(mobj)
+a.PlayerDeath =
+function(mobj)
+	if game.map == "E1M8" and mobj.sector.special == 11 then
+		-- Doom1 episode 1 level ending
+		game.DoomExit()
+	end
+end
+
+function eggPain(mobj)
 	-- easter egg
-	if mobj.attacker and mobj.attacker ~= mobj and mobj.InventoryCheck(MT_REVENGERUNE) > 0 then
-		mobj.attacker.Damage(true, 0)
+	local attacker
+	attacker = mobj.attacker
+	if attacker and attacker ~= mobj and mobj.InventoryCheck(MT_REVENGERUNE) > 0 then
+		attacker.Damage(true, 0)
+		for i=0,64 do
+			attacker.SpawnMissile(MT_EGGPARTBNC, doomRandom(0, 8191), doomRandom(-10, 10) * 0.1, doomRandom(100 - attacker.info.shootz*10, attacker.height*9) * 0.1, doomRandom(-240, 240) * 0.1, doomRandom(-240, 241) * 0.1)
+		end
 	end
 end
 
@@ -70,12 +83,13 @@ mtype = {
 		"_spawn"
 	},
 	_pain = {
-		{"PLAYG", 4, pain},
+		{"PLAYG", 0},
+		{"PLAYG", 4, eggPain},
 		{"PLAYG", 4, a.SoundPain},
 		"_spawn"
 	},
 	_death = {
-		{"PLAYH", 10},
+		{"PLAYH", 10, a.PlayerDeath},
 		{"PLAYI", 10, a.SoundDeath},
 		{"PLAYJ", 10, a.Fall},
 		{"PLAYK", 10},
@@ -84,7 +98,7 @@ mtype = {
 		{"PLAYN", -1}
 	},
 	_xdeath = {
-		{"PLAYO", 5},
+		{"PLAYO", 5, a.PlayerDeath},
 		{"PLAYP", 5, a.SoundXDeath},
 		{"PLAYQ", 5, a.Fall},
 		{"PLAYR", 5},

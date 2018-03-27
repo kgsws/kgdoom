@@ -40,20 +40,17 @@ function(mobj)
 	a.Chase(mobj)
 end
 
-PIT_BossDeath =
-function(thing, info)
+function PIT_BossDeath(thing, info)
 	if thing.info == info and (thing.health > 0 or thing.tics ~= -1) then
 		return false, true
 	end
 end
 
-PIT_BossOpen =
-function(sector)
+function PIT_BossOpen(sector)
 	sector.GenericCeiling(sector.FindLowestCeiling() - 4, 8, 0, "dsbdopn")
 end
 
-PIT_BossLower =
-function(sector)
+function PIT_BossLower(sector)
 	sector.GenericFloor(sector.FindLowestFloor(), 1, 0, "-", "-", "dsstnmov")
 end
 

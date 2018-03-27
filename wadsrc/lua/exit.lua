@@ -9,7 +9,12 @@ function levelExit(mobj, line, side, act)
 	end
 	line.special = 0
 	line.DoButton("dsswtchx")
-	game.DoomExit()
+	if eggCheckSecret(mobj) then
+		-- Doom1 easter egg map
+		game.Exit("KGSECRET")
+	else
+		game.DoomExit()
+	end
 	return true
 end
 

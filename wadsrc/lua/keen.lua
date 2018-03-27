@@ -1,23 +1,15 @@
 -- kgsws' Lua Doom exports
 -- Doom monsters
 
-PIT_KeenOpen =
-function(sector)
+function PIT_KeenOpen(sector)
 	sector.GenericCeiling(sector.FindLowestCeiling() - 4, 2, 0, "dsdoropn")
-end
-
-PIT_EggCheck =
-function(thing, info)
-	if thing.info == MT_INVULN then
-		return false, true
-	end
 end
 
 a.KeenDie =
 function(mobj)
 	if not globalThingsIterator(PIT_BossDeath, mobj.info) then
-		if game.map == "MAP32" and mobj.attacker.info == MT_CYBORG and globalThingsIterator(PIT_EggCheck) then
-			-- easter egg
+		if game.map == "MAP32" and mobj.attacker.info == MT_CYBORG and globalThingsIterator(PIT_EggCheck, MT_INVULN) then
+			-- Doom2 easter egg
 			game.Exit("KGSECRET")
 		else
 			-- normal exit
