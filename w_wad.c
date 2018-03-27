@@ -38,7 +38,6 @@ void W_LoadWad(const char *name)
 	if(numwads == MAXWADS)
 		I_Error("W_Init: too many wads");
 
-#ifdef LINUX
 	FILE *f = fopen(name, "rb");
 
 	if(!f)
@@ -52,11 +51,7 @@ void W_LoadWad(const char *name)
 	fread(wadbuf[numwads], 1, wadsize, f);
 
 	fclose(f);
-#else
-	wadsize = http_get_file(name, &wadbuf[numwads]);
-	if(wadsize <= 0)
-		I_Error("W_Init: can't load wad; %i", -wadsize);
-#endif
+
 	// [kg] assuming included WAD is real and correct
 	wadinfo_t *info = (void*)wadbuf[numwads];
 

@@ -451,6 +451,9 @@ void D_DoomMain (void)
 
     printf ("W_Init: Init WADfiles.\n");
 
+#ifdef VIDEO_STDOUT
+	T_InitWads();
+#else
 	// pick an IWAD
 	gamemode = shareware;
 	iwad = "doom1.wad";
@@ -515,6 +518,7 @@ void D_DoomMain (void)
 		while(++p != myargc && myargv[p][0] != '-')
 			W_LoadWad(myargv[p]);
 	}
+#endif
 
 #ifndef SERVER
     printf ("V_Init: Init 2D lib.\n");

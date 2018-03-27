@@ -28,6 +28,8 @@
 
 #include "kg_record.h"
 
+#include "t_text.h"
+
 
 extern patch_t*		hu_font[HU_FONTSIZE];
 extern boolean		message_dontfuckwithme;
@@ -525,7 +527,7 @@ void M_ReadSaveStrings(void)
 
 	for (i = 0;i < load_end;i++)
 	{
-		sprintf(name,SAVEGAMENAME"%d.kdsg",i);
+		sprintf(name, BASE_PATH SAVEGAMENAME "%d.kdsg", i);
 		f = fopen(name, "rb");
 		if(!f)
 			continue;

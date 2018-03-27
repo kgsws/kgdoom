@@ -831,7 +831,7 @@ int	R_TextureNumForName (char* name)
     if (i==-1)
     {
 //	I_Error ("R_TextureNumForName: %s not found",	 name);
-	printf("R_TextureNumForName: %s not found\n", name);
+	printf("R_TextureNumForName: %.8s not found\n", name);
 	return 0;
     }
     return i;

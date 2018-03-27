@@ -98,7 +98,7 @@ int check_presence(hid_controller_t *c)
 		{
 			cst = &c->main;
 			last_stamp = 0;
-			printf("Doom: got controller #%i\n", i);
+//			printf("Doom: got controller #%i\n", i);
 			return 0;
 		}
 	}
@@ -509,7 +509,7 @@ void I_FinishUpdate (void)
 	if(r || !dst)
 	{
 //		I_Error("I_FinishUpdate: surface_dequeue_buffer failed 0x%08X", r);
-		printf("I_FinishUpdate: surface_dequeue_buffer failed 0x%08X\n", r);
+//		printf("I_FinishUpdate: surface_dequeue_buffer failed 0x%08X\n", r);
 		return;
 	}
 	// copy pixels

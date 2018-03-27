@@ -10,6 +10,7 @@
 #include "z_zone.h"
 #include "st_stuff.h"
 #include "kg_record.h"
+#include "t_text.h"
 
 int rec_is_playback;
 
@@ -173,9 +174,18 @@ void rec_ticcmd(ticcmd_t *cmd)
 	}
 }
 
+#ifdef LINUX
 void rec_save(const char *path, const char *title)
 {
 	FILE *f;
+#else
+void rec_save(const char *path_meh, const char *title)
+{
+	FILE *f;
+	char path[256];
+
+	sprintf(path, BASE_PATH"%s", path_meh);
+#endif
 
 	if(title)
 		strncpy(rec_buff + 16, title, 16);
@@ -195,13 +205,22 @@ void rec_save(const char *path, const char *title)
 	}
 }
 
+#ifdef LINUX
 void rec_load(const char *path, int type)
+#else
+void rec_load(const char *path_meh, int type)
+#endif
 {
 	uint32_t tmp;
 	int size, count;
 	inventory_t **inv;
 	inventory_t *prev;
 	player_t *p = &players[consoleplayer];
+#ifndef LINUX
+	char path[256];
+
+	sprintf(path, BASE_PATH"%s", path_meh);
+#endif
 
 	FILE *f = fopen(path, "rb");
 	if(!f)
