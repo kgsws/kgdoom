@@ -21,4 +21,4 @@ kgdoom.wad:
 	wadsrc/wadpack.py wadsrc/kgdoom
 
 clean:
-	rm -rf *.o *.nso *.nro *.so lua5.3.4/*.o *.a kgdoom.wad
+	rm -rf *.o *.nso *.nro *.so lua5.3.4/*.o *.a *.d kgdoom.wad

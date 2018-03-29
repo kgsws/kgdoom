@@ -10,6 +10,8 @@
 #endif
 #include "w_wad.h"
 
+#include "t_text.h"
+
 // [kg] rewritten lump handling, WADs are in memory
 
 //
@@ -26,10 +28,6 @@ int		numwads;
 //
 // LUMP BASED ROUTINES.
 //
-
-#ifndef LINUX
-int http_get_file(const char *path, void **buff);
-#endif
 
 void W_LoadWad(const char *name)
 {
@@ -48,7 +46,28 @@ void W_LoadWad(const char *name)
 	fseek(f, 0, SEEK_SET);
 
 	wadbuf[numwads] = Z_Malloc(wadsize, PU_STATIC, NULL);
+
+#ifdef VIDEO_STDOUT
+	{
+		uint8_t *dst = wadbuf[numwads];
+		printf("%s:\n", name);
+#ifdef LINUX
+		fflush(stdout);
+#endif
+		while(wadsize)
+		{
+			int get = wadsize > 393216 ? 393216 : wadsize;
+			fread(dst, 1, wadsize, f);
+			dst += get;
+			wadsize -= get;
+			T_PutChar('.');
+			I_FinishUpdate();
+		}
+		T_PutChar('\n');
+	}
+#else
 	fread(wadbuf[numwads], 1, wadsize, f);
+#endif
 
 	fclose(f);
 

@@ -25,7 +25,7 @@ static palcol_t colors[256];
 static int palette_changed;
 
 int i_ctrl_bnt_mask = 0b111000000001111001111111111; // mask of allowed in-game buttons
-int i_ctrl_roles = 0;
+int i_ctrl_roles = 1;
 int i_ctrl_btn[] = {7, 8, 6, 5, 1, 3};
 
 const char *const i_ctrl_names[] =
@@ -386,25 +386,7 @@ void I_GetEvent(void)
 			j0y /= read;
 			j1x /= read;
 			j1y /= read;
-/*
-			if(btn & SWBTN(22)) // R: right
-				j0x = 127;
-			if(btn & SWBTN(20)) // R: left
-				j0x = -127;
-			if(btn & SWBTN(21)) // R: up
-				j0y = -127;
-			if(btn & SWBTN(23)) // R: down
-				j0y = 127;
 
-			if(btn & SWBTN(18)) // L: right
-				j1x = 127;
-			if(btn & SWBTN(16)) // L: left
-				j1x = -127;
-			if(btn & SWBTN(17)) // L: up
-				j1y = -127;
-			if(btn & SWBTN(19)) // L: down
-				j1y = 127;
-*/
 			// mask out digital joycons changes
 			change &= 0b11000000001111111111111111;
 

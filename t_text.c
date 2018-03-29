@@ -429,8 +429,13 @@ void T_InitWads()
 	// reset text
 	memset(screens[0], 0, SCREENWIDTH * SCREENHEIGHT);
 	txt_color = 7;
-	T_WriteXY(0, 0, "Loading WADs ...");
-	I_FinishUpdate();
+	txt_x = 0;
+	txt_y = 0;
+	txt_ptr = screens[0];
+	printf("Loading WADs ...\n");
+#ifdef LINUX
+	fflush(stdout);
+#endif
 
 	// IWAD
 	gamemode = iwad_list[iwad_pick].gamemode;

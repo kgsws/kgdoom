@@ -1006,18 +1006,12 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
 	
     if(isHexen)
     {
-	if(!netgame)
-	{
-		if(mthing->flags & 0x0400 && !sv_deathmatch)
-			return;
-		if(mthing->flags & 0x0200 && sv_deathmatch)
-			return;
-	} else
-	{
-		if(mthing->flags & 0x0100)
-			// single player only
-			return;
-	}
+	if(!netgame && !(mthing->flags & 0x0100))
+		return;
+	if(sv_deathmatch && !(mthing->flags & 0x0400))
+		return;
+	if(!sv_deathmatch && !(mthing->flags & 0x0200))
+		return;
     } else
     {
 	// [kg] spawn network weapons only in deathmatch

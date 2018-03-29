@@ -83,8 +83,8 @@ mtype = {
 		"_spawn"
 	},
 	_pain = {
-		{"PLAYG", 0},
-		{"PLAYG", 4, eggPain},
+		{"PLAYG", 1},
+		{"PLAYG", 3, eggPain},
 		{"PLAYG", 4, a.SoundPain},
 		"_spawn"
 	},

@@ -248,7 +248,7 @@ void G_BuildTiccmd (ticcmd_t* cmd)
     if(i_ctrl_roles)
     {
 	angleturn -= joyxmove * 2345;
-	pitchturn += joyymove2 / 6;
+	pitchturn += joyymove / 6;
     } else
     {
 	angleturn -= joyxmove2 * 2345;
