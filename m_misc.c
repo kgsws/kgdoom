@@ -31,6 +31,8 @@
 
 #include "m_misc.h"
 
+#include "t_text.h"
+
 //
 // M_DrawText
 // Returns the final X coordinate
@@ -171,6 +173,9 @@ extern int	screenblocks;
 
 extern int	showMessages;
 
+extern int i_ctrl_roles;
+extern int i_ctrl_btn[];
+
 // UNIX hack, to be removed.
 #ifdef SNDSERV
 extern char*	sndserver_filename;
@@ -197,33 +202,42 @@ typedef struct
 
 default_t	defaults[] =
 {
-    {"mouse_sensitivity",&mouseSensitivity, 8},
-    {"sfx_volume",&snd_SfxVolume, 15},
-    {"music_volume",&snd_MusicVolume, 8},
-    {"show_messages",&showMessages, 1},
-    
+	{"mouse_sensitivity",&mouseSensitivity, 8},
+	{"sfx_volume",&snd_SfxVolume, 15},
+	{"music_volume",&snd_MusicVolume, 8},
 
-    {"key_right",&key_right, KEY_RIGHTARROW},
-    {"key_left",&key_left, KEY_LEFTARROW},
-    {"key_up",&key_up, 'w'},
-    {"key_down",&key_down, 's'},
-    {"key_strafeleft",&key_strafeleft, 'a'},
-    {"key_straferight",&key_straferight, 'd'},
+#ifdef LINUX
 
-    {"key_fire",&key_fire, KEY_RCTRL},
-    {"key_fire_alt",&key_fire_alt, 0},
-    {"key_use",&key_use, 'e'},
-    {"key_strafe",&key_strafe, KEY_RALT},
-    {"key_speed",&key_speed, KEY_RSHIFT},
+	{"key_right",&key_right, KEY_RIGHTARROW},
+	{"key_left",&key_left, KEY_LEFTARROW},
+	{"key_up",&key_up, 'w'},
+	{"key_down",&key_down, 's'},
+	{"key_strafeleft",&key_strafeleft, 'a'},
+	{"key_straferight",&key_straferight, 'd'},
 
-    {"use_mouse",&usemouse, 1},
-    {"mouseb_fire",&mousebfire,0},
-    {"mouseb_fire_alt",&mousebfirealt,1},
-    {"mouseb_use",&mousebuse,2},
+	{"key_fire",&key_fire, KEY_RCTRL},
+	{"key_fire_alt",&key_fire_alt, 0},
+	{"key_use",&key_use, 'e'},
+	{"key_strafe",&key_strafe, KEY_RALT},
+	{"key_speed",&key_speed, KEY_RSHIFT},
 
-    {"screenblocks",&screenblocks, 11},
-    {"detaillevel",&detailLevel, 0},
+	{"use_mouse",&usemouse, 1},
+	{"mouseb_fire",&mousebfire,0},
+	{"mouseb_fire_alt",&mousebfirealt,1},
+	{"mouseb_use",&mousebuse,2},
 
+#else
+
+	{"ctrl_roles",&i_ctrl_roles, 1},
+
+	{"ctrl_shoot",&i_ctrl_btn[0], 7},
+	{"ctrl_shoot_alt",&i_ctrl_btn[1], 9},
+	{"ctrl_use",&i_ctrl_btn[2], 6},
+	{"ctrl_weapons",&i_ctrl_btn[3], 5},
+	{"ctrl_walk",&i_ctrl_btn[4], 1},
+	{"ctrl_map",&i_ctrl_btn[5], 3},
+
+#endif
 /*
     {"chatmacro0", (int *) &chat_macros[0], (int) HUSTR_CHATMACRO0 },
     {"chatmacro1", (int *) &chat_macros[1], (int) HUSTR_CHATMACRO1 },
@@ -239,15 +253,15 @@ default_t	defaults[] =
 };
 
 int	numdefaults;
-char*	defaultfile;
 
+#define defaultfile	BASE_PATH"kgdoom.cfg"
 
 //
 // M_SaveDefaults
 //
 void M_SaveDefaults (void)
 {
-/*    int		i;
+    int		i;
     int		v;
     FILE*	f;
 	
@@ -261,14 +275,14 @@ void M_SaveDefaults (void)
 	    && defaults[i].defaultvalue < 0xfff)
 	{
 	    v = *defaults[i].location;
-//	    fprintf (f,"%s\t\t%i\n",defaults[i].name,v);
-	} else {
+	    fprintf (f,"%s\t\t%i\n",defaults[i].name,v);
+	}/* else {
 	    fprintf (f,"%s\t\t\"%s\"\n",defaults[i].name,
 		     * (char **) (defaults[i].location));
-	}
+	}*/
     }
 	
-    fclose (f);*/
+    fclose (f);
 }
 
 
@@ -294,7 +308,7 @@ void M_LoadDefaults (void)
 	*defaults[i].location = defaults[i].defaultvalue;
     
     // check for a custom default file
-    i = M_CheckParm ("-config");
+/*    i = M_CheckParm ("-config");
     if (i && i<myargc-1)
     {
 	defaultfile = myargv[i+1];
@@ -302,7 +316,8 @@ void M_LoadDefaults (void)
     }
     else
 	defaultfile = basedefault;
-/*
+*/
+
     // read the file in, overriding any set defaults
     f = fopen (defaultfile, "r");
     if (f)
@@ -312,7 +327,7 @@ void M_LoadDefaults (void)
 	    isstring = false;
 	    if (fscanf (f, "%79s %[^\n]\n", def, strparm) == 2)
 	    {
-		if (strparm[0] == '"')
+/*		if (strparm[0] == '"')
 		{
 		    // get a string default
 		    isstring = true;
@@ -321,7 +336,7 @@ void M_LoadDefaults (void)
 		    strparm[len-1] = 0;
 		    strcpy(newstring, strparm+1);
 		}
-		else if (strparm[0] == '0' && strparm[1] == 'x')
+		else */if (strparm[0] == '0' && strparm[1] == 'x')
 		    sscanf(strparm+2, "%x", &parm);
 		else
 		    sscanf(strparm, "%i", &parm);
@@ -330,16 +345,16 @@ void M_LoadDefaults (void)
 		    {
 			if (!isstring)
 			    *defaults[i].location = parm;
-			else
-			    *defaults[i].location =
-				newstring;
-			break;
+/*			else
+			    *defaults[i].location = newstring;
+*/			break;
 		    }
 	    }
 	}
 		
 	fclose (f);
-    }*/
+    } else
+	M_SaveDefaults();
 }
 
 

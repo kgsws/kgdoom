@@ -25,8 +25,8 @@ static palcol_t colors[256];
 static int palette_changed;
 
 int i_ctrl_bnt_mask = 0b111000000001111001111111111; // mask of allowed in-game buttons
-int i_ctrl_roles = 1;
-int i_ctrl_btn[] = {7, 8, 6, 5, 1, 3};
+int i_ctrl_roles;
+int i_ctrl_btn[6]; // defaults are in m_misc.c
 
 const char *const i_ctrl_names[] =
 {

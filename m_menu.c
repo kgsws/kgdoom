@@ -42,12 +42,12 @@ extern boolean		chat_on;		// in heads-up code
 int			mouseSensitivity;       // has default
 
 // Show messages has default, 0 = off, 1 = on
-int			showMessages;
+int			showMessages = 1;
 	
 
 // Blocky mode, has default, 0 = high, 1 = normal
-int			detailLevel;		
-int			screenblocks;		// has default
+int			detailLevel = 0;
+int			screenblocks = 11;		// has default
 
 // temp for screenblocks (0-9)
 int			screenSize;		
@@ -189,6 +189,8 @@ void M_StartMessage(char *string,void *routine,boolean input);
 void M_StopMessage(void);
 void M_ClearMenus (void);
 
+void M_SaveDefaults();
+
 // [kg] new options
 void M_ToggleStick();
 void M_ChangeKey(int choice);
@@ -309,6 +311,7 @@ enum
 	opt_i3,
 	opt_i4,
 	opt_i5,
+	opt_i6,
 	opt_end
 } options_e;
 
@@ -1490,6 +1493,8 @@ boolean M_Responder (event_t* ev)
 	return true;
 		
       case KEY_ESCAPE:
+	if(currentMenu == &OptionsDef)
+	    M_SaveDefaults();
 	currentMenu->lastOn = itemOn;
 	M_ClearMenus ();
 //	S_StartSound(NULL,sfx_swtchx,0);

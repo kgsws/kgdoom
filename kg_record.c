@@ -10,6 +10,7 @@
 #include "z_zone.h"
 #include "st_stuff.h"
 #include "kg_record.h"
+#include "w_wad.h"
 #include "t_text.h"
 
 int rec_is_playback;
@@ -216,6 +217,7 @@ void rec_load(const char *path_meh, int type)
 	inventory_t **inv;
 	inventory_t *prev;
 	player_t *p = &players[consoleplayer];
+	char *lname;
 #ifndef LINUX
 	char path[256];
 
@@ -258,7 +260,10 @@ void rec_load(const char *path_meh, int type)
 	rec_get_uint32(&tmp);
 	// map lump
 	rec_get_uint32(&tmp);
-	level_lump = tmp; // TODO: check validity
+	level_lump = tmp;
+	lname = W_LumpNumName(tmp + 1);
+	if(!lname || strncmp(lname, "THINGS", 8))
+		I_Error("invalid saved map");
 	// skip title
 	rec_get_uint32(&tmp);
 	rec_get_uint32(&tmp);

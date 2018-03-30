@@ -817,32 +817,6 @@ P_SetupLevel
     // UNUSED W_Profile ();
     P_InitThinkers ();
 
-    if(level_name[0])
-    {
-	// [kg] custom map name
-	memcpy(lumpname, level_name, 8);
-    } else
-    {
-	// find map name
-	if ( gamemode == commercial)
-	{
-	    sprintf(lumpname,"MAP%02i", map);
-	    gameepisode = 0;
-	}
-	else
-	{
-	    lumpname[0] = 'E';
-	    lumpname[1] = '0' + episode;
-	    lumpname[2] = 'M';
-	    lumpname[3] = '0' + map;
-	    lumpname[4] = 0;
-	}
-    }
-
-    lumpnum = W_GetNumForName (lumpname);
-
-    level_lump = lumpnum;
-
     // [kg] game saving / loading
 
 #ifndef SERVER
@@ -850,12 +824,42 @@ P_SetupLevel
     {
 	rec_load(savename, 2);
 	lumpnum = level_lump;
+	episode = gameepisode;
+	map = gamemap;
+	skill = gameskill;
     }
     if(!rec_is_playback)
     {
 #endif
 	// [kg] new random
 	M_ClearRandom();
+
+	if(level_name[0])
+	{
+	    // [kg] custom map name
+	    memcpy(lumpname, level_name, 8);
+	} else
+	{
+	    // find map name
+	    if ( gamemode == commercial)
+	    {
+		sprintf(lumpname,"MAP%02i", map);
+		gameepisode = 0;
+	    }
+	    else
+	    {
+		lumpname[0] = 'E';
+		lumpname[1] = '0' + episode;
+		lumpname[2] = 'M';
+		lumpname[3] = '0' + map;
+		lumpname[4] = 0;
+	    }
+	}
+
+	lumpnum = W_GetNumForName (lumpname);
+
+	level_lump = lumpnum;
+
 #ifndef SERVER
 	// [kg] prepare recording / savegame
 	if(!netgame)
