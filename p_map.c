@@ -1720,12 +1720,22 @@ boolean PIT_ChangeSector (mobj_t*	thing)
     // crunch dropped items
     if (thing->flags & MF_DROPPED)
     {
+	if(!thing->info->crushstate)
+	{
 #ifdef SERVER
-	P_RemoveMobj (thing, true);
+	    P_RemoveMobj (thing, true);
 #else
-	if(!netgame)
-	    P_RemoveMobj (thing);
+	    if(!netgame)
+		P_RemoveMobj (thing);
 #endif
+	} else
+	{
+	    P_SetMobjAnimation(thing, ANIM_CRUSH, 0);
+#ifdef SERVER
+	    // tell clients about this
+	    SV_UpdateMobj(thing, SV_MOBJF_AUTO | SV_MOBJF_STATE);
+#endif
+	}
 	// keep checking
 	return true;		
     }

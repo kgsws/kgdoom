@@ -214,6 +214,7 @@ static int func_set_radius(lua_State *L, void *dst, void *o);
 static int func_set_mobj(lua_State *L, void *dst, void *o);
 static int func_get_ptr(lua_State *L, void *dst, void *o);
 static int func_get_sector(lua_State *L, void *dst, void *o);
+static int func_set_playermobj(lua_State *L, void *dst, void *o);
 
 static int func_get_removemobj(lua_State *L, void *dst, void *o);
 static int func_get_facemobj(lua_State *L, void *dst, void *o);
@@ -529,7 +530,7 @@ static const lua_table_model_t lua_mobj[] =
 // all player values
 static const lua_table_model_t lua_player[] =
 {
-	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
+	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_playermobj, func_get_ptr},
 	{"refire", offsetof(player_t, refire), LUA_TNUMBER},
 	{"colormap", offsetof(player_t, viewmap), LUA_TSTRING, func_set_colormap, func_get_colormap},
 	{"extralight", offsetof(player_t, extralight), LUA_TNUMBER},
@@ -1196,6 +1197,29 @@ static int func_set_mobj(lua_State *L, void *dst, void *o)
 	th = lua_touserdata(L, -1);
 	if(th && th->lua_type != TT_MOBJ)
 		return luaL_error(L, "invalid thinker type, mobj expected");
+
+	*(void**)dst = th;
+	return 0;
+}
+
+// special player mobj changes
+static int func_set_playermobj(lua_State *L, void *dst, void *o)
+{
+	thinker_t *th;
+	mobj_t *mo = *(void**)dst;
+	player_t *pl = mo->player;
+
+	th = lua_touserdata(L, -1);
+	if(th && th->lua_type != TT_MOBJ)
+		return luaL_error(L, "invalid thinker type, mobj expected");
+
+	// remove player from original mobj
+	mo->player = NULL;
+	// add player to new mobj
+	mo = (mobj_t*)th;
+	mo->player = pl;
+
+	// TODO: server; tell clients about this
 
 	*(void**)dst = th;
 	return 0;
