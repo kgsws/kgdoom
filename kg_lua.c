@@ -451,6 +451,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"bounceSound", offsetof(mobjinfo_t, bouncesound), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	// damage scales
 	{"damageScale", 0, LUA_TTABLE, func_set_damagescale},
+	{"damagetype", offsetof(mobjinfo_t, damagetype), LUA_TNUMBER},
 };
 
 // all mobj values
@@ -3709,15 +3710,15 @@ static int LUA_thrustFromMobj(lua_State *L)
 	luaL_checktype(L, 1, LUA_TNUMBER);
 	speed = (fixed_t)(lua_tonumber(L, 1) * (lua_Number)FRACUNIT);
 
+	mo = lua_touserdata(L, lua_upvalueindex(1));
+
 	// angle, optional
 	if(top > 1)
 	{
 		luaL_checktype(L, 2, LUA_TNUMBER);
 		a = lua_tonumber(L, 2) * (lua_Number)(1 << ANGLETOFINESHIFT);
-	}
-
-	mo = lua_touserdata(L, lua_upvalueindex(1));
-	a += mo->angle;
+	} else
+		a = mo->angle;
 
 	mo->momx = FixedMul(speed, finecosine[a>>ANGLETOFINESHIFT]);
 	mo->momy = FixedMul(speed, finesine[a>>ANGLETOFINESHIFT]);

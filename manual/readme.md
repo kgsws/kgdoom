@@ -41,14 +41,14 @@ These are terms used in Lua API.
   - This is used to add texture scroll effect to lines.
 
 ### Lua scripts
-Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have as many GAMELUA lumps in multiple wads.
+Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have multiple GAMELUA lumps in multiple wads.
 Lua scripts are loaded from first wad to last and from first lump to last one. This should allow for overrides (game mods).
 First line in each GAMELUA can specify internal script name. Example: `---test.lua`. Every time Lua has to report error, it will use `test.lua` as a script name.
 ##### Stages
 There are two stages. Loading stage and map stage. Every stage has its own set of global functions.
 ###### Loading stage
 This is stage when all GAMELUA scripts are loaded and executed. At this point you should create all mobjtypes, register player class, weapons and keys. You can not do these later.
-Contents of GAMELUA ouside of any functions is executed at this stage.
+Content of GAMELUA ouside of any functions is executed at this stage.
 ###### Map stage
 This is stage when level is already loaded and everything in map is spawned.
 Only callbacks and action functions are called.
@@ -61,10 +61,22 @@ The is a weird bug(?) in Lua itself. If you make a syntax error, you will get `a
 - Every mobj can have its own inventory and armor.
 - Inventory item can be any mobjtype that has maxcount other than zero.
   - When count reaches zero, item is removed from inventory.
-  - Negative maxcount is undepletable and will be kept even if count reaches zero. Used for ammo sice HUD expects ammo to exist even when depleted.
+  - Negative maxcount is undepletable and will be kept even if count reaches zero. Used for ammo, sice HUD expects ammo to exist even when depleted.
+#### damage scale
+- New damage resistence / weakness system was added.
+  - There are up to 32 damage types.
+  - Any mobj has its own damage scale for each mobj.
+  - Before damage is subtracted from healt and armor, it is multiplied by corresponding scaler.
+  - This does not affect damage thrust.
+  - Damage can be scaled to 0% for no damage at all. Damage thrust is still unaffected.
+  - Damage can be scaled to negative values for healing. Healing will not exceed maximum health defined in mobjtype for this mobj.
+  - Since healing is not damage, here is no damage thrust anymore.
+  - Damage types are indexed from 1, as Lua tables are.
+  - Index values outside limits (0 or more than 32) are pure damage with no scaling.
 #### values
 - angles
   - Angles are specified in range 0 - 8191. This is a whole circle.
+  - Angles can use decimal point.
 - fixed
   - Any fixed point values can use decimal point in Lua.
 #### globals
@@ -283,6 +295,7 @@ Mobjtype can contain these parameters. Default 0 / none, unless specified otherw
   - Integer.
 - `damage`
   - Used on projectiles, or when `__skullFly` is set.
+  - Negative damage specifies usage of original Doom random damage amount generator.
   - Integer.
 - `gravity`
   - Gravity multiplier. Default is 1.
@@ -366,16 +379,291 @@ Mobjtype can contain these parameters. Default 0 / none, unless specified otherw
   - String. Sound lump from any WAD.
 - `damageScale`
   - Table of damage scalers.
-  - Table of Fixed point numbers. Range from -2.7 to 9.0 with 0.05 steps. Or `true` for instant kill.
+  - Table of Fixed point numbers. Range from -2.7 to 9.0 with 0.05 steps. Or `true` for instant kill. Default is 1.0 for 100%.
+- `damagetype`
+  - Type of damage this mobj causes.
+  - Integer.
+
+#### mobj
+Mobjs have all parameters copied from mobjtype when spawned. Most parameters can be modified on the fly.
+- `angle`
+  - Angle this mobj is facing.
+  - Angle. (0 - 8191)
+- `health`
+  - Integer.
+- `armor`
+  - Armor points.
+  - Integer.
+- `armortype`
+  - This specifies type of armor. Any mobjtype can be armor. HUD graphics is selected by `icon` field in mobjtype. Use `damage` field to specify armor protection. 100 = full protection. Doom uses 33 (green) and 50 (blue).
+  - As you can see, armor is property of mobj and not player. This means that any monster can have depletable armor now.
+  - Mobjtype or nil.
+- `pitch`
+  - This is a vertical angle (looking up / down).
+  - Fixed point.
+- `floorz`
+  - Current sector floor height of this mobj. Does account for 3D floors, but does not account for standing on other mobjs.
+  - Fixed point.
+- `ceilingz`
+  - Current sector ceiling height of this mobj. Does account for 3D floors, but does not account for standing under other mobjs.
+  - Fixed point.
+- `radius`
+  - See mobjtype.
+  - Fixed point.
+- `height`
+  - See mobjtype.
+  - Fixed point.
+- `momx` `momy` `momz`
+  - Mobj momentnum. Movement vector in 3D space.
+  - Fixed point.
+- `gravity`
+  - Current gravity multiplier for this mobj.
+  - Fixed point.
+- `bounce`
+  - Current bounce multiplier for this mobj.
+  - Fixed point.
+- `movedir`
+  - Only used for internal `a.Chase` movement logic.
+  - Integer.
+- `movecount`
+  - Only used for internal `a.Chase` movement logic.
+  - Integer.
+- `target`
+  - Current target of this mobj.
+  - BEWARE, unlike original Doom behavior, this really specifies target. Even for projectiles.
+  - Mobj or nil.
+- `source`
+  - Origin of this mobj. Internaly used only for projectiles.
+  - BEWARE, unlike original Doom behavior, this specifies origin of projectile.
+  - Mobj or nil.
+- `attacker`
+  - Last attacker that caused damage. Best used in `_pain`, `_death` or `_xdeath` animation.
+  - Can be nil. Damage from sector causes nil attacker.
+  - Mobj or nil.
+- `mobj`
+  - Free mobj slot for Lua use.
+  - Mobj or nil.
+- `reactiontime`
+  - If used with internal `a.Chase`, `reactiontime` is lowered every call. Monsters with non-zero `reactiontime` will not attack.
+  - If used on players, non-zero value freezes any player movement. Only shooting is allowed. Unless negative, `reactiontime` is lowered every tic.
+  - Integer.
+- `threshold`
+  - If used with internal `a.Chase`, `threshold` is lowered every call. Monsters with non-zero `threshold` won't change its target even if attacted by something else.
+  - Integer.
+- `tics`
+  - Tics for current animation frame. Lowered ever tic. When zero, next frame is set.
+  - Integer.
+- `tag`
+  - Mobj TID specified in map editor, if hexen mode is used.
+  - Integer.
+- `speed`
+  - See mobjtype.
+  - Fixed point.
+- `mass`
+  - See mobjtype.
+  - Integer.
+- `render`
+  - See mobjtype.
+  - String.
+- `block`
+  - See mobjtype.
+  - Integer, 16 bit only.
+- `pass`
+  - See mobjtype.
+  - Integer, 16 bit only.
+- `x` `y` `z`
+  - Current mobj position.
+  - Fixed point. Read only.
+- `player`
+  - If mobj is player, this points to player type. See player type.
+  - Player. Read only.
+- `sector`
+  - Current sector this mobj has its center in.
+  - Sector. Read only.
+- `info`
+  - Mobjtype of this mobj.
+  - Mobjtype. Read only.
+- `translation`
+  - See mobjtype.
+  - String.
+- `colormap`
+  - See mobjtype.
+  - String.
+Functions called from mobj. All functions are read only and can't be redefined.
+- `Remove()`
+  - Remove this mobj from game.
+- `Face(mobj)`
+  - Set `angle` and `pitch` to face specified mobj.
+- `Face(x, y [, z])`
+  - Set `angle` and possibly `pitch` to face specified location.
+  - `x`, `y` and `z` are fixed point values.
+- `Teleport(x, y, z)`
+  - This is only way to directly modify mobjs `x`, `y` and `z`. This function only moves mobj to its new location, no teleport effects are applied.
+  - `x`, `y` and `z` are fixed point values.
+  - Alternatively `z` can be boolean. Use `true` for ceiling and `false` for floor.
+- `CheckPosition([x, y, z])`
+  - Check mobj position either at specified location, or at current location if no parameters are provided.
+  - `x`, `y` and `z` are fixed point values.
+  - Returns `true` if check passed, `false` otherwise.
+- `SpawnMissile(mobjtype [, angle [, pitch [, z [, x [, y]]]]])`
+  - Spawn projectile with this mobj as originator.
+  - `angle` and `pitch` are absolute values. See `AttackAim`.
+  - `z` is offset relative to `shootz` and mobj current `z`.
+  - `x` and `y` are offsets relative to mobj current location with `angle` rotation.
+  - `x`, `y` and `z` are fixed point values.
+  - Returns newly created mobj projectile.
+- `AttackAim([type [, target]])`
+  - Calculate `angle` and `pitch` this mobj has to use in order to aim at target.
+  - `target` can be mobj to specify one, internal `target` field is used instead.
+  - `type` is boolean. `true` for hitscan `false` for projectile.
+  - When used on player mobj, `angle` and `pitch` is determined by `sv_freeaim`.
+  - Returns `angle` and `pitch`.
+- `LineTarget([angle])`
+  - 2D target search. Atempts to find any `__shootable` mobj in path from mobj at specified `angle`.
+  - If `angle` is not specified, internal `angle` field is used instead.
+  - Returns mobj or nil.
+- `MeleeRange([target [, zCheck]])`
+  - Checks if `target` is in melee range of this mobj.
+  - If `target` is not specified, internal `target` field is used instead.
+  - If `zCheck` is `false`, only 2D distance is checked. Defaults to `true`.
+  - Returns `true` if `target` is in melee range.
+- `Distance([target [, zCheck]])`
+  - Checks `target` distance from this mobj.
+  - If `target` is not specified, internal `target` field is used instead.
+  - If `zCheck` is `false`, only 2D distance is checked. Defaults to `true`.
+  - Returns `target` distance from this mobj.
+- `Damage(amount, type [, source [, inflictor]])`
+  - Damage this mobj with `amount` of damage and `type` damage type.
+  - `source` is origin of damage (projectile, barrel, etc) used for thrust calculation.
+  - `inflictor` is who caused this damage. Monsters can attack `inflictor` back.
+  - `amount` can be `true` for instagib (`_xdeath`) or `false` for instakill (`_death`).
+  - Returns `true` if mobj was killed (health is less or equal to 0), `false` otherwise.
+- `LineAttack(pufftype, damage [, angle [, pitch [, z [, x [, range]]]]])`
+  - Hitscan attack with `pufftype` mobjtype spawned at hit destination.
+  - `angle` and `pitch` are absolute values. See `AttackAim`.
+  - `z` is offset relative to `shootz` and mobj current `z`.
+  - `x` is offset relative to mobj current location with `angle` rotation.
+  - `range` defaults to 4096.
+  - If hit mobj has no `__noblood` enabled `_pain` animation of spawned `pufftype` will be entered, if defined.
+  - Newly spawned `pufftype` will have `target` field set to shooter (this mobj) and `source` to hit mobj.
+  - Returns target mobj or nil.
+- `Thrust(speed [, angle])`
+  - Thrust thing at either specified absolute `angle` or mobjs current `angle`.
+  - `speed` is fixed point strength of thrust.
+- `CheckSight([target])`
+  - Check if mobj can see eighter specified `target` or mobjs current `target`.
+  - Returns `true` if mobj can see `target`.
+- `RadiusDamage(range, damage, damagetype [, attacker [, hurt_attacker]])`
+  - Explosion damage.
+  - `attacker` is who caused this explosion.
+  - `hurt_attacker` can be set to `false` for attacker to be immune to this damage.
+  - `damage` can be negative for implosion (pull instead of push) effects, but positive damage will be applied anyway.
+- `DamageScale(damagetype)`
+  - Returns current damage scale of this damage type for this mobj.
+- `DamageScale(damagetype, scale)`
+  - Modifies current damage scale of this damage type for this mobj.
+- `ResetFlags([defaults])`
+  - Resets this mobj flags.
+  - If no `defaults` is specified, all flags are cleared.
+  - If `defaults` is `true`, original mobjtype flags are set.
+  - `defaults` value of `false` is reserved, do not use.
+- `SoundBody(...)` `SoundWeapon(...)` `SoundPickup(...)`
+  - Play sound at channel picked by function name.
+  - If multiple sounds are specified, one will be picked at random with equal chance.
+- `InventoryGive(mobjtype [, amount])`
+  - Give `amount` or 1 of `mobjtype` to this mobj inventory.
+  - `amount` of zero can be used for depletable items to only create inventory slot.
+  - Returns overflow amount - how much was left from `amount` if `maxamount` was reached.
+- `InventoryTake(mobjtype [, amount])`
+  - Take `amount` or 1 of `mobjtype` from this mobj inventory.
+  - Returns overflow amount - how much was not taken if mobj had less than `amount`.
+- `InventoryCheck(mobjtype)`
+  - Returns current amount and `maxcount` of `mobjtype` this mobj has in inventory.
+- `InventorySetMax(mobjtype, maxcount)`
+  - Sets new `maxcount` of `mobjtype` for this mobj inventory.
+- `TickerSet(id, ticrate, icon, func [, arg])`
+  - Starts new ticker on this mobj. Any mobj can have multiple tickers with unique `id`.
+  - `id` can be any integer value. It is used to in other ticker functions.
+  - `ticrate` is periodicity of this ticker.
+  - `icon` is optional (string) icon. This icon will be shown on HUD if ticker is used on player. Can be nil for no icon.
+  - `func` callback that will be called after `ticrate` of tics. Callback should be function defined as `somecb(mobj)` or `somecb(mobj, arg)`.
+    - By default, ticker will be removed after `ticrate` tics passed. If callback returns `true`, tics will be reset and ticker will continue to run.
+- `TickerRemove(id)`
+  - Remove active ticker with `id` from this mobj. Ticker is cancelled and callback won't be called.
+- `TickerCheck(id)`
+  - Returns `true` if mobj has active ticker with specified `id`. `false` otherwise.
+
+#### player
+- `mo`
+  - Body of this player.
+  - Can be modified to give player new body. This allows to morph player into something else.
+  - Mobj.
+- `refire`
+  - Counter of `a.Refire` calls for player weapon.
+  - Integer.
+- `colormap`
+  - See `translation` in mobjtype.
+  - This, however applies color remap for everything this player can see.
+  - String.
+- `extralight`
+  - Add brightness for player view. Used by weapon flash.
+  - Can be used to make things darker.
+  - Integer.
+- `deltaviewheight`
+  - Part of player viewheight smoothing. Used when hitting floor hard to sink view lower.
+  - Fixed point.
+- `map`
+  - State of player automap.
+    0. Player can see only what found.
+    1. Player can see undiscovered areas in gray.
+    2. Player can see full map.
+    3. Player can see full map and all things.
+  - Integer.
+- `hideStatusBar`
+  - Can be used to hide entire HUD.
+  - This will also disable weapon selection menu.
+  - Boolean.
+- `forceWeapon`
+  - If set to `true`, weapon selection menu will be disabled.
+  - Boolean.
+Player functions.
+- `Message(text)`
+  - Message for player in top left corner. Used for pickups.
+  - `text` is string.
+- `SetWeapon(mobjtype [, forced])`
+  - Set player weapon to `mobjtype`. This can be any weapon, even secret one not listed in weapon selection.
+  - If `forced` is `true`, weapon will be forced instantly without lowering (or even finishing shooting) of old one.
+  - This function with `forced` set to `true` must be used on newly spawned players. Otherwise players won't be able to change weapon.
+- `WeaponRefire(offset)`
+  - Fire player weapon again, with `offset` of frames skipped from original shooting animation.
+  - `offset` is integer.
+- `WeaponFlash(offset)`
+  - Start player flash animation with `offset` of frames skipped from original flash animation.
+  - `offset` is integer.
 
 
 
 
-## To be continued ...
-##### It takes a while to make manual.
 
 
 
 
 
 
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+# To be continued ...

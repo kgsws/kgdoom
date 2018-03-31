@@ -354,7 +354,9 @@ void G_DoLoadLevel (void)
     starttime = I_GetTime (); 
     gameaction = ga_nothing; 
     Z_CheckHeap ();
-    
+
+    if(!netgame) 
+	usergame = true;
     // clear cmd building stuff
     memset (gamekeydown, 0, sizeof(gamekeydown)); 
     joyxmove = joyymove = 0;
@@ -1229,8 +1231,6 @@ G_InitNew
     for (i=0 ; i<MAXPLAYERS ; i++) 
 	players[i].playerstate = PST_REBORN; 
 
-    if(!netgame) 
-	usergame = true;
     paused = false;
     viewactive = true; 
     gameepisode = episode; 

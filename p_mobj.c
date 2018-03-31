@@ -95,11 +95,11 @@ void P_ExplodeMissile (mobj_t* mo)
     if(mo->info->deathstate)
     {
 	P_SetMobjAnimation(mo, ANIM_DEATH, 0);
-
+/*
 	mo->tics -= P_Random()&3;
 
 	if (mo->tics < 1)
-	    mo->tics = 1;
+	    mo->tics = 1;*/
     }
 
     mo->flags &= ~MF_MISSILE;
@@ -607,10 +607,11 @@ void P_MobjThinker (mobj_t* mobj)
 
     // cycle through states,
     // calling action functions at transitions
-    if (mobj->tics != -1)
+    if (mobj->tics >= 0)
     {
-	mobj->tics--;
-		
+	if(mobj->tics > 0)
+	    mobj->tics--;
+
 	// you can cycle through multiple states in a tic
 	if (!mobj->tics)
 	    if (!P_ForceMobjState (mobj, mobj->state->nextstate) )
