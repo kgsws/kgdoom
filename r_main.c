@@ -545,7 +545,7 @@ void R_InitLightTables (void)
 	    if (level >= NUMCOLORMAPS)
 		level = NUMCOLORMAPS-1;
 
-	    zlight[i][j] = colormaps + level*256;
+	    zlight[i][j] = NULL + level * 256;
 	}
     }
 }
@@ -642,7 +642,7 @@ void R_ExecuteSetViewSize (void)
 	    if (level >= NUMCOLORMAPS)
 		level = NUMCOLORMAPS-1;
 
-	    scalelight[i][j] = colormaps + level*256;
+	    scalelight[i][j] = NULL + level*256;
 	}
     }
 }

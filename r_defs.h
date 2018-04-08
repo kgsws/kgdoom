@@ -486,6 +486,11 @@ typedef struct
   int is3d;
   // [kg] light color
   void *colormap;
+  // [kg] fog color
+  void *fogmap;
+  // [kg] renderer
+  int renderstyle;
+  uint8_t *rendertable;
 
   // leave pads for [minx-1]/[maxx+1]
   

@@ -247,6 +247,8 @@ static int func_get_mobj_tickerchk(lua_State *L, void *dst, void *o);
 
 static int func_set_colormap(lua_State *L, void *dst, void *o);
 static int func_get_colormap(lua_State *L, void *dst, void *o);
+static int func_set_colorfog(lua_State *L, void *dst, void *o);
+static int func_get_colorfog(lua_State *L, void *dst, void *o);
 
 static int func_setplayermessage(lua_State *L, void *dst, void *o);
 static int func_setplayerweapon(lua_State *L, void *dst, void *o);
@@ -559,7 +561,7 @@ static const lua_table_model_t lua_sector[] =
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
 	{"isSecret", offsetof(sector_t, floordata), LUA_TBOOLEAN, func_set_secretsector, func_get_secretsector},
 	{"color", offsetof(sector_t, colormap), LUA_TSTRING, func_set_colormap, func_get_colormap},
-	{"colormap", offsetof(sector_t, fogmap), LUA_TSTRING, func_set_colormap, func_get_colormap},		
+	{"colormap", offsetof(sector_t, fogmap), LUA_TSTRING, func_set_colorfog, func_get_colorfog},
 	// action
 	{"funcFloor", offsetof(sector_t, floordata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	{"funcCeiling", offsetof(sector_t, ceilingdata), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
@@ -1491,7 +1493,7 @@ static int func_set_colormap(lua_State *L, void *dst, void *o)
 		}
 	} else
 	{
-		map->lump = 0;
+		map->lump = -1;
 		map->idx = 0;
 		map->data = NULL;
 		return 0;
@@ -1529,6 +1531,51 @@ static int func_get_colormap(lua_State *L, void *dst, void *o)
 		else
 			sprintf(temp, "%.8s", name);
 
+		lua_pushstring(L, temp);
+	} else
+		lua_pushstring(L, "-");
+
+	return 1;
+}
+
+// change fog in sector
+static int func_set_colorfog(lua_State *L, void *dst, void *o)
+{
+	char temp[8];
+	const char *src;
+	colormap_t *map = (colormap_t *)dst;
+
+	src = lua_tostring(L, -1);
+	if(*src == '-')
+	{
+		map->lump = -1;
+		map->idx = 0;
+		map->data = NULL;
+		return 0;
+	}
+
+	strncpy(temp, src, 8);
+	map->lump = W_GetNumForName(temp);
+	map->idx = 0;
+	map->data = W_CacheLumpNum(map->lump);
+
+	if(W_LumpLength(map->lump) < 256*32)
+		return luaL_error(L, "invalid colormap lump '%s'", src);
+
+	return 0;
+}
+
+// return fog in sector
+static int func_get_colorfog(lua_State *L, void *dst, void *o)
+{
+	colormap_t *map = (colormap_t *)dst;
+
+	if(map->data)
+	{
+		char *name;
+		char temp[16];
+		name = W_LumpNumName(map->lump);
+		sprintf(temp, "%.8s", name);
 		lua_pushstring(L, temp);
 	} else
 		lua_pushstring(L, "-");

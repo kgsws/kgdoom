@@ -67,6 +67,8 @@ fixed_t			cacheddistance[SCREENHEIGHT];
 fixed_t			cachedxstep[SCREENHEIGHT];
 fixed_t			cachedystep[SCREENHEIGHT];
 
+void *dc_fogmap;
+
 
 void R_ClearPlane(visplane_t *pl)
 {
@@ -148,7 +150,7 @@ R_MapPlane
 	if (index >= MAXLIGHTZ )
 	    index = MAXLIGHTZ-1;
 
-	dc_colormap = planezlight[index];
+	dc_colormap = dc_fogmap + (uint32_t)planezlight[index];
     }
 
     ds_y = y;
@@ -447,6 +449,10 @@ void R_DrawPlanes(fixed_t height)
 	planezlight = zlight[light];
 
 	dc_lightcolor = pl->colormap;
+	if(pl->fogmap)
+		dc_fogmap = pl->fogmap;
+	else
+		dc_fogmap = colormaps;
 
 	pl->top[pl->maxx+1] = 0x7fff;
 	pl->top[pl->minx-1] = 0x7fff;

@@ -487,7 +487,7 @@ Mobjs have all parameters copied from mobjtype when spawned. Most parameters can
   - See mobjtype.
   - String.
 - `colormap`
-  - See mobjtype.
+  - See `translation` in mobjtype.
   - String.
 Functions called from mobj. All functions are read only and can't be redefined.
 - `Remove()`
@@ -641,12 +641,39 @@ Player functions.
   - Start player flash animation with `offset` of frames skipped from original flash animation.
   - `offset` is integer.
 
-
-
-
-
-
-
+#### sector
+Sectors are part of the map. Most parameters can be modified on the fly.
+- `floorheight`
+  - Fixed point.
+- `ceilingheight`
+  - Fixed point.
+- `floorpic`
+  - Floor texture.
+  - String. Flat texture name.
+- `ceilingpic`
+  - Ceiling texture.
+  - String. Flat texture name.
+- `lightlevel`
+  - Integer. Range 0 - 255.
+- `special`
+  - Editor assigned special effect number.
+  - Integer. Range 0 - 65535.
+- `tag`
+  - Editor assigned sector tag.
+  - Integer. Range 0 - 65535.
+- `isSecret`
+  - If set to true, this sector will be considered secret.
+  - Intended to be set in level setup callback.
+  - Boolean.
+- `color`
+  - See `translation` in mobjtype.
+  - Sector colormap. This allows for custom colored lights.
+  - String.
+- `colormap`
+  - Similar to colormap, but it requires entire shading range.
+  - String.
+- `funcFloor`
+  - 
 
 
 

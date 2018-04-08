@@ -261,6 +261,8 @@ void P_LoadSectors (int lump)
 	ss->colormap.lump = colormap_lump;
 	ss->colormap.idx = 0;
 	ss->colormap.data = colormaps;
+	ss->fogmap.data = NULL;
+	ss->colormap.lump = -1;
     }
 	
 //    Z_Free (data);

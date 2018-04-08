@@ -409,7 +409,7 @@ R_DrawVisSprite
 		dc_colormap = fixedcolormap;
 		dc_lightcolor = colormaps;
 	} else
-	if(vis->mo->frame & FF_FULLBRIGHT)
+	if(vis->mo->frame & FF_FULLBRIGHT && !vis->mo->subsector->sector->fogmap.data)
 	{
 		// full bright
 		dc_colormap = colormaps;
@@ -422,6 +422,7 @@ R_DrawVisSprite
 		int lightnum = (vis->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT)+extralight;
 
 		dc_lightcolor = vis->mo->subsector->sector->colormap.data;
+		dc_colormap = vis->mo->subsector->sector->fogmap.data ? vis->mo->subsector->sector->fogmap.data : colormaps;
 
 		if(index >= MAXLIGHTSCALE) 
 			index = MAXLIGHTSCALE-1;
@@ -436,6 +437,8 @@ R_DrawVisSprite
 				{
 					lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
 					dc_lightcolor = pl->source->colormap.data;
+					if(pl->source->fogmap.data)
+						dc_colormap = pl->source->fogmap.data;
 					break;
 				}
 				pl = pl->next;
@@ -448,7 +451,7 @@ R_DrawVisSprite
 			spritelights = scalelight[LIGHTLEVELS-1];
 		else
 			spritelights = scalelight[lightnum];
-		dc_colormap = spritelights[index];
+		dc_colormap += (uint32_t)spritelights[index];
 	}
 
 	R_SetupRenderFunc(vis->mo->renderstyle, vis->mo->rendertable, vis->translation);
@@ -783,7 +786,8 @@ void R_DrawPSprite (pspdef_t* psp)
     else
     {
 	// local light
-	dc_colormap = spritelights[MAXLIGHTSCALE-1];
+	dc_colormap = viewplayer->mo->subsector->sector->fogmap.data ? viewplayer->mo->subsector->sector->fogmap.data : colormaps;
+	dc_colormap += (uint32_t)spritelights[MAXLIGHTSCALE-1];
     }
 
     R_DrawVisSprite (vis, vis->x1, vis->x2);
@@ -844,7 +848,7 @@ void R_DrawPlayerSprites (void)
 	spritelights = scalelight[LIGHTLEVELS-1];
     else
 	spritelights = scalelight[lightnum];
-    
+
     // clip to screen bounds
     mfloorclip = screenheightarray;
     mceilingclip = negonearray;

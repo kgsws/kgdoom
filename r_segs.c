@@ -75,6 +75,8 @@ lighttable_t**	walllights;
 
 short*		maskedtexturecol;
 
+void *dc_colormap_wall;
+
 // [kg] for 3D midtex stage
 extern int height_count;
 extern fixed_t height_top;
@@ -132,7 +134,7 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
 		if (index >=  MAXLIGHTSCALE )
 		    index = MAXLIGHTSCALE-1;
 
-		dc_colormap = walllights[index];
+		dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
 	    }
 			
 	    sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
@@ -204,6 +206,8 @@ R_RenderMaskedSegRange
 	walllights = scalelight[LIGHTLEVELS-1];
     else
 	walllights = scalelight[lightnum];
+
+    dc_colormap_wall = frontsector->fogmap.data ? frontsector->fogmap.data : colormaps;
 
     maskedtexturecol = ds->maskedtexturecol;
 
@@ -401,7 +405,7 @@ void R_RenderSegLoop (int horizon)
 	    if (index >=  MAXLIGHTSCALE )
 		index = MAXLIGHTSCALE-1;
 
-	    dc_colormap = walllights[index];
+	    dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}
@@ -540,7 +544,7 @@ void R_RenderSegLoopStripe()
 	    if (index >=  MAXLIGHTSCALE )
 		index = MAXLIGHTSCALE-1;
 
-	    dc_colormap = walllights[index];
+	    dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}
@@ -974,6 +978,8 @@ R_StoreWallRange
 		walllights = scalelight[LIGHTLEVELS-1];
 	    else
 		walllights = scalelight[lightnum];
+
+	    dc_colormap_wall = frontsector->fogmap.data ? frontsector->fogmap.data : colormaps;
 	}
     }
     
@@ -1102,12 +1108,14 @@ R_StoreWallRange
 				height = *pl->height;
 				lightlevel = *pl->lightlevel;
 				dc_lightcolor = pl->source->colormap.data;
+				dc_colormap_wall = pl->source->fogmap.data ? pl->source->fogmap.data : colormaps;
 			} else
 			{
 				// topmost level; take values from sector
 				height = frontsector->ceilingheight;
 				lightlevel = frontsector->lightlevel;
 				dc_lightcolor = frontsector->colormap.data;
+				dc_colormap_wall = frontsector->fogmap.data ? frontsector->fogmap.data : colormaps;
 			}
 
 			// check for ceiling
