@@ -4439,7 +4439,7 @@ static int LUA_sectorSetDamage(lua_State *L)
 
 	if(top == 1)
 	{
-		// source sector; required
+		// source sector; optional
 		sector_t *src = LUA_GetSectorParam(L, 1, false);
 		sec->damage = src->damage;
 		sec->damagetick = src->damagetick;

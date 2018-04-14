@@ -671,9 +671,163 @@ Sectors are part of the map. Most parameters can be modified on the fly.
   - String.
 - `colormap`
   - Similar to colormap, but it requires entire shading range.
+  - Used to create sector fog effects.
   - String.
 - `funcFloor`
-  - 
+  - See `generic callers`.
+  - Generic caller or nil.
+- `funcCeiling`
+  - See `generic callers`.
+  - Generic caller or nil.
+- `funcCustom`
+  - See `generic callers`.
+  - Generic caller or nil.
+Sector functions.
+- `FindLowestFloor()`
+  - Returns lowest floor around this sector.
+  - Returns fixed point.
+- `FindHighestFloor()`
+  - Returns highest floor around this sector.
+  - Returns fixed point.
+- `FindNextFloor()`
+  - Returns next highest floor around this sector.
+  - Returns fixed point.
+- `FindLowestCeiling()`
+  - Returns highest ceiling around this sector.
+  - Returns fixed point.
+- `FindHighestCeiling()`
+  - Returns highest ceiling around this sector.
+  - Returns fixed point.
+- `FindMaximalLight()`
+  - Returns highest light around this sector.
+  - Returns integer.
+- `FindMinimalLight()`
+  - Returns highest light around this sector.
+  - Returns integer.
+- `GetShortestTexture(location)`
+  - Returns shortest texture height from any sector double sided lines.
+  - Set `location` = `true` to use top texture or `false` to use bottom texture.
+  - Returns integer.
+- `GenericFloor(stopz, speed [, crush_speed [, start_sound [, stop_sound [, move_sound [, new_texture]]]]])`
+  - Add or replace generic floor movement for this sector.
+  - `stopz` is fixed point, target floor height.
+  - `speed` is fixed point, movement speed. Units per tic.
+  - `crush_speed` is fixed point for speed change when there is solid thing to crush.
+    - Crushing is optional, setting 0 or nil will make movement to stop.
+  - `*_sound` is sfx lump to play.
+  - `new_texture` is flat texture to set after movement finished.
+  - Returns generic caller.
+- `GenericCeiling(stopz, speed [, crush_speed [, start_sound [, stop_sound [, move_sound [, new_texture]]]]])`
+  - See `GenericFloor`. Similar but handles ceiling movement.
+- `GenericCaller(ticrate, func [, arg])`
+  - Create generic caller for this sector. Uses `custom` slot.
+  - Calls a callback `func` with optional argument `arg` every `ticrate` tics.
+  - Callback should be function defined as `somecb(sector)` or `somecb(sector, arg)`.
+    - Callback can return `false` to be stopped and removed.
+  - Two other variants exists. `GenericCallerFloor` and `GenericCallerCeiling`, each for its corresponding slot.
+  - Returns generic caller.
+- `ThingIterator(func [, arg])`
+  - Calls a callback `func` with optional argument `arg` for every `mobj` in this sector.
+  - Callback should be function defined as `somecb(mobj)` or `somecb(mobj, arg)`.
+  - If callback returns `false`, iteration will stop and any other return values will get returned by `ThingIterator` itself.
+- `LineIterator(func [, arg])`
+  - Calls a callback `func` with optional argument `arg` for every `line` this sector has.
+  - Callback should be function defined as `somecb(line)` or `somecb(line, arg)`.
+  - If callback returns `false`, iteration will stop and any other return values will get returned by `LineIterator` itself.
+- `SetDamage(damage, damage_type, ticrate [, in_air])`
+- `SetDamage(source_sector)`
+  - Make this sector damaging.
+  - `damage` is amount per `ticrate`.
+  - `damage_type` is type of damage. See `damage types`
+  - If `in_air` is `true`, any `mobj` will get damaged even when not touching this sector floor.
+  - If `source_sector` is used, all parameters are copied from source sector instead.
+- `AddFloor(sector_model, line_model [, blocking])`
+  - Add 3D floor to this sector.
+  - `sector_model` model for added 3D planes. Keep in mind that ceiling and floor is inverted.
+  - `line_model` is model for added 3D sides. Also, rederstyle from this line is copied to 3D planes.
+  - `blocking` is optional, defaults to 0xFFFF. See `blocking`.
+- `SoundBody(...)` `SoundWeapon(...)` `SoundPickup(...)`
+  - See same functions for `mobj`.
+
+#### line
+Lines are part of the map. Most parameters can be modified on the fly.
+In Doom, many lines have two sides. Each side has unique texture slots.
+Access to specific side is controled by `side`.
+- `side`
+  - This variable is used to select which side to access.
+  - `true` for front side, `false` for back side.
+  - Boolean.
+- `midtexture`
+  - Currently selected sides middle texture.
+  - String. Wall texture.
+- `toptexture`
+  - Currently selected sides top texture.
+  - String. Wall texture.
+- `bottexture`
+  - Currently selected sides bottom texture.
+  - String. Wall texture.
+- `special`
+  - Line special.
+  - Integer.
+- `arg0` `arg1` `arg2` `arg3` `arg4`
+  - Line special arguments.
+  - These can be set in Hexen map format only, but can be used in Doom format.
+- `tag`
+  - Line tag.
+  - This can be set in Doom map format only, but can be used in Hexen format.
+- `render`
+  - Line render style. See `render` in `mobjtype`.
+- `horizon`
+  - If set `true` this line is rendered as an infinite horizon. Floor and ceiling will stretch to infinity.
+  - Can be used only on single sided lines.
+  - Boolean.
+- `sectorFront`
+  - Front sector from perspective of current `side`.
+  - Sector. Read only.
+- `sectorBack`
+  - Back sector from perspective of current `side`.
+  - Sector. Read only.
+- `frontsector`
+  - Front sector of this line.
+  - Sector. Read only.
+- `backsector`
+  - Front sector of this line.
+  - Sector. Read only.
+- `func`
+  - Current `side` caller.
+  - See `line side callers`.
+  - Line side caller.
+- `funcFront`
+  - Front side caller
+  - See `line side callers`.
+  - Line side caller.
+- `funcBack`
+  - Back side caller.
+  - See `line side callers`.
+  - Line side caller.
+Line functions.
+- `SetScroller(x, y [, side])`
+  - Add `line side caller` with texture scrolling effect.
+  - `x` and `y` are relative offsets added every tic.
+  - Optional `side` can be used to specify line `side`. Otherwise current `side` is used.
+  - Returs `line side caller`.
+- `DoButton([sound_press [, sound_release [, release_tics]]])`
+  - Do button texture swap effect on current line `side`. See `switch textures`.
+    - Nothing will happen if line does not have `switch texture`.
+  - If special is not zero, button will be "unpressed" later.
+    - Note: In Hexen map format, special will be automaticaly cleared if line is not repeatable.
+  - `sound_press` use sound. String, sfx lump.
+  - `sound_release` release sound. String, sfx lump.
+  - `release_tics` time to "unpress" this button. Integer, default 35.
+- `SoundBody(...)` `SoundWeapon(...)` `SoundPickup(...)`
+  - See same functions for `mobj`.
+
+
+
+
+
+
+
 
 
 
