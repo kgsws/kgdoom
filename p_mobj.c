@@ -675,8 +675,8 @@ P_SpawnMobj
     mobj->blocking = info->blocking;
     mobj->canpass = info->canpass;
     mobj->translation = info->translation;
-    mobj->renderstyle = info->renderstyle;
-    mobj->rendertable = info->rendertable;
+    mobj->render.renderstyle = info->render.renderstyle;
+    mobj->render.rendertable = info->render.rendertable;
     memcpy(mobj->damagescale, mobj->info->damagescale, NUMDAMAGETYPES);
 
     // [kg] unique ID

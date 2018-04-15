@@ -421,7 +421,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"icon", offsetof(mobjinfo_t, icon), LUA_TSTRING, func_set_lumpname_optional, func_get_lumpname},
 	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
 	{"translation", offsetof(mobjinfo_t, translation), LUA_TSTRING, func_set_colormap, func_get_colormap},
-	{"render", offsetof(mobjinfo_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
+	{"render", offsetof(mobjinfo_t, render), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(mobjinfo_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
 	{"action_crash", offsetof(mobjinfo_t, crash_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
@@ -485,7 +485,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"tag", offsetof(mobj_t, tag), LUA_TNUMBER},
 	{"speed", offsetof(mobj_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"mass", offsetof(mobj_t, mass), LUA_TNUMBER},
-	{"render", offsetof(mobj_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
+	{"render", offsetof(mobj_t, render), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"block", offsetof(mobj_t, blocking), LUA_TNUMBER},
 	{"pass", offsetof(mobj_t, canpass), LUA_TNUMBER},
 	// read only
@@ -603,7 +603,7 @@ static const lua_table_model_t lua_linedef[] =
 	{"arg3", offsetof(line_t, arg)+3, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"arg4", offsetof(line_t, arg)+4, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"tag", offsetof(line_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
-	{"render", offsetof(line_t, renderstyle), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
+	{"render", offsetof(line_t, render), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"horizon", 0, LUA_TBOOLEAN, func_set_line_horizon, func_get_line_horizon},
 	// sectors
 	{"sectorFront", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorF},
@@ -2091,40 +2091,36 @@ static int func_get_lumpname(lua_State *L, void *dst, void *o)
 
 static int func_set_renderstyle(lua_State *L, void *dst, void *o)
 {
-	uint8_t **table;
-	int *style;
+	render_t *render = dst;
 	const char *tmp;
-
-	style = dst;
-	table = (dst + sizeof(int));
 
 	tmp = lua_tostring(L, -1);
 
 	if(!strcmp(tmp, "!NORMAL"))
 	{
-		*style = RENDER_NORMAL;
-		*table = NULL;
+		render->renderstyle = RENDER_NORMAL;
+		render->rendertable = NULL;
 		return 0;
 	}
 
 	if(!strcmp(tmp, "!SHADOW"))
 	{
-		*style = RENDER_SHADOW;
-		*table = NULL;
+		render->renderstyle = RENDER_SHADOW;
+		render->rendertable = NULL;
 		return 0;
 	}
 
 	if(!strcmp(tmp, "!HOLEY0"))
 	{
-		*style = RENDER_HOLEY0;
-		*table = NULL;
+		render->renderstyle = RENDER_HOLEY0;
+		render->rendertable = NULL;
 		return 0;
 	}
 
 	if(!strcmp(tmp, "!HOLEY1"))
 	{
-		*style = RENDER_HOLEY1;
-		*table = NULL;
+		render->renderstyle = RENDER_HOLEY1;
+		render->rendertable = NULL;
 		return 0;
 	}
 
@@ -2133,13 +2129,9 @@ static int func_set_renderstyle(lua_State *L, void *dst, void *o)
 
 static int func_get_renderstyle(lua_State *L, void *dst, void *o)
 {
-	uint8_t **table;
-	int *style;
+	render_t *render = dst;
 
-	style = dst;
-	table = (dst + sizeof(int));
-
-	switch(*style)
+	switch(render->renderstyle)
 	{
 		case RENDER_NORMAL:
 			lua_pushstring(L, "!NORMAL");

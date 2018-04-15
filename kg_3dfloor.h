@@ -22,8 +22,7 @@ typedef struct extraplane_s
 	// hitscan
 	boolean hitover;
 	// renderer
-	int *renderstyle;
-	uint8_t **rendertable;
+	render_t *render;
 } extraplane_t;
 
 extern boolean fakeclip;

@@ -48,7 +48,9 @@ R_FindPlane
 ( fixed_t	height,
   int		picnum,
   int		lightlevel,
-  void		*colormap );
+  void		*colormap,
+  void		*fogmap,
+  render_t	*render);
 
 visplane_t*
 R_CheckPlane

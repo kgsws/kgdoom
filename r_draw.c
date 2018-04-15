@@ -475,17 +475,17 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 	{
 		case RENDER_SHADOW:
 			colfunc = R_DrawFuzzColumn;
-//			spanfunc = R_DrawSpanShadow;
+			spanfunc = R_DrawSpanShadow;
 		break;
 		case RENDER_HOLEY0:
 			colfunc = R_DrawColumnHoley;
 			dc_holestep = 0;
-//			spanfunc = R_DrawSpan; // TODO
+			spanfunc = R_DrawSpan; // TODO
 		break;
 		case RENDER_HOLEY1:
 			colfunc = R_DrawColumnHoley;
 			dc_holestep = 1;
-//			spanfunc = R_DrawSpan; // TODO
+			spanfunc = R_DrawSpan; // TODO
 		break;
 		default:
 			if(translation)
@@ -494,7 +494,7 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 				colfunc = R_DrawTranslatedColumn;
 			} else
 				colfunc = R_DrawColumn;
-//			spanfunc = R_DrawSpan; // TODO
+			spanfunc = R_DrawSpan; // TODO
 		break;
 	}
 }

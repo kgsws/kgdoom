@@ -59,8 +59,7 @@ extraplane_t *e3d_AddFloorPlane(extraplane_t **dest, sector_t *sec, line_t *line
 	new->lightlevel = &sec->lightlevel;
 	new->validcount = 0;
 	new->blocking = block;
-	new->renderstyle = &line->renderstyle;
-	new->rendertable = &line->rendertable;
+	new->render = &line->render;
 
 	return new;
 }
@@ -88,8 +87,7 @@ extraplane_t *e3d_AddCeilingPlane(extraplane_t **dest, sector_t *sec, line_t *li
 	new->lightlevel = &sec->lightlevel;
 	new->validcount = 0;
 	new->blocking = block;
-	new->renderstyle = &line->renderstyle;
-	new->rendertable = &line->rendertable;
+	new->render = &line->render;
 
 	return new;
 }
@@ -108,8 +106,7 @@ void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line, int block)
 			// already added; change blocking and line
 			pl->line = line;
 			pl->blocking = block;
-			pl->renderstyle = &line->renderstyle;
-			pl->rendertable = &line->rendertable;
+			pl->render = &line->render;
 			// do this for ceiling too
 			pl = dst->exceiling;
 			while(pl)
@@ -118,8 +115,7 @@ void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line, int block)
 				{
 					pl->line = line;
 					pl->blocking = block;
-					pl->renderstyle = &line->renderstyle;
-					pl->rendertable = &line->rendertable;
+					pl->render = &line->render;
 				}
 				pl = pl->next;
 			}

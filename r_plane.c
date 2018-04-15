@@ -203,7 +203,9 @@ R_FindPlane
 ( fixed_t	height,
   int		picnum,
   int		lightlevel,
-  void		*colormap)
+  void		*colormap,
+  void		*fogmap,
+  render_t	*render)
 {
     visplane_t*	check;
     int is3d = !!fakeplane;
@@ -222,8 +224,12 @@ R_FindPlane
 	    && lightlevel == check->lightlevel
 	    // [kg] colormap
 	    && colormap == check->colormap
+	    // [kg] fogmap
+	    && fogmap == check->fogmap
 	    // [kg] 3D planes
 	    && is3d == check->is3d
+	    // [kg] render style; TODO: table check
+	    && render->renderstyle == check->render.renderstyle
 	)
 	{
 	    break;
@@ -242,6 +248,9 @@ R_FindPlane
     check->picnum = picnum;
     check->lightlevel = lightlevel;
     check->colormap = colormap;
+    check->fogmap = fogmap;
+    check->render.renderstyle = render->renderstyle;
+    check->render.rendertable = render->rendertable;
     check->minx = SCREENWIDTH;
     check->maxx = -1;
     check->is3d = is3d;
@@ -308,6 +317,7 @@ R_CheckPlane
     lastvisplane->picnum = pl->picnum;
     lastvisplane->lightlevel = pl->lightlevel;
     lastvisplane->colormap = pl->colormap;
+    lastvisplane->fogmap = pl->fogmap;
     lastvisplane->is3d = pl->is3d;
 
     if (lastvisplane - visplanes == MAXVISPLANES)
@@ -453,6 +463,8 @@ void R_DrawPlanes(fixed_t height)
 		dc_fogmap = pl->fogmap;
 	else
 		dc_fogmap = colormaps;
+
+	R_SetupRenderFunc(pl->render.renderstyle, pl->render.rendertable, NULL);
 
 	pl->top[pl->maxx+1] = 0x7fff;
 	pl->top[pl->minx-1] = 0x7fff;

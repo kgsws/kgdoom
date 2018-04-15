@@ -116,8 +116,7 @@ typedef struct
 
 	// [kg] renderer
 	colormap_t translation;
-	int renderstyle;
-	uint8_t *rendertable;
+	render_t render;
 
 	// [kg] damage resistance
 	int damagetype;

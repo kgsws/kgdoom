@@ -320,8 +320,7 @@ typedef struct mobj_s
     colormap_t	colormap;
 
     // [kg] renderer
-    int renderstyle;
-    uint8_t *rendertable;
+    render_t render;
 
     // [kg] inventory
     struct inventory_s *inventory;

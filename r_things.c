@@ -454,12 +454,12 @@ R_DrawVisSprite
 		dc_colormap += (uint32_t)spritelights[index];
 	}
 
-	R_SetupRenderFunc(vis->mo->renderstyle, vis->mo->rendertable, vis->translation);
+	R_SetupRenderFunc(vis->mo->render.renderstyle, vis->mo->render.rendertable, vis->translation);
 
     } else
     {
 	mobj_t *mo = viewplayer->mo;
-	R_SetupRenderFunc(mo->renderstyle, mo->rendertable, NULL); // TODO: mo->translation.data; enable weapon recoloring?
+	R_SetupRenderFunc(mo->render.renderstyle, mo->render.rendertable, NULL); // TODO: mo->translation.data; enable weapon recoloring?
     }
 
     dc_iscale = abs(vis->xiscale);
@@ -766,7 +766,7 @@ void R_DrawPSprite (pspdef_t* psp)
 
     vis->patch = lump;
 
-    if (viewplayer->mo->renderstyle == RENDER_SHADOW)
+    if (viewplayer->mo->render.renderstyle == RENDER_SHADOW)
     {
 	// shadow draw
 	dc_colormap = NULL;

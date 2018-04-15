@@ -523,6 +523,7 @@ boolean R_CheckBBox (fixed_t*	bspcoord)
 //
 void R_Subsector (int num)
 {
+	static render_t render_normal = {RENDER_NORMAL, NULL};
 	static sector_t fakeback;
 	int		count;
 	seg_t*		line;
@@ -545,6 +546,9 @@ void R_Subsector (int num)
 	{
 		fixed_t lightlevel;
 		void *colormap;
+		void *fogmap;
+		render_t *render;
+
 		if(*pl->height < frontsector->floorheight && frontsector->floorpic != skyflatnum)
 		{
 			pl = pl->next;
@@ -561,13 +565,17 @@ void R_Subsector (int num)
 		{
 			lightlevel = *pl->next->lightlevel;
 			colormap = pl->next->source->colormap.data;
+			fogmap = pl->next->source->fogmap.data;
+			render = pl->render;
 		} else
 		{
 			lightlevel = frontsector->lightlevel;
 			colormap = frontsector->colormap.data;
+			fogmap = frontsector->fogmap.data;
+			render = pl->render;
 		}
 		fakeplane = pl;
-		floorplane = R_FindPlane(*pl->height, *pl->pic, lightlevel, colormap);
+		floorplane = R_FindPlane(*pl->height, *pl->pic, lightlevel, colormap, fogmap, render);
 		if(floorplane)
 		{
 			e3d_NewHeight(*pl->height);
@@ -604,7 +612,7 @@ void R_Subsector (int num)
 			continue;
 		}
 		fakeplane = pl;
-		ceilingplane = R_FindPlane(*pl->height, *pl->pic, *pl->lightlevel, pl->source->colormap.data);
+		ceilingplane = R_FindPlane(*pl->height, *pl->pic, *pl->lightlevel, pl->source->colormap.data, pl->source->fogmap.data, pl->render);
 		if(ceilingplane)
 		{
 			e3d_NewHeight(*pl->height);
@@ -634,6 +642,7 @@ void R_Subsector (int num)
 		// [kg] go trough 3D floors to find correct light level
 		fixed_t lightlevel = frontsector->lightlevel;
 		void *colormap = frontsector->colormap.data;
+		void *fogmap = frontsector->fogmap.data;
 
 		pl = frontsector->exfloor;
 		while(pl)
@@ -642,19 +651,20 @@ void R_Subsector (int num)
 			{
 				lightlevel = *pl->lightlevel;
 				colormap = pl->source->colormap.data;
+				fogmap = pl->source->fogmap.data;
 				break;
 			}
 			pl = pl->next;
 		}
 
-		floorplane = R_FindPlane (frontsector->floorheight, frontsector->floorpic, lightlevel, colormap);
+		floorplane = R_FindPlane (frontsector->floorheight, frontsector->floorpic, lightlevel, colormap, fogmap, &render_normal);
 	} else
 		floorplane = NULL;
 
 
 	if(frontsector->ceilingheight > viewz || frontsector->ceilingpic == skyflatnum)
 	{
-		ceilingplane = R_FindPlane (frontsector->ceilingheight, frontsector->ceilingpic, frontsector->lightlevel, frontsector->colormap.data);
+		ceilingplane = R_FindPlane (frontsector->ceilingheight, frontsector->ceilingpic, frontsector->lightlevel, frontsector->colormap.data, frontsector->fogmap.data, &render_normal);
 	} else
 		ceilingplane = NULL;
 

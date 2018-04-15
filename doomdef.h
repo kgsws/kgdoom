@@ -185,6 +185,12 @@ enum
 	RENDER_HOLEY1
 };
 
+typedef struct
+{
+	int renderstyle;
+	uint8_t *rendertable;
+} render_t;
+
 // [kg] custom colormaps
 typedef struct
 {

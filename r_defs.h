@@ -222,8 +222,7 @@ typedef struct line_s
     void*	specialdata[2];
 
     // [kg] renderer
-    int renderstyle;
-    uint8_t *rendertable;
+    render_t render;
 
 } line_t;
 
@@ -489,8 +488,7 @@ typedef struct
   // [kg] fog color
   void *fogmap;
   // [kg] renderer
-  int renderstyle;
-  uint8_t *rendertable;
+  render_t render;
 
   // leave pads for [minx-1]/[maxx+1]
   
