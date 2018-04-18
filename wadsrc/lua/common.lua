@@ -221,6 +221,8 @@ function mapLoaded()
 		egg_target = nil
 		egg_count = 0
 		fakeContrast(false)
+	else
+		fakeContrast(true)
 	end
 end
 

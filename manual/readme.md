@@ -55,6 +55,8 @@ Only callbacks and action functions are called.
 
 ###### Beware
 The is a weird bug(?) in Lua itself. If you make a syntax error, you will get `attempt to call a string value` error, which is not helpful at all.
+The only Lua libraries available are `table`, `math` and `string`.
+To make save games possible, do not store anything related to gamestate in global variables. Use provided fields in available API types.
 
 ### API
 #### inventory & armor
@@ -83,7 +85,7 @@ The is a weird bug(?) in Lua itself. If you make a syntax error, you will get `a
 ###### Loading stage
 - function `createMobjType(table)`
   - Table should contain everything required to describe mobj type.
-  - See Lua scripts in kgdoom.wad file.
+  - See Lua scripts in kgdoom.wad file, available in plaintext in `wadsrc/lua`.
   - See mobjtype section for list of properties.
   - Returns newly created mobjtype.
 - function `setPlayerType(mobjtype)`
@@ -148,7 +150,8 @@ The is a weird bug(?) in Lua itself. If you make a syntax error, you will get `a
 #### mobj states
 There are few animations that every mobjtype can have. Only spawn state has meaning for all of them, as it is state it gets set to on level load.
 Other animations depend on flag combinations. Unused states can be used in any way you wish.
-Animations are always specified as `_animName`
+Animations are always specified as `_animName`.
+Animations are creaded from one or more frames. Every frame can optionaly call any function with this `mobj` as argument.
 - `_spawn`
   - Basic animation for all mobjs.
 - `_see`
@@ -351,7 +354,7 @@ Mobjtype can contain these parameters. Default 0 / none, unless specified otherw
   - Function or nil.
 - `arg`
   - Argument for `action`.
-  - Anything Lua type.
+  - Any Lua type.
 - `action_crash`
   - Function to call when mobj hits floor (falls down). Callback should be defined as `somecb(thing)`. Used on player for fall down sound effect.
   - Function or nil.
@@ -822,29 +825,143 @@ Line functions.
 - `SoundBody(...)` `SoundWeapon(...)` `SoundPickup(...)`
   - See same functions for `mobj`.
 
+#### generic caller
+Generic callers are either plane movement functions, or sector bound periodic function caller.
+Every sector has 3 slots for generic callers. Two of these are reserved for planes (floor and ceiling).
+Movement functions are one-go, meaning caller will be removed and its `action` called, if any, when movement finished.
+You can start new movement in callback `action` for same sector. Doom uses it for permanet crushers.
+- `sector`
+  - Sector this caller is bound to. This will always be first callback parameter.
+  - Sector. Read only.
+- `ticrate`
+  - Ticrate for function caller. Can be modified for extra effects.
+  - Integer. Available for function caller only.
+- `action`
+  - Callback function.
+  - Callback should be function defined as `somecb(sector)` or `somecb(sector, arg)`.
+  - For plane movement, `action` is called when movement ends.
+  - For caller, `action` is called every `ticrate` tics. Callback can return `false` to be stopped and removed.
+- `arg`
+  - Argument for `action`.
+  - Any Lua type.
+- `crush`
+  - Callback function. Should be defined as `somecb(thing, self)` where `self` is `generic caller` that caused it.
+  - This callback will be called when plane movement is about to crush a `__solid` thing.
+    - This will be only called on things that won't fit new sector height difference.
+  - Available for plane movement caller only.
+- `isFloor`
+  - Set to `true` if this caller is floor plane movement.
+  - Boolean. Read only.
+- `isCeiling`
+  - Set to `true` if this caller is ceiling plane movement.
+  - Boolean. Read only.
+- `isCaller`
+  - Set to `true` if this caller is generic function caller.
+  - Boolean. Read only.
+- `isSuspended`
+  - Set to `true` if this caller is paused.
+  - Boolean. Read only.
+- `isRaising`
+  - Set to `true` if plane is moving up.
+  - Boolean. Read only.
+- `isLowering`
+  - Set to `true` if plane is moving down.
+  - Boolean. Read only.
+Functions.
+- `Stop()`
+  - Stop and destroy this caller. No callback will be called.
+- `Suspend(susp)`
+  - Set `susp` to `true` to suspend this caller.
+  - Set `susp` to `false` to wake up this caller.
+  - Suspended callers do nothing, but are still present with all settings left intact.
+- `Reverse()`
+  - Reverse plane movement direction. New destination is origin now.
+  - Used for example in Doom doors in `crush` callback.
+  - Available for plane movement caller only.
+
+#### line side caller
+Similar to generic caller but bound to line side instead of sector.
+Currently, there is only texture scoller.
+- `x`
+  - Amount to scroll in `x` direction.
+  - Fixed point.
+- `y`
+  - Amount to scroll in `y` direction.
+  - Fixed point.
+Functions.
+- `Stop()`
+  - Stop and remove this caller.
+
+### global callbacks
+There are few callbacks that are expected to exist as global Lua functions.
+- `mapLoaded()`
+  - This callback is called everytime new map is loaded, including all things and spawned players.
+- `playerSpawn(player)`
+  - `player` is cause of this callback.
+  - This callback is called everytime player respawns - new player or dead player.
+  - This won't be called on level transition sice player is considered already spawned.
+  - Basic player inventory is ussualy setup here.
+  - Beware! Players can spawn even before other map things. This function can get called before map is fully loaded.
+
+### global variables
+Global variable `a` contains few hardcoded action functions. These are intended to be used in mobj states.
+This table is writable and functions can be added or replaced.
+- `Look`
+  - Used for enemy logic.
+  - Check if monster can see or hear enemy player. If so, jumps to `_see` animation.
+- `Chase`
+  - Used for enemy logic. Almost original Doom monster logic.
+  - Atempt to move `mobj` to it's `target`.
+  - Randomly plays `activeSound` and jums to `_missile` animation, if defined.
+  - Jumps to `_melee` animation if defined and close enough to `target`.
+  - Jumps to `_spawn` animation if `target` is not valid thing to kill.
+- `Fall`
+  - Unset `__solid` flag.
+- `FaceTarget`
+  - Set `angle` and `pitch` to aim at `target`.
+- `SoundSee` `SoundAttack` `SoundPain` `SoundActive` `SoundDeath` `SoundXDeath`
+  - Play specified sound slot at `body` channel.
+- `WeaponRaise`
+  - Weapon rising, should be used in `_wRaise` animation.
+- `WeaponReady`
+  - Weapon ready to shoot. Should be used in `_wReady` animation.
+- `WeaponReadyForced`
+  - Same as `WeaponReady` but player can't change weapon.
+- `WeaponLower`
+  - Weapon lowering. Should be used in `_wLower` animation.
+- `WeaponFlash`
+  - Start weapon flash animation. Limited alternative to `WeaponFlash` function for `player`.
+- `WeaponRefire`
+  - Refire this weapon.
+  - Refire calls are counted and count is available in `player` as `refire` integer.
+  - Usually used to make constant firing inaccurate.
+- `NoiseAlert`
+  - Alert listening monsters.
+
+Global variable `game` contains various game state information.
+This table is read only and its variables too.
+- `map`
+  - String. Current map name.
+- `time`
+  - Integer. Number of tics elapsed from lever start.
+- `DoomExit(secret)`
+  - Function to exit level doom way. Levels are ordered as in original Doom. Depends on game IWAD.
+  - Set `secret` for secret exit.
+- `Exit(map_lump)`
+  - Exit to any level named by string `map_lump`.
+  - This should be primary way to exit custom games.
+  - This won't affect Doom ordering. For Doom ordering it is like `Exit` was never called.
+- `deathMatch`
+  - Boolean, set to `true` if game is deathmatch.
+- `doomEpisode`
+  - Integer, current doom episode.
+  - Used in Doom Lua scripts.
+
+### sound channels
+Every sound source has multiple sound channels. Every channel can play single sound at a time.
+Use different channels to play multiple sounds from same source.
+Channels are: `body` `weapon` and `pickup`.
 
 
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-# To be continued ...
+##### I hope that's all
+Keep in mind this is beta release and some API might change. I am open to API suggestions.

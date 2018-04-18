@@ -22,7 +22,7 @@ typedef struct
 {
 	sector_t *sector;
 	int ticrate;
-	int curtics;	
+	int curtics;
 } generic_call_t;
 
 typedef struct
