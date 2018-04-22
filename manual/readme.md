@@ -474,6 +474,9 @@ Mobjs have all parameters copied from mobjtype when spawned. Most parameters can
 - `pass`
   - See mobjtype.
   - Integer, 16 bit only.
+- `attacktype`
+  - Last damage type dealed to this thing. Best used in `_pain`, `_death` or `_xdeath` animation.
+  - Integer. See `damage types`.
 - `x` `y` `z`
   - Current mobj position.
   - Fixed point. Read only.
@@ -838,14 +841,16 @@ You can start new movement in callback `action` for same sector. Doom uses it fo
   - Integer. Available for function caller only.
 - `action`
   - Callback function.
-  - Callback should be function defined as `somecb(sector)` or `somecb(sector, arg)`.
+  - For plane movement, callback should be function defined as `somecb(sector)` or `somecb(sector, arg)`.
+  - For generic caller, callback should be function defined as `somecb(self)` or `somecb(self, arg)` where `self` is `generic caller` that caused it.
   - For plane movement, `action` is called when movement ends.
   - For caller, `action` is called every `ticrate` tics. Callback can return `false` to be stopped and removed.
+    - Caller can be replaced with another one in its own callback.
 - `arg`
   - Argument for `action`.
   - Any Lua type.
 - `crush`
-  - Callback function. Should be defined as `somecb(thing, self)` where `self` is `generic caller` that caused it.
+  - Callback function. Should be defined as `somecb(thing, self)` or `somecb(thing, self, arg)` where `self` is `generic caller` that caused it.
   - This callback will be called when plane movement is about to crush a `__solid` thing.
     - This will be only called on things that won't fit new sector height difference.
   - Available for plane movement caller only.

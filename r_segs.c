@@ -135,8 +135,9 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
 		    index = MAXLIGHTSCALE-1;
 
 		dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
-	    }
-			
+	    } else
+		dc_colormap = fixedcolormap;
+
 	    sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
 	    dc_iscale = 0xffffffffu / (unsigned)spryscale;
 
@@ -405,7 +406,10 @@ void R_RenderSegLoop (int horizon)
 	    if (index >=  MAXLIGHTSCALE )
 		index = MAXLIGHTSCALE-1;
 
-	    dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
+	    if(fixedcolormap)
+		dc_colormap = fixedcolormap;
+	    else
+		dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}

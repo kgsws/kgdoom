@@ -29,9 +29,11 @@ int		numwads;
 // LUMP BASED ROUTINES.
 //
 
+#define LOADSIZE	393216
+
 void W_LoadWad(const char *name)
 {
-	int wadsize;
+	// TODO: WAD checks (size, lumps, ID)
 
 	if(numwads == MAXWADS)
 		I_Error("W_Init: too many wads");
@@ -41,33 +43,29 @@ void W_LoadWad(const char *name)
 	if(!f)
 		I_Error("W_Init: can't open WAD '%s'", name);
 
-	fseek(f, 0, SEEK_END);
-	wadsize = ftell(f);
-	fseek(f, 0, SEEK_SET);
+	wadbuf[numwads] = Z_Malloc(LOADSIZE, PU_STATIC, NULL);
 
-	wadbuf[numwads] = Z_Malloc(wadsize, PU_STATIC, NULL);
-
-#ifdef VIDEO_STDOUT
 	{
 		uint8_t *dst = wadbuf[numwads];
 		printf("%s:\n", name);
 #ifdef LINUX
 		fflush(stdout);
 #endif
-		while(wadsize)
+		while(1)
 		{
-			int get = wadsize > 393216 ? 393216 : wadsize;
-			fread(dst, 1, wadsize, f);
-			dst += get;
-			wadsize -= get;
+			int got;
+			got = fread(dst, 1, LOADSIZE, f);
+			dst += got;
+#ifdef VIDEO_STDOUT
 			T_PutChar('.');
 			I_FinishUpdate();
+#endif
+			if(got < LOADSIZE)
+				break;
+			Z_Enlarge(wadbuf[numwads], LOADSIZE);
 		}
 		T_PutChar('\n');
 	}
-#else
-	fread(wadbuf[numwads], 1, wadsize, f);
-#endif
 
 	fclose(f);
 

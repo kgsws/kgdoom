@@ -488,6 +488,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"render", offsetof(mobj_t, render), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"block", offsetof(mobj_t, blocking), LUA_TNUMBER},
 	{"pass", offsetof(mobj_t, canpass), LUA_TNUMBER},
+	{"attacktype", offsetof(mobj_t, damagercv), LUA_TNUMBER},
 	// read only
 	{"x", offsetof(mobj_t, x), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
 	{"y", offsetof(mobj_t, y), LUA_TNUMBER, func_set_readonly, func_get_fixedt},
