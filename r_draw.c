@@ -52,11 +52,14 @@ uint8_t *dc_translation; // this is color remap (for sprites)
 uint8_t *dc_lightcolor; // this is sector light color
 
 // first pixel in a column (possibly virtual) 
-byte*			dc_source;
+byte*	dc_source;
 int	dc_src_height;
 
 // just for profiling 
 int			dccount;
+
+// for wall textured planes
+int dc_texture;
 
 //
 // A column is a vertical slice/span from a wall texture that,
@@ -396,6 +399,53 @@ void R_DrawSpan (void)
     } while (count--); 
 }
 
+// draw span from wall texture
+void R_DrawSpanWall (void)
+{ 
+    fixed_t		xfrac;
+    fixed_t		yfrac; 
+    byte*		dest;
+    byte*		src;
+    int			count;
+
+#ifdef RANGECHECK 
+    if (ds_x2 < ds_x1
+	|| ds_x1<0
+	|| ds_x2>=SCREENWIDTH  
+	|| (unsigned)ds_y>SCREENHEIGHT)
+    {
+	I_Error( "R_DrawSpan: %i to %i at %i",
+		 ds_x1,ds_x2,ds_y);
+    }
+//	dscount++; 
+#endif 
+
+    
+    xfrac = ds_xfrac; 
+    yfrac = ds_yfrac; 
+	 
+    dest = ylookup[ds_y] + columnofs[ds_x1];
+
+    // We do not check for zero spans here?
+    count = ds_x2 - ds_x1; 
+
+    do 
+    {
+	// Current texture index in u,v.
+	src = R_GetColumn(dc_texture, (xfrac>>16));
+
+	// Lookup pixel from flat texture tile,
+	//  re-index using light/colormap.
+	*dest++ = dc_colormap[dc_lightcolor[src[((yfrac>>16) % dc_src_height)]]];
+
+	// Next step in u,v.
+	xfrac += ds_xstep; 
+	yfrac += ds_ystep;
+	
+    } while (count--); 
+}
+
+// draw shadow span
 void R_DrawSpanShadow (void)
 { 
     byte*		dest; 
@@ -468,6 +518,7 @@ R_InitBuffer
 //
 // [kg] setup correct rendering function
 //
+
 void R_SetupRenderFunc(int style, void *table, void *translation)
 {
 	// TODO: translation for effects (holey)
@@ -475,17 +526,14 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 	{
 		case RENDER_SHADOW:
 			colfunc = R_DrawFuzzColumn;
-			spanfunc = R_DrawSpanShadow;
 		break;
 		case RENDER_HOLEY0:
 			colfunc = R_DrawColumnHoley;
 			dc_holestep = 0;
-			spanfunc = R_DrawSpan; // TODO
 		break;
 		case RENDER_HOLEY1:
 			colfunc = R_DrawColumnHoley;
 			dc_holestep = 1;
-			spanfunc = R_DrawSpan; // TODO
 		break;
 		default:
 			if(translation)
@@ -494,7 +542,33 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 				colfunc = R_DrawTranslatedColumn;
 			} else
 				colfunc = R_DrawColumn;
+		break;
+	}
+}
+
+void R_SetupRenderFuncSpan(uint32_t texture, int style, void *table, void *translation)
+{
+	// TODO: holey & translated rendering
+	boolean is_wall = (texture >> 24) == 15;
+	if(is_wall)
+		I_Error("unfinished feature");
+	else
+		dc_source = W_CacheLumpNum(texture);
+	switch(style)
+	{
+		case RENDER_SHADOW:
+			spanfunc = R_DrawSpanShadow;
+		break;
+		case RENDER_HOLEY0:
+			dc_holestep = 0;
 			spanfunc = R_DrawSpan; // TODO
+		break;
+		case RENDER_HOLEY1:
+			dc_holestep = 1;
+			spanfunc = R_DrawSpan; // TODO
+		break;
+		default:
+			spanfunc = R_DrawSpan; // TODO dc_translation
 		break;
 	}
 }

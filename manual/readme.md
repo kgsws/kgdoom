@@ -39,6 +39,14 @@ These are terms used in Lua API.
   - Used for example for light effects.
 - textureScroll
   - This is used to add texture scroll effect to lines.
+- material
+  - Every texture can have specific material ID for extra effects.
+  - Material is identified by integer from 0 to 255. 0 is default material.
+  - Material ID assigned in TEXTUREx lump. Byte (uint8_t) at offset 8 (right after name) in texture definition.
+    - ZDoom uses this offset as a uint16_t flags, but only MSB (bit 15) is defined.
+  - Material ID is passed to `puff` mobj as `tag` when line or plane is hit.
+  - Only textures from TEXTUREx can have materials assigned. Flat textures are always material 0.
+    - Planned feature will solve this.
 
 ### Lua scripts
 Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have multiple GAMELUA lumps in multiple wads.
@@ -249,6 +257,10 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
 - `__noZChange`
   - This mobj has 3D thing collision disabled.
   - Internaly set when `__missile` explodes.
+- `__noZSpawnCheck`
+  - This mobj won't have its floorz and ceilingz checked when spanwed.
+  - This means that thing can spawn inside steps and wont get moved up.
+  - This is how all things spawn when loading new map.
 - `__troughMobj`
   - This mobj can't collide with other mobjs, and other mobjs can't collide with it.
   - Only level geometry collision is enabled.
@@ -393,6 +405,10 @@ Mobjs have all parameters copied from mobjtype when spawned. Most parameters can
   - Angle this mobj is facing.
   - Angle. (0 - 8191)
 - `health`
+  - Integer.
+- `damage`
+  - Integer.
+- `damagetype`
   - Integer.
 - `armor`
   - Armor points.
@@ -551,7 +567,13 @@ Functions called from mobj. All functions are read only and can't be redefined.
   - `x` is offset relative to mobj current location with `angle` rotation.
   - `range` defaults to 4096.
   - If hit mobj has no `__noblood` enabled `_pain` animation of spawned `pufftype` will be entered, if defined.
-  - Newly spawned `pufftype` will have `target` field set to shooter (this mobj) and `source` to hit mobj.
+  - Newly spawned `pufftype` will have:
+    - `target` field set to shooter (this mobj)
+    - `source` to hit mobj (what is damaged) or nil
+    - `damage` to actual damage dealt
+    - `damagetype` to actual damage type
+    - `health` to remaining health
+    - `tag` texture material, if line or plane was hit, see `materials`
   - Returns target mobj or nil.
 - `Thrust(speed [, angle])`
   - Thrust thing at either specified absolute `angle` or mobjs current `angle`.

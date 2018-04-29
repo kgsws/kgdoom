@@ -377,11 +377,13 @@ R_MakeSpans
 //
 void R_DrawPlanes(fixed_t height)
 {
-    visplane_t*		pl;
-    int			light;
-    int			x;
-    int			stop;
-    int			angle;
+    visplane_t	*pl;
+    int		light;
+    int		x;
+    int		stop;
+    int		angle;
+    int		texture;
+    int		wnum;
 				
 #ifdef RANGECHECK
     if (ds_p - drawsegs > MAXDRAWSEGS)
@@ -437,14 +439,20 @@ void R_DrawPlanes(fixed_t height)
 	    continue;
 	}
 
-	// regular flat
+	wnum = pl->picnum >> 24;
+	if(wnum < 15)
 	{
-		int wnum = pl->picnum >> 24;
+		// regular flat
 		int pic = pl->picnum & 0xFFFFFF;
+
 		if(flattranslation[wnum])
-		    dc_source = W_CacheLumpNum((wnum << 24) | flattranslation[wnum][pic-firstflat[wnum]]);
+			texture = (wnum << 24) | flattranslation[wnum][pic-firstflat[wnum]];
 		else
-		    dc_source = W_CacheLumpNum(pl->picnum);
+			texture = pl->picnum;
+	} else
+	{
+		// wall texture
+		texture = texturetranslation[pl->picnum & 0xFFFFFF] | (15 << 24);
 	}
 
 	planeheight = abs(pl->height-viewz);
@@ -464,7 +472,7 @@ void R_DrawPlanes(fixed_t height)
 	else
 		dc_fogmap = colormaps;
 
-	R_SetupRenderFunc(pl->render.renderstyle, pl->render.rendertable, NULL);
+	R_SetupRenderFuncSpan(texture, pl->render.renderstyle, pl->render.rendertable, NULL);
 
 	pl->top[pl->maxx+1] = 0x7fff;
 	pl->top[pl->minx-1] = 0x7fff;

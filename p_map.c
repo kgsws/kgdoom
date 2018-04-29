@@ -320,10 +320,10 @@ boolean PIT_CheckThing (mobj_t* thing)
     // check for skulls slamming into things
     if (tmthing->flags & MF_SKULLFLY && thing->flags & MF_SOLID)
     {
-	if(tmthing->info->damage < 0)
-		damage = ((P_Random()%8)+1)*-tmthing->info->damage;
+	if(tmthing->damage < 0)
+		damage = ((P_Random()%8)+1)*-tmthing->damage;
 	else
-		damage = tmthing->info->damage;
+		damage = tmthing->damage;
 
 	tmthing->flags &= ~MF_SKULLFLY;
 	tmthing->momx = tmthing->momy = tmthing->momz = 0;
@@ -335,7 +335,7 @@ boolean PIT_CheckThing (mobj_t* thing)
 #else
 	if(!netgame)
 #endif
-	P_DamageMobj (thing, tmthing, tmthing, damage, tmthing->info->damagetype);
+	P_DamageMobj (thing, tmthing, tmthing, damage, tmthing->damagetype);
 
 	return false;		// stop moving
     }
@@ -375,12 +375,12 @@ boolean PIT_CheckThing (mobj_t* thing)
 	}
 	
 	// damage / explode
-	damage = tmthing->info->damage;
+	damage = tmthing->damage;
 	if(damage && !(tmthing->flags & MF_MOBJBOUNCE))
 	{
 	    if(damage < 0) // Doom random
 		damage = ((P_Random()%8)+1)*-damage;
-	    P_DamageMobj (thing, tmthing, tmthing->source, damage, tmthing->info->damagetype);
+	    P_DamageMobj (thing, tmthing, tmthing->source, damage, tmthing->damagetype);
 	}
 	// save hit thing
 	hitmobj = thing;
@@ -1143,11 +1143,15 @@ boolean PTR_ShootTraverse (intercept_t* in)
     line_t*		li;
     
     mobj_t*		th;
+    mobj_t*		puf;
 
     fixed_t		slope;
     fixed_t		dist;
     fixed_t		thingtopslope;
     fixed_t		thingbottomslope;
+
+    int tmphl;
+    angle_t ang;
 
     uint16_t canopass = ~mobjinfo[la_pufftype].canpass;
 
@@ -1159,6 +1163,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
     if (in->isaline)
     {
 	boolean is_hit = true;
+	boolean is_3dhit = false;
 
 	li = in->d.line;
 	
@@ -1206,7 +1211,22 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		while(pl)
 		{
 			if(canopass & pl->blocking && z >= pl->source->floorheight && z <= pl->source->ceilingheight && pl->source->floorheight < backsector->ceilingheight && pl->source->ceilingheight > backsector->floorheight)
+			{
+				// set material
+				int texnum;
+				if(pl->line->flags & LF_DONTPEGTOP)
+				{
+					if(pl->line->flags & 0x8000)
+						texnum = curline->sidedef->toptexture;
+					else
+						texnum = curline->sidedef->bottomtexture;
+				} else
+					texnum = sides[pl->line->sidenum[0]].midtexture;
+				puf->tag = textures[texnum]->material;
+				// mark 3D side hit
+				is_3dhit = true;
 				goto hitline;
+			}
 			pl->hitover = z >= *pl->height;
 			pl = pl->next;
 		}
@@ -1234,11 +1254,13 @@ boolean PTR_ShootTraverse (intercept_t* in)
 			{
 				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((pl->hitover && z < *pl->height) || (!pl->hitover && z >= *pl->height)))
 				{
-					// position a bit closer
-					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
+					// position
+					frac = in->frac;
 					dz = FixedMul (aimslope, FixedMul(frac, attackrange));
 					z = *pl->height;
 					frac = -FixedDiv( FixedMul(frac, shootz - *pl->height), dz);
+					// [kg] set material
+					puf->tag = 0; // TODO: floor texture
 					goto hit3dplane;
 				}
 				pl = pl->next;
@@ -1259,11 +1281,13 @@ boolean PTR_ShootTraverse (intercept_t* in)
 			{
 				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((pl->hitover && z < *pl->height) || (!pl->hitover && z >= *pl->height)))
 				{
-					// position a bit closer
-					frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
+					// position
+					frac = in->frac;
 					dz = FixedMul (aimslope, FixedMul(frac, attackrange));
 					z = *pl->height-1;
 					frac = -FixedDiv( FixedMul(frac, shootz - *pl->height), dz);
+					// [kg] set material
+					puf->tag = 0; // TODO: ceiling texture
 					goto hit3dplane;
 				}
 				pl = pl->next;
@@ -1297,8 +1321,8 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		}
 	}
 
-	// position a bit closer
-	frac = in->frac - FixedDiv (4*FRACUNIT,attackrange);
+	// position
+	frac = in->frac;
 	dz = FixedMul (aimslope, FixedMul(frac, attackrange));
 	z = shootz + dz;
 
@@ -1327,14 +1351,72 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		}
 	}
 
+	// [kg] set material
+	if(z <= li->frontsector->floorheight)
+	{
+		// floor hit
+		puf->tag = 0; // TODO: floor texture
+	} else
+	if(z >= li->frontsector->ceilingheight)
+	{
+		// ceiling hit
+		puf->tag = 0; // TODO: ceiling texture
+	} else
+	if(!is_3dhit)
+	{
+		// line texture
+		if(!li->backsector)
+			puf->tag = textures[sides[li->sidenum[0]].midtexture]->material;
+		else
+		if(z < backsector->floorheight)
+			puf->tag = textures[sides[li->sidenum[0]].bottomtexture]->material;
+		else
+		if(z > backsector->ceilingheight)
+			puf->tag = textures[sides[li->sidenum[0]].toptexture]->material;
+		else
+			puf->tag = textures[sides[li->sidenum[0]].midtexture]->material;
+	}
+
       hit3dplane:
 
 	x = trace.x + FixedMul (trace.dx, frac);
 	y = trace.y + FixedMul (trace.dy, frac);
 
+	// [kg] complex checking if puff is inside this line and should be moved
+	// it can spawn wrong because of other walls anyway, but still better than nothing
+
+	tmbbox[BOXTOP] = y + mobjinfo[la_pufftype].radius;
+	tmbbox[BOXBOTTOM] = y - mobjinfo[la_pufftype].radius;
+	tmbbox[BOXRIGHT] = x + mobjinfo[la_pufftype].radius;
+	tmbbox[BOXLEFT] = x - mobjinfo[la_pufftype].radius;
+
+	if(	// back sector is step up (or ceiling overhang)
+		(!backsector || (aimslope < 0 && backsector->floorheight > frontsector->floorheight) || (aimslope > 0 && backsector->ceilingheight < frontsector->ceilingheight))
+		// thing might touch this line
+		&& !(tmbbox[BOXRIGHT] <= li->bbox[BOXLEFT] || tmbbox[BOXLEFT] >= li->bbox[BOXRIGHT] || tmbbox[BOXTOP] <= li->bbox[BOXBOTTOM] || tmbbox[BOXBOTTOM] >= li->bbox[BOXTOP])
+		// thing is touching this line
+		&& P_BoxOnLineSide (tmbbox, li) == -1
+	) {
+		// it is and has to be moved, relative to wall (original hit point)
+		x = trace.x + FixedMul (trace.dx, in->frac);
+		y = trace.y + FixedMul (trace.dy, in->frac);
+		if(li->frontsector == frontsector)
+			ang = (li->angle-ANG90) >> ANGLETOFINESHIFT;
+		else
+			ang = (li->angle+ANG90) >> ANGLETOFINESHIFT;
+		dz = mobjinfo[la_pufftype].radius * 3 / 2;
+		x += FixedMul(dz, finecosine[ang]);
+		y += FixedMul(dz, finesine[ang]);
+	}
+
 	// Spawn bullet puffs.
-	P_SpawnPuff (x,y,z, NULL, shootthing);
-	
+	puf = P_SpawnPuff (x,y,z, NULL, shootthing);
+
+#ifdef SERVER
+	// tell clients about this
+	SV_SpawnMobj(puf, SV_MOBJF_AUTO);
+#endif
+
 	// don't go any farther
 	return false;	
     }
@@ -1365,11 +1447,15 @@ boolean PTR_ShootTraverse (intercept_t* in)
 
     
     // hit thing
-    // position a bit closer
+    // position
     frac = in->frac - FixedDiv (10*FRACUNIT,attackrange);
 
     x = trace.x + FixedMul (trace.dx, frac);
     y = trace.y + FixedMul (trace.dy, frac);
+    ang = R_PointToAngle2(x, y, shootthing->x, shootthing->y) >> ANGLETOFINESHIFT;
+    dz = th->radius;
+    x += FixedMul(dz, finecosine[ang]);
+    y += FixedMul(dz, finesine[ang]);
     z = shootz + FixedMul (aimslope, FixedMul(frac, attackrange));
 
     linetarget = th;
@@ -1379,15 +1465,26 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	return false;
 #endif
 
-    // Spawn bullet puffs or blod spots,
+    // [kg] keep track of damage
+    tmphl = th->health;
+
+    // Spawn bullet puffs or blood spots,
     // depending on target type.
     if (th->flags & MF_NOBLOOD)
-	P_SpawnPuff (x,y,z, th, shootthing);
+	puf = P_SpawnPuff (x,y,z, th, shootthing);
     else
-	P_SpawnBlood (x,y,z, th, shootthing);
+	puf = P_SpawnBlood (x,y,z, th, shootthing);
 
     if (la_damage)
-	P_DamageMobj (th, shootthing, shootthing, la_damage, mobjinfo[la_pufftype].damagetype);
+	P_DamageMobj (th, shootthing, shootthing, la_damage, puf->damagetype);
+
+    puf->damage = tmphl - th->health;
+    puf->health = th->health;
+
+#ifdef SERVER
+    // tell clients about this
+    SV_SpawnMobj(puf, SV_MOBJF_AUTO);
+#endif
 
     // don't go any farther
     return false;

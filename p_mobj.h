@@ -178,31 +178,35 @@ typedef enum
     //  in death match mode (e.g. key cards).
     MF_NOTDMATCH    	= 0x2000000,
 
-    // [kg] new flags
+    // [kg] immune to explosions
     MF_NORADIUSDMG	= 0x4000000,
 
     // [kg] disable thing Z collision updates
-    // used on dead projectiles and puffs
+    // used on dead projectiles
     MF_NOZCHANGE	= 0x8000000,
 
-    // [kg] ignore thing colisions
-    MF_TROUGHMOBJ	= 0x10000000,
+    // [kg] disable thing Z checking when spawning
+    // used on puffs, puffs can spawn inside walls
+    MF_NOZSPAWNCHECK	= 0x10000000,
 
     // [kg] ignore thing colisions
-    MF_FULLVOLUME	= 0x20000000,
+    MF_TROUGHMOBJ	= 0x20000000,
+
+    // [kg] full volume body sounds
+    MF_FULLVOLUME	= 0x40000000,
 
     // [kg] disable death 'pull'
-    MF_NODEATHPULL = 0x40000000,
+    MF_NODEATHPULL = 0x80000000,
 
     // [kg] invulnerability
-    MF_INVULNERABLE = 0x80000000,
+    MF_INVULNERABLE = 0x100000000,
 
     // [kg] no Z check for explosions
-    MF_NORADIUSZ	= 0x100000000,
+    MF_NORADIUSZ	= 0x200000000,
 
     // [kg] bounce
-    MF_WALLBOUNCE	= 0x200000000,
-    MF_MOBJBOUNCE	= 0x400000000,
+    MF_WALLBOUNCE	= 0x400000000,
+    MF_MOBJBOUNCE	= 0x800000000,
 
 } mobjflag_t;
 
@@ -267,6 +271,8 @@ typedef struct mobj_s
 
     uint64_t		flags;
     int			health;
+    int			damage;
+    int			damagetype;
 
     // [kg] moved here from player
     int			armorpoints;

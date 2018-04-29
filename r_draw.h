@@ -80,6 +80,7 @@ void	R_InitTranslationTables (void);
 
 // [kg] pick renderer
 void R_SetupRenderFunc(int style, void *table, void *translation);
+void R_SetupRenderFuncSpan(uint32_t texture, int style, void *table, void *translation);
 
 // Rendering function.
 void R_FillBackScreen (void);

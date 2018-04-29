@@ -36,7 +36,8 @@
 #include <sys/socket.h>
 
 // [kg] maximum of loaded wads
-#define MAXWADS	16
+// WAD slot 15 is used for other hax stuff
+#define MAXWADS	15
 
 //
 // Global parameters/defines.

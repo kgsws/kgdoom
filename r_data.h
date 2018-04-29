@@ -34,7 +34,12 @@ typedef struct
     char	name[8];		
     short	width;
     short	height;
-    
+
+    uint8_t	material; // [kg] custom texture materials
+    uint8_t	flags;
+    uint8_t	scalex;
+    uint8_t	scaley;
+
     // All the patches[patchcount]
     //  are drawn back to front into the cached texture.
     short	patchcount;

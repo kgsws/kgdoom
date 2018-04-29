@@ -57,11 +57,13 @@ typedef struct
 typedef struct __attribute__((packed))
 {
     char		name[8];
-    boolean		masked;	
+    uint8_t		material;	// [kg] custom texture materials
+    uint8_t		flags;		// [kg] unused; ZDoom has only 0x80 flag
+    uint8_t		scalex;		// [kg] TODO: as in ZDoom
+    uint8_t		scaley;		// [kg] TODO: as in ZDoom
     short		width;
     short		height;
-//    void		**columndirectory;	// OBSOLETE
-	uint32_t obsolete;
+    uint32_t		obsolete;	// columndirectory
     short		patchcount;
     mappatch_t	patches[1];
 } maptexture_t;
@@ -563,6 +565,14 @@ void R_InitTextures (void)
       texture->width = SHORT(mtexture->width);
       texture->height = SHORT(mtexture->height);
       texture->patchcount = SHORT(mtexture->patchcount);
+      texture->material = mtexture->material;
+      texture->flags = mtexture->flags;
+      texture->scalex = mtexture->scalex;
+      texture->scaley = mtexture->scaley;
+      if(!texture->scalex)
+	texture->scalex = 8;
+      if(!texture->scaley)
+	texture->scaley = 8;
 
       memcpy(texture->name, mtexture->name, sizeof(texture->name));
       mpatch = mtexture->patches;
@@ -786,6 +796,15 @@ int R_FlatNumForName (char* name)
 	flat_lump = -1;
 	W_ForEachName(name, cb_FlatNumForName);
 
+/*	if(flat_lump == -1)
+	{
+		// TODO: atempt to use wall texture
+		flat_lump = R_CheckTextureNumForName(name);
+		if(flat_lump > 0)
+			// mark as wall texture (fake WAD 15)
+			flat_lump |= 15 << 24;
+	}
+*/
 	if(flat_lump == -1)
 	{
 		printf("R_FlatNumForName: %.8s not found\n", name);
@@ -805,13 +824,13 @@ int	R_CheckTextureNumForName (char *name)
     int		i;
 
     // "NoTexture" marker.
-    if (name[0] == '-')		
+    if (name[0] == '-')
 	return 0;
-		
+
     for (i=0 ; i<numtextures ; i++)
 	if (!strncasecmp (textures[i]->name, name, 8) )
 	    return i;
-		
+
     return -1;
 }
 

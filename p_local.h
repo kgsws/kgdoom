@@ -98,8 +98,8 @@ boolean	P_ForceMobjState (mobj_t* mobj, statenum_t state);
 boolean P_SetMobjAnimation(mobj_t *mobj, int anim, int skip);
 void 	P_MobjThinker (mobj_t* mobj);
 
-void	P_SpawnPuff (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin, mobj_t *cause);
-void 	P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin, mobj_t *cause);
+mobj_t *P_SpawnPuff (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin, mobj_t *cause);
+mobj_t *P_SpawnBlood (fixed_t x, fixed_t y, fixed_t z, mobj_t *origin, mobj_t *cause);
 
 // [kg] it's different now
 mobj_t *P_SpawnMissile(mobj_t *source, mobjtype_t type, angle_t ango, fixed_t pio, fixed_t zo, fixed_t xo, fixed_t yo);

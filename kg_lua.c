@@ -360,6 +360,7 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"noRadiusDmgZ", MF_NORADIUSZ},
 	{"skullFly", MF_SKULLFLY},
 	{"noZChange", MF_NOZCHANGE},
+	{"noZSpawnCheck", MF_NOZSPAWNCHECK},
 	{"troughMobj", MF_TROUGHMOBJ},
 	{"fullVolume", MF_FULLVOLUME},
 	{"noDeathPull", MF_NODEATHPULL},
@@ -461,6 +462,8 @@ static const lua_table_model_t lua_mobj[] =
 {
 	{"angle", offsetof(mobj_t, angle), LUA_TNUMBER, func_set_mobjangle, func_get_mobjangle},
 	{"health", offsetof(mobj_t, health), LUA_TNUMBER},
+	{"damage", offsetof(mobj_t, damage), LUA_TNUMBER},
+	{"damagetype", offsetof(mobj_t, damagetype), LUA_TNUMBER},
 	{"armor", offsetof(mobj_t, armorpoints), LUA_TNUMBER},
 	{"armortype", offsetof(mobj_t, armortype), LUA_TLIGHTUSERDATA, func_set_mobjtype, func_get_ptr},
 	{"pitch", offsetof(mobj_t, pitch), LUA_TNUMBER, func_set_mobjpitch, func_get_fixedt},

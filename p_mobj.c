@@ -668,6 +668,8 @@ P_SpawnMobj
     mobj->height = info->height;
     mobj->flags = info->flags;
     mobj->health = info->spawnhealth;
+    mobj->damage = info->damage;
+    mobj->damagetype = info->damagetype;
     mobj->speed = info->speed;
     mobj->mass = info->mass;
     mobj->gravity = info->gravity;
@@ -707,7 +709,7 @@ P_SpawnMobj
 
     mobj->z = z;
 
-    if(is_setup)
+    if(is_setup || mobj->flags & MF_NOZSPAWNCHECK)
     {
 	mobj->floorz = mobj->subsector->sector->floorheight;
 	mobj->ceilingz = mobj->subsector->sector->ceilingheight;
@@ -1087,9 +1089,7 @@ void P_SpawnMapThing (mapthing_hexen_t* mthing)
 //
 // P_SpawnPuff
 //
-extern fixed_t attackrange;
-
-void
+mobj_t *
 P_SpawnPuff
 ( fixed_t	x,
   fixed_t	y,
@@ -1107,19 +1107,9 @@ P_SpawnPuff
 
     th->angle = R_PointToAngle2(th->x, th->y, cause->x, cause->y);
 
-    sec = th->subsector->sector;
-    if(z < sec->floorheight)
-	z = sec->floorheight;
-    if(z > sec->ceilingheight - th->info->height)
-	z = sec->ceilingheight - th->info->height;
-    th->z = z;
-
     P_SetMobjAnimation(th, ANIM_SPAWN, 0);
 
-#ifdef SERVER
-    // tell clients about this
-    SV_SpawnMobj(th, SV_MOBJF_MOMZ);
-#endif
+    return th;
 }
 
 
@@ -1127,7 +1117,7 @@ P_SpawnPuff
 //
 // P_SpawnBlood
 // 
-void
+mobj_t *
 P_SpawnBlood
 ( fixed_t	x,
   fixed_t	y,
@@ -1149,10 +1139,7 @@ P_SpawnBlood
     else
 	P_SetMobjAnimation(th, ANIM_SPAWN, 0);
 
-#ifdef SERVER
-    // tell clients about this
-    SV_SpawnMobj(th, SV_MOBJF_MOMZ | SV_MOBJF_FLAGS);
-#endif
+    return th;
 }
 
 

@@ -23,13 +23,14 @@ end
 
 -- MT_PUFF
 mtype = {
-	radius = 1,
+	radius = 4,
 	height = 12,
 	pass = 3,
 	__noBlockmap = true,
 	__noGravity = true,
 	__dropOff = true,
 	__troughMobj = true,
+	__noZSpawnCheck = true,
 	_spawn = {
 		{"*PUFFA", 4, a.PuffStuff},
 		{"PUFFB", 4},
@@ -46,13 +47,14 @@ MT_PUFF = createMobjType(mtype)
 
 -- MT_PUFF_MELEE (new type)
 mtype = {
-	radius = 1,
+	radius = 4,
 	height = 12,
 	pass = 3,
 	__noBlockmap = true,
 	__noGravity = true,
 	__dropOff = true,
 	__troughMobj = true,
+	__noZSpawnCheck = true,
 	_spawn = {
 		{"PUFFC", 4, a.PuffStuff},
 		{"PUFFD", 4}
