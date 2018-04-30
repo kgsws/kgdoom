@@ -130,13 +130,13 @@ boolean PIT_CheckLine (line_t* ld)
 		z1 = ld->frontsector->floorheight + side->rowoffset;
 		if(ld->backsector->floorheight > z1)
 			z1 = ld->backsector->floorheight;
-		z0 = z1 + textureheight[side->midtexture];
+		z0 = z1 + (textures[side->midtexture].height << FRACBITS);
 	    } else
 	    {
 		z0 = ld->frontsector->ceilingheight + side->rowoffset;
 		if(ld->backsector->ceilingheight < z0)
 			z0 = ld->backsector->ceilingheight;
-		z1 = z0 - textureheight[side->midtexture];
+		z1 = z0 - (textures[side->midtexture].height << FRACBITS);
 	    }
 
 	    if(	z0 > tmthing->z + tmthing->info->stepheight &&
@@ -159,11 +159,11 @@ boolean PIT_CheckLine (line_t* ld)
 	    if(ld->flags & LF_DONTPEGBOTTOM)
 	    {
 		z1 = ld->frontsector->floorheight + side->rowoffset;
-		z0 = z1 + textureheight[side->midtexture];
+		z0 = z1 + (textures[side->midtexture].height << FRACBITS);
 	    } else
 	    {
 		z0 = ld->frontsector->ceilingheight + side->rowoffset;
-		z1 = z0 - textureheight[side->midtexture];
+		z1 = z0 - (textures[side->midtexture].height << FRACBITS);
 	    }
 
 	    if(	z0 > tmthing->z + tmthing->info->stepheight &&
@@ -1222,7 +1222,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 						texnum = curline->sidedef->bottomtexture;
 				} else
 					texnum = sides[pl->line->sidenum[0]].midtexture;
-				puf->tag = textures[texnum]->material;
+				puf->tag = textures[texnum].material;
 				// mark 3D side hit
 				is_3dhit = true;
 				goto hitline;
@@ -1366,15 +1366,15 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	{
 		// line texture
 		if(!li->backsector)
-			puf->tag = textures[sides[li->sidenum[0]].midtexture]->material;
+			puf->tag = textures[sides[li->sidenum[0]].midtexture].material;
 		else
 		if(z < backsector->floorheight)
-			puf->tag = textures[sides[li->sidenum[0]].bottomtexture]->material;
+			puf->tag = textures[sides[li->sidenum[0]].bottomtexture].material;
 		else
 		if(z > backsector->ceilingheight)
-			puf->tag = textures[sides[li->sidenum[0]].toptexture]->material;
+			puf->tag = textures[sides[li->sidenum[0]].toptexture].material;
 		else
-			puf->tag = textures[sides[li->sidenum[0]].midtexture]->material;
+			puf->tag = textures[sides[li->sidenum[0]].midtexture].material;
 	}
 
       hit3dplane:

@@ -18,9 +18,6 @@
 //  for rendering.
 //
 
-// needed for texture pegging
-extern fixed_t*		textureheight;
-
 // needed for pre rendering (fracs)
 extern fixed_t*		spritewidth;
 

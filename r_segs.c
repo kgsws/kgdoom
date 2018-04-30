@@ -102,8 +102,10 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
 {
     unsigned	index;
     column_t*	col;
+    int		topscreen;
+    int 	bottomscreen;
 
-    dc_src_height = textureheight[texnum] >> FRACBITS;
+    dc_src_height = textures[texnum].height;
 
     for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
     {
@@ -141,11 +143,31 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
 	    sprtopscreen = centeryfrac - FixedMul(dc_texturemid, spryscale);
 	    dc_iscale = 0xffffffffu / (unsigned)spryscale;
 
-	    // draw the texture
-	    col = (column_t *)( 
-		(byte *)R_GetColumn(texnum,maskedtexturecol[dc_x]) -3);
-			
-	    R_DrawMaskedColumn (col);
+		//
+		topscreen = sprtopscreen;
+		bottomscreen = topscreen + spryscale * textures[texnum].height;
+
+		dc_yl = (topscreen+FRACUNIT-1)>>FRACBITS;
+		dc_yh = (bottomscreen-1)>>FRACBITS;
+
+		if (dc_yh >= mfloorclip[dc_x])
+		    dc_yh = mfloorclip[dc_x]-1;
+
+		if (dc_yl <= mceilingclip[dc_x])
+		    dc_yl = mceilingclip[dc_x]+1;
+
+		if(clip_bot >= 0 && dc_yh >= clip_bot)
+		    dc_yh = clip_bot;
+
+		if(clip_top >= 0 && dc_yl <= clip_top)
+		    dc_yl = clip_top;
+
+		if (dc_yl <= dc_yh)
+		{
+		    dc_source = R_GetColumn(texnum, maskedtexturecol[dc_x] & 0x7FFF);
+		    colfunc ();	
+		}
+
 	}
 skip:
 	spryscale += rw_scalestep;
@@ -267,11 +289,11 @@ R_RenderMaskedSegRange
 	    {
 		// find positioning
 		if(pl->line->flags & LF_DONTPEGBOTTOM)
-		    dc_texturemid += (*pl->height + textureheight[texnum]) - viewz;
+		    dc_texturemid += (*pl->height + (textures[texnum].height << FRACBITS)) - viewz;
 		else
 		    dc_texturemid += *pl->height - viewz;
 		// [kg] pick renderer
-		R_SetupRenderFunc(pl->render->renderstyle, pl->render->rendertable, NULL);
+		R_SetupRenderFuncWall(pl->render->renderstyle, pl->render->rendertable, NULL);
 		// draw the columns
 		R_DrawMaskedSegRange(x1, x2, texnum, topc, tops, botc, bots);
 	    }
@@ -290,16 +312,16 @@ R_RenderMaskedSegRange
 	if (curline->linedef->flags & LF_DONTPEGBOTTOM)
 	{
 	    dc_texturemid = frontsector->floorheight > backsector->floorheight ? frontsector->floorheight : backsector->floorheight;
-	    dc_texturemid = dc_texturemid + textureheight[texnum] - viewz;
+	    dc_texturemid = dc_texturemid + (textures[texnum].height << FRACBITS) - viewz;
 	}
 	else
 	{
-	    dc_texturemid =frontsector->ceilingheight<backsector->ceilingheight ? frontsector->ceilingheight : backsector->ceilingheight;
+	    dc_texturemid = frontsector->ceilingheight<backsector->ceilingheight ? frontsector->ceilingheight : backsector->ceilingheight;
 	    dc_texturemid = dc_texturemid - viewz;
 	}
 	dc_texturemid += curline->sidedef->rowoffset;
 	// [kg] pick renderer
-	R_SetupRenderFunc(curline->linedef->render.renderstyle, curline->linedef->render.rendertable, NULL);
+	R_SetupRenderFuncWall(curline->linedef->render.renderstyle, curline->linedef->render.rendertable, NULL);
 	// draw the columns
 	R_DrawMaskedSegRange(x1, x2, texnum, topc, tops, botc, bots);
     }
@@ -422,7 +444,7 @@ void R_RenderSegLoop (int horizon)
 	    dc_yh = yh;
 	    dc_texturemid = rw_midtexturemid;
 	    dc_source = R_GetColumn(midtexture,texturecolumn);
-	    dc_src_height = textureheight[midtexture] >> FRACBITS;
+	    dc_src_height = textures[midtexture].height;
 	    colfunc ();
 	    ceilingclip[rw_x] = viewheight;
 	    floorclip[rw_x] = -1;
@@ -445,7 +467,7 @@ void R_RenderSegLoop (int horizon)
 		    dc_yh = mid;
 		    dc_texturemid = rw_toptexturemid;
 		    dc_source = R_GetColumn(toptexture,texturecolumn);
-		    dc_src_height = textureheight[toptexture] >> FRACBITS;
+		    dc_src_height = textures[toptexture].height;
 		    colfunc ();
 		    ceilingclip[rw_x] = mid;
 		}
@@ -475,7 +497,7 @@ void R_RenderSegLoop (int horizon)
 		    dc_yh = yh;
 		    dc_texturemid = rw_bottomtexturemid;
 		    dc_source = R_GetColumn(bottomtexture, texturecolumn);
-		    dc_src_height = textureheight[bottomtexture] >> FRACBITS;
+		    dc_src_height = textures[bottomtexture].height;
 		    colfunc ();
 		    floorclip[rw_x] = mid;
 		}
@@ -571,7 +593,7 @@ void R_RenderSegLoopStripe()
 	    dc_yh = midT;
 	    dc_texturemid = stripetexturemid;
 	    dc_source = R_GetColumn(stripetexture,texturecolumn);
-	    dc_src_height = textureheight[stripetexture] >> FRACBITS;
+	    dc_src_height = textures[stripetexture].height;
 	    colfunc ();
 	}
 
@@ -770,8 +792,7 @@ R_StoreWallRange
 	markfloor = markceiling = true;
 	if (linedef->flags & LF_DONTPEGBOTTOM)
 	{
-	    vtop = frontsector->floorheight +
-		textureheight[sidedef->midtexture];
+	    vtop = frontsector->floorheight + (textures[sidedef->midtexture].height << FRACBITS);
 	    // bottom of texture at bottom
 	    rw_midtexturemid = vtop - viewz;	
 	}
@@ -895,10 +916,7 @@ R_StoreWallRange
 	    }
 	    else
 	    {
-		vtop =
-		    backsector->ceilingheight
-		    + textureheight[sidedef->toptexture];
-		
+		vtop = backsector->ceilingheight + (textures[sidedef->toptexture].height << FRACBITS);
 		// bottom of texture
 		rw_toptexturemid = vtop - viewz;	
 	    }

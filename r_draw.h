@@ -52,6 +52,7 @@ extern fixed_t		ds_ystep;
 // start of a 64*64 tile image
 extern byte*		ds_source;
 extern int		dc_src_height;
+extern int		dc_src_width;
 
 extern uint8_t *dc_colormap;
 extern uint8_t *dc_translation;
@@ -80,7 +81,8 @@ void	R_InitTranslationTables (void);
 
 // [kg] pick renderer
 void R_SetupRenderFunc(int style, void *table, void *translation);
-void R_SetupRenderFuncSpan(uint32_t texture, int style, void *table, void *translation);
+void R_SetupRenderFuncWall(int style, void *table, void *translation);
+void R_SetupRenderFuncSpan(int style, void *table, void *translation, boolean masked);
 
 // Rendering function.
 void R_FillBackScreen (void);

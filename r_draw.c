@@ -54,6 +54,7 @@ uint8_t *dc_lightcolor; // this is sector light color
 // first pixel in a column (possibly virtual) 
 byte*	dc_source;
 int	dc_src_height;
+int	dc_src_width;
 
 // just for profiling 
 int			dccount;
@@ -68,7 +69,7 @@ int dc_texture;
 // Thus a special case loop for very fast rendering can
 //  be used. It has also been used with Wolfenstein 3D.
 // 
-void R_DrawColumn (void) 
+void R_DrawColumn(void)
 { 
     int			count; 
     byte*		dest; 
@@ -116,10 +117,62 @@ void R_DrawColumn (void)
 	frac += fracstep;
 	
     } while (count--); 
-} 
+}
+
+void R_DrawColumnMasked(void)
+{ 
+    int			count; 
+    byte*		dest; 
+    fixed_t		frac;
+    fixed_t		fracstep;	 
+ 
+    count = dc_yh - dc_yl; 
+
+    // Zero length, column does not exceed a pixel.
+    if (count < 0) 
+	return; 
+				 
+#ifdef RANGECHECK 
+    if ((unsigned)dc_x >= SCREENWIDTH
+	|| dc_yl < 0
+	|| dc_yh >= SCREENHEIGHT) 
+	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x); 
+#endif 
+
+    // Framebuffer destination address.
+    // Use ylookup LUT to avoid multiply with ScreenWidth.
+    // Use columnofs LUT for subwindows? 
+    dest = ylookup[dc_yl] + columnofs[dc_x];  
+
+    // Determine scaling,
+    //  which is the only mapping to be done.
+    fracstep = dc_iscale; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+    {
+	fixed_t tx = dc_src_height << FRACBITS;
+	frac += (((-frac) + (tx-1)) / tx) * tx;
+    }
+
+    // Inner loop that does the actual texture mapping,
+    //  e.g. a DDA-lile scaling.
+    // This is as fast as it gets.
+    do 
+    {
+	// Re-map color indices from wall texture column
+	//  using a lighting/special effects LUT.
+	uint8_t *src = &dc_source[(frac>>FRACBITS) % dc_src_height];
+	if(*src) // [kg] transparet pixel
+	    *dest = dc_colormap[dc_lightcolor[*src]];
+	
+	dest += SCREENWIDTH; 
+	frac += fracstep;
+	
+    } while (count--); 
+}
 
 // [kg] column with holes (skip every pixel)
-void R_DrawColumnHoley (void) 
+void R_DrawColumnHoley (void)
 { 
     int			count; 
     byte*		dest; 
@@ -168,6 +221,56 @@ void R_DrawColumnHoley (void)
     } while (count--); 
 }
 
+void R_DrawColumnHoleyMasked(void)
+{ 
+    int			count; 
+    byte*		dest; 
+    fixed_t		frac;
+    fixed_t		fracstep;
+
+    int holestep = dc_holestep;
+ 
+    count = dc_yh - dc_yl; 
+
+    // Zero length, column does not exceed a pixel.
+    if (count < 0) 
+	return; 
+				 
+#ifdef RANGECHECK 
+    if ((unsigned)dc_x >= SCREENWIDTH
+	|| dc_yl < 0
+	|| dc_yh >= SCREENHEIGHT) 
+	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x); 
+#endif 
+
+    // Framebuffer destination address.
+    // Use ylookup LUT to avoid multiply with ScreenWidth.
+    // Use columnofs LUT for subwindows? 
+    dest = ylookup[dc_yl] + columnofs[dc_x];  
+
+    // Determine scaling,
+    //  which is the only mapping to be done.
+    fracstep = dc_iscale; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+
+    // Inner loop that does the actual texture mapping,
+    //  e.g. a DDA-lile scaling.
+    // This is as fast as it gets.
+    do 
+    {
+	// Re-map color indices from wall texture column
+	//  using a lighting/special effects LUT.
+	uint8_t *src = &dc_source[(frac>>FRACBITS) % dc_src_height];
+	if(*src && (holestep ^ dc_x ^ dc_yl) & 1)
+	    *dest = dc_colormap[dc_lightcolor[*src]];
+	
+	dest += SCREENWIDTH; 
+	frac += fracstep;
+	holestep++;
+	
+    } while (count--); 
+}
+
 //
 // Spectre/Invisibility.
 //
@@ -187,7 +290,7 @@ int fuzzoffset[] =
 //  i.e. spectres and invisible players.
 //
 void R_DrawFuzzColumn (void) 
-{ 
+{
     int			count; 
     byte*		dest; 
     fixed_t		frac;
@@ -270,9 +373,58 @@ void R_DrawFuzzColumn (void)
 	frac += fracstep; 
     } while (count--); 
 } 
+
+void R_DrawFuzzColumnMasked(void)
+{ 
+    int			count; 
+    byte*		dest; 
+    fixed_t		frac;
+    fixed_t		fracstep;	 
  
-  
- 
+    count = dc_yh - dc_yl; 
+
+    // Zero length, column does not exceed a pixel.
+    if (count < 0) 
+	return; 
+				 
+#ifdef RANGECHECK 
+    if ((unsigned)dc_x >= SCREENWIDTH
+	|| dc_yl < 0
+	|| dc_yh >= SCREENHEIGHT) 
+	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x); 
+#endif 
+
+    // Framebuffer destination address.
+    // Use ylookup LUT to avoid multiply with ScreenWidth.
+    // Use columnofs LUT for subwindows? 
+    dest = ylookup[dc_yl] + columnofs[dc_x];  
+
+    // Determine scaling,
+    //  which is the only mapping to be done.
+    fracstep = dc_iscale; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+    {
+	fixed_t tx = dc_src_height << FRACBITS;
+	frac += ((-frac + (tx-1)) / tx) * tx;
+    }
+
+    // Inner loop that does the actual texture mapping,
+    //  e.g. a DDA-lile scaling.
+    // This is as fast as it gets.
+    do 
+    {
+	// Re-map color indices from wall texture column
+	//  using a lighting/special effects LUT.
+	uint8_t *src = &dc_source[(frac>>FRACBITS) % dc_src_height];
+	if(*src) // [kg] transparet pixel
+	    *dest = colormaps[6*256+dest[fuzzoffset[rand() & 1]]]; // [kg] now random
+
+	dest += SCREENWIDTH; 
+	frac += fracstep;
+	
+    } while (count--); 
+}
 
 //
 // R_DrawTranslatedColumn
@@ -284,7 +436,7 @@ void R_DrawFuzzColumn (void)
 //  identical sprites, kinda brightened up.
 //
 
-void R_DrawTranslatedColumn (void) 
+void R_DrawTranslatedColumn (void)
 { 
     int			count; 
     byte*		dest; 
@@ -320,9 +472,54 @@ void R_DrawTranslatedColumn (void)
 	//  used with PLAY sprites.
 	// Thus the "green" ramp of the player 0 sprite
 	//  is mapped to gray, red, black/indigo. 
-	*dest = dc_colormap[dc_lightcolor[dc_translation[dc_source[frac>>FRACBITS]]]];
+	*dest = dc_colormap[dc_lightcolor[dc_translation[dc_source[(frac>>FRACBITS) % dc_src_height]]]];
 	dest += SCREENWIDTH;
 	
+	frac += fracstep; 
+    } while (count--); 
+}
+
+void R_DrawTranslatedColumnMasked (void)
+{ 
+    int			count; 
+    byte*		dest; 
+    fixed_t		frac;
+    fixed_t		fracstep;	 
+ 
+    count = dc_yh - dc_yl; 
+    if (count < 0) 
+	return; 
+				 
+#ifdef RANGECHECK 
+    if ((unsigned)dc_x >= SCREENWIDTH
+	|| dc_yl < 0
+	|| dc_yh >= SCREENHEIGHT)
+    {
+	I_Error ( "R_DrawColumn: %i to %i at %i",
+		  dc_yl, dc_yh, dc_x);
+    }
+    
+#endif 
+    
+    dest = ylookup[dc_yl] + columnofs[dc_x]; 
+
+    // Looks familiar.
+    fracstep = dc_iscale; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+
+    // Here we do an additional index re-mapping.
+    do 
+    {
+	// Translation tables are used
+	//  to map certain colorramps to other ones,
+	//  used with PLAY sprites.
+	// Thus the "green" ramp of the player 0 sprite
+	//  is mapped to gray, red, black/indigo.
+	uint8_t *src = &dc_source[(frac>>FRACBITS) % dc_src_height];
+	if(*src) // [kg] transparet pixel
+	    *dest = dc_colormap[dc_lightcolor[dc_translation[*src]]];
+
+	dest += SCREENWIDTH;
 	frac += fracstep; 
     } while (count--); 
 } 
@@ -356,6 +553,101 @@ int			dscount;
 // Draws the actual span.
 void R_DrawSpan (void)
 { 
+    uint32_t		xfrac;
+    uint32_t		yfrac; 
+    byte*		dest; 
+    int			count;
+    int			spot; 
+	 
+#ifdef RANGECHECK 
+    if (ds_x2 < ds_x1
+	|| ds_x1<0
+	|| ds_x2>=SCREENWIDTH  
+	|| (unsigned)ds_y>SCREENHEIGHT)
+    {
+	I_Error( "R_DrawSpan: %i to %i at %i",
+		 ds_x1,ds_x2,ds_y);
+    }
+//	dscount++; 
+#endif 
+
+    
+    xfrac = 0x80000000 + ds_xfrac;
+    yfrac = 0x80000000 + ds_yfrac;
+
+    dest = ylookup[ds_y] + columnofs[ds_x1];
+
+    // We do not check for zero spans here?
+    count = ds_x2 - ds_x1; 
+
+    do 
+    {
+	// Current texture index in u,v.
+//	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
+	spot = (((yfrac>>16) % dc_src_height) * dc_src_width) + ((xfrac>>16) % dc_src_width);
+
+	// Lookup pixel from flat texture tile,
+	//  re-index using light/colormap.
+	*dest++ = dc_colormap[dc_lightcolor[dc_source[spot]]];
+
+	// Next step in u,v.
+	xfrac += ds_xstep; 
+	yfrac += ds_ystep;
+	
+    } while (count--); 
+}
+
+void R_DrawSpanMasked(void)
+{ 
+    uint32_t		xfrac;
+    uint32_t		yfrac; 
+    byte*		dest; 
+    int			count;
+    int			spot; 
+	 
+#ifdef RANGECHECK 
+    if (ds_x2 < ds_x1
+	|| ds_x1<0
+	|| ds_x2>=SCREENWIDTH  
+	|| (unsigned)ds_y>SCREENHEIGHT)
+    {
+	I_Error( "R_DrawSpan: %i to %i at %i",
+		 ds_x1,ds_x2,ds_y);
+    }
+//	dscount++; 
+#endif 
+
+    
+    xfrac = 0x80000000 + ds_xfrac;
+    yfrac = 0x80000000 + ds_yfrac;
+
+    dest = ylookup[ds_y] + columnofs[ds_x1];
+
+    // We do not check for zero spans here?
+    count = ds_x2 - ds_x1; 
+
+    do 
+    {
+	// Current texture index in u,v.
+//	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
+	spot = (((yfrac>>16) % dc_src_height) * dc_src_width) + ((xfrac>>16) % dc_src_width);
+
+	// Lookup pixel from flat texture tile,
+	//  re-index using light/colormap.
+	if(dc_source[spot])
+	    *dest = dc_colormap[dc_lightcolor[dc_source[spot]]];
+	dest++;
+
+	// Next step in u,v.
+	xfrac += ds_xstep; 
+	yfrac += ds_ystep;
+	
+    } while (count--); 
+}
+
+// draw shadow span
+void R_DrawSpanShadow (void)
+{ 
     fixed_t		xfrac;
     fixed_t		yfrac; 
     byte*		dest; 
@@ -375,9 +667,9 @@ void R_DrawSpan (void)
 #endif 
 
     
-    xfrac = ds_xfrac; 
-    yfrac = ds_yfrac; 
-	 
+    xfrac = 0x70000000 + ds_xfrac;
+    yfrac = 0x70000000 + ds_yfrac;
+
     dest = ylookup[ds_y] + columnofs[ds_x1];
 
     // We do not check for zero spans here?
@@ -386,99 +678,22 @@ void R_DrawSpan (void)
     do 
     {
 	// Current texture index in u,v.
-	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
+//	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
+	spot = (((yfrac>>16) % dc_src_height) * dc_src_width) + ((xfrac>>16) % dc_src_width);
 
 	// Lookup pixel from flat texture tile,
 	//  re-index using light/colormap.
-	*dest++ = dc_colormap[dc_lightcolor[dc_source[spot]]];
-
-	// Next step in u,v.
-	xfrac += ds_xstep; 
-	yfrac += ds_ystep;
-	
-    } while (count--); 
-}
-
-// draw span from wall texture
-void R_DrawSpanWall (void)
-{ 
-    fixed_t		xfrac;
-    fixed_t		yfrac; 
-    byte*		dest;
-    byte*		src;
-    int			count;
-
-#ifdef RANGECHECK 
-    if (ds_x2 < ds_x1
-	|| ds_x1<0
-	|| ds_x2>=SCREENWIDTH  
-	|| (unsigned)ds_y>SCREENHEIGHT)
-    {
-	I_Error( "R_DrawSpan: %i to %i at %i",
-		 ds_x1,ds_x2,ds_y);
-    }
-//	dscount++; 
-#endif 
-
-    
-    xfrac = ds_xfrac; 
-    yfrac = ds_yfrac; 
-	 
-    dest = ylookup[ds_y] + columnofs[ds_x1];
-
-    // We do not check for zero spans here?
-    count = ds_x2 - ds_x1; 
-
-    do 
-    {
-	// Current texture index in u,v.
-	src = R_GetColumn(dc_texture, (xfrac>>16));
-
-	// Lookup pixel from flat texture tile,
-	//  re-index using light/colormap.
-	*dest++ = dc_colormap[dc_lightcolor[src[((yfrac>>16) % dc_src_height)]]];
-
-	// Next step in u,v.
-	xfrac += ds_xstep; 
-	yfrac += ds_ystep;
-	
-    } while (count--); 
-}
-
-// draw shadow span
-void R_DrawSpanShadow (void)
-{ 
-    byte*		dest; 
-    int			count;
-
-    if(!ds_y) 
-	return;
-    if(ds_y == viewheight-1) 
-	return;
-
-#ifdef RANGECHECK 
-    if (ds_x2 < ds_x1
-	|| ds_x1<0
-	|| ds_x2>=SCREENWIDTH  
-	|| (unsigned)ds_y>SCREENHEIGHT)
-    {
-	I_Error( "R_DrawSpan: %i to %i at %i",
-		 ds_x1,ds_x2,ds_y);
-    }
-//	dscount++; 
-#endif 
-
-    dest = ylookup[ds_y] + columnofs[ds_x1];
-
-    // We do not check for zero spans here?
-    count = ds_x2 - ds_x1; 
-
-    do 
-    {
-	*dest = colormaps[6*256+dest[fuzzoffset[rand() & 1]]];
+	if(dc_source[spot])
+	    *dest = colormaps[6*256+dest[fuzzoffset[rand() & 1]]];
 	dest++;
+
+	// Next step in u,v.
+	xfrac += ds_xstep; 
+	yfrac += ds_ystep;
+	
     } while (count--); 
-} 
+}
+
 
 //
 // R_InitBuffer 
@@ -546,14 +761,36 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 	}
 }
 
-void R_SetupRenderFuncSpan(uint32_t texture, int style, void *table, void *translation)
+void R_SetupRenderFuncWall(int style, void *table, void *translation)
+{
+	// TODO: translation for effects (holey)
+	switch(style)
+	{
+		case RENDER_SHADOW:
+			colfunc = R_DrawFuzzColumnMasked;
+		break;
+		case RENDER_HOLEY0:
+			colfunc = R_DrawColumnHoleyMasked;
+			dc_holestep = 0;
+		break;
+		case RENDER_HOLEY1:
+			colfunc = R_DrawColumnHoleyMasked;
+			dc_holestep = 1;
+		break;
+		default:
+			if(translation)
+			{
+				dc_translation = translation;
+				colfunc = R_DrawTranslatedColumnMasked;
+			} else
+				colfunc = R_DrawColumnMasked;
+		break;
+	}
+}
+
+void R_SetupRenderFuncSpan(int style, void *table, void *translation, boolean masked)
 {
 	// TODO: holey & translated rendering
-	boolean is_wall = (texture >> 24) == 15;
-	if(is_wall)
-		I_Error("unfinished feature");
-	else
-		dc_source = W_CacheLumpNum(texture);
 	switch(style)
 	{
 		case RENDER_SHADOW:
@@ -568,7 +805,11 @@ void R_SetupRenderFuncSpan(uint32_t texture, int style, void *table, void *trans
 			spanfunc = R_DrawSpan; // TODO
 		break;
 		default:
-			spanfunc = R_DrawSpan; // TODO dc_translation
+			// TODO dc_translation
+			if(masked)
+				spanfunc = R_DrawSpanMasked;
+			else
+				spanfunc = R_DrawSpan;
 		break;
 	}
 }

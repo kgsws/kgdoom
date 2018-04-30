@@ -44,12 +44,12 @@ void P_InitSwitchList(void)
 	// first count all pairs
 	for(i = 0; i < numtextures; i++)
 	{
-		if(!memcmp(textures[i]->name, "SW1", 3))
+		if(!memcmp(textures[i].name, "SW1", 3))
 		{
 			int j;
 			for(j = 0; j < numtextures; j++)
 			{
-				if(!memcmp(textures[j]->name, "SW2", 3) && !strncasecmp(textures[i]->name + 3, textures[j]->name + 3, 5))
+				if(!memcmp(textures[j].name, "SW2", 3) && !strncasecmp(textures[i].name + 3, textures[j].name + 3, 5))
 				{
 					// found valid pair
 					numswitches++;
@@ -66,12 +66,12 @@ void P_InitSwitchList(void)
 	numswitches = 0;
 	for(i = 0; i < numtextures; i++)
 	{
-		if(!memcmp(textures[i]->name, "SW1", 3))
+		if(!memcmp(textures[i].name, "SW1", 3))
 		{
 			int j;
 			for(j = 0; j < numtextures; j++)
 			{
-				if(!memcmp(textures[j]->name, "SW2", 3) && !strncasecmp(textures[i]->name + 3, textures[j]->name + 3, 5))
+				if(!memcmp(textures[j].name, "SW2", 3) && !strncasecmp(textures[i].name + 3, textures[j].name + 3, 5))
 				{
 					switchlist[numswitches++] = i;
 					switchlist[numswitches++] = j;

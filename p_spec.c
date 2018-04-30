@@ -527,14 +527,14 @@ void P_UpdateSpecials (void)
 	for (i=anim->basepic ; i<anim->basepic+anim->numpics ; i++)
 	{
 	    pic = anim->basepic + ( (leveltime/anim->speed + i)%anim->numpics );
-	    if (anim->istexture)
-		texturetranslation[i] = pic;
-	    else
+	    if(anim->istexture)
 	    {
-		int wnum = i >> 24;
-		pic &= 0xFFFFFF;
-		if(flattranslation[wnum])
-		    flattranslation[wnum][(i & 0xFFFFFF)-firstflat[wnum]] = pic;
+		if(i < flatstart)
+		    texturetranslation[i] = pic;
+	    } else
+	    {
+		if(i >= flatstart)
+		    texturetranslation[i] = pic;
 	    }
 	}
     }

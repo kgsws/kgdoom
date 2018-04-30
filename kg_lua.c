@@ -277,6 +277,7 @@ static int func_get_add3dfloorsector(lua_State *L, void *dst, void *o);
 
 static int func_set_sectorheight(lua_State *L, void *dst, void *o);
 static int func_set_flattexture(lua_State *L, void *dst, void *o);
+static int func_get_flattexture(lua_State *L, void *dst, void *o);
 
 static int func_get_lumpname(lua_State *L, void *dst, void *o);
 static int func_set_lumpname_optional(lua_State *L, void *dst, void *o);
@@ -558,8 +559,8 @@ static const lua_table_model_t lua_sector[] =
 	// soundorg?
 	{"floorheight", offsetof(sector_t, floorheight), LUA_TNUMBER, func_set_sectorheight, func_get_fixedt},
 	{"ceilingheight", offsetof(sector_t, ceilingheight), LUA_TNUMBER, func_set_sectorheight, func_get_fixedt},
-	{"floorpic", offsetof(sector_t, floorpic), LUA_TSTRING, func_set_flattexture, func_get_lumpname},
-	{"ceilingpic", offsetof(sector_t, ceilingpic), LUA_TSTRING, func_set_flattexture, func_get_lumpname},
+	{"floorpic", offsetof(sector_t, floorpic), LUA_TSTRING, func_set_flattexture, func_get_flattexture},
+	{"ceilingpic", offsetof(sector_t, ceilingpic), LUA_TSTRING, func_set_flattexture, func_get_flattexture},
 	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
@@ -1822,9 +1823,28 @@ static int func_set_flattexture(lua_State *L, void *dst, void *o)
 	strncpy(temp, tex, sizeof(temp));
 	lump = R_FlatNumForName(temp);
 
-	*(int*)dst = lump;
+	*(uint16_t*)dst = lump;
 
 	return 0;
+}
+
+// get wall texture
+static int func_get_flattexture(lua_State *L, void *dst, void *o)
+{
+	short texture;
+
+	texture = *(uint16_t*)dst;
+
+	if(texture)
+	{
+		char tex[9];
+		memcpy(tex, textures[texture].name, 8);
+		tex[8] = 0;
+		lua_pushstring(L, tex);
+	} else
+		lua_pushstring(L, "-");
+
+	return 1;
 }
 
 // set working side
@@ -1888,7 +1908,7 @@ static int func_get_walltexture(lua_State *L, void *dst, void *o)
 	if(*texture)
 	{
 		char tex[9];
-		memcpy(tex, textures[*texture]->name, 8);
+		memcpy(tex, textures[*texture].name, 8);
 		tex[8] = 0;
 		lua_pushstring(L, tex);
 	} else
@@ -4811,12 +4831,12 @@ static int LUA_shortTexFromSector(lua_State *L)
 			{
 				side = &sides[sec->lines[i]->sidenum[0]];
 				if(side->toptexture >= 0)
-					if(textureheight[side->toptexture] < height)
-						height = textureheight[side->toptexture];
+					if(textures[side->toptexture].height < height)
+						height = textures[side->toptexture].height;
 				side = &sides[sec->lines[i]->sidenum[1]];
 				if(side->toptexture >= 0)
-					if(textureheight[side->toptexture] < height)
-						height = textureheight[side->toptexture];
+					if(textures[side->toptexture].height < height)
+						height = textures[side->toptexture].height;
 			}
 		}
 	} else
@@ -4827,12 +4847,12 @@ static int LUA_shortTexFromSector(lua_State *L)
 			{
 				side = &sides[sec->lines[i]->sidenum[0]];
 				if(side->bottomtexture >= 0)
-					if(textureheight[side->bottomtexture] < height)
-						height = textureheight[side->bottomtexture];
+					if(textures[side->bottomtexture].height < height)
+						height = textures[side->bottomtexture].height;
 				side = &sides[sec->lines[i]->sidenum[1]];
 				if(side->bottomtexture >= 0)
-					if(textureheight[side->bottomtexture] < height)
-						height = textureheight[side->bottomtexture];
+					if(textures[side->bottomtexture].height < height)
+						height = textures[side->bottomtexture].height;
 			}
 		}
 	}
@@ -4840,7 +4860,7 @@ static int LUA_shortTexFromSector(lua_State *L)
 	if(height == ONCEILINGZ)
 		height = 0;
 
-	lua_pushnumber(L, height / (lua_Number)FRACUNIT);
+	lua_pushnumber(L, height);
 
 	return 1;
 }

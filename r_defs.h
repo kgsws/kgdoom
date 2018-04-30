@@ -84,8 +84,8 @@ typedef	struct
 
     fixed_t	floorheight;
     fixed_t	ceilingheight;
-    int	floorpic;
-    int	ceilingpic;
+    uint16_t	floorpic;
+    uint16_t	ceilingpic;
     short	lightlevel;
     short	special;
     short	tag;

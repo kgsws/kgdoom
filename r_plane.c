@@ -383,7 +383,6 @@ void R_DrawPlanes(fixed_t height)
     int		stop;
     int		angle;
     int		texture;
-    int		wnum;
 				
 #ifdef RANGECHECK
     if (ds_p - drawsegs > MAXDRAWSEGS)
@@ -416,6 +415,9 @@ void R_DrawPlanes(fixed_t height)
 	// sky flat
 	if (pl->picnum == skyflatnum)
 	{
+	    if(!skytexture)
+		continue;
+
 	    dc_iscale = pspriteiscale>>detailshift;
 
 	    dc_lightcolor = colormaps;
@@ -432,28 +434,18 @@ void R_DrawPlanes(fixed_t height)
 		    angle = (viewangle + xtoviewangle[x])>>ANGLETOSKYSHIFT;
 		    dc_x = x;
 		    dc_source = R_GetColumn(skytexture, angle);
-		    dc_src_height = textureheight[skytexture] >> FRACBITS;
+		    dc_src_height = textures[skytexture].height;
 		    colfunc ();
 		}
 	    }
 	    continue;
 	}
 
-	wnum = pl->picnum >> 24;
-	if(wnum < 15)
-	{
-		// regular flat
-		int pic = pl->picnum & 0xFFFFFF;
-
-		if(flattranslation[wnum])
-			texture = (wnum << 24) | flattranslation[wnum][pic-firstflat[wnum]];
-		else
-			texture = pl->picnum;
-	} else
-	{
-		// wall texture
-		texture = texturetranslation[pl->picnum & 0xFFFFFF] | (15 << 24);
-	}
+	// wall texture
+	texture = texturetranslation[pl->picnum];
+	dc_source = textures[texture].data;
+	dc_src_height = textures[texture].width;
+	dc_src_width = textures[texture].height;
 
 	planeheight = abs(pl->height-viewz);
 	light = (pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
@@ -472,7 +464,7 @@ void R_DrawPlanes(fixed_t height)
 	else
 		dc_fogmap = colormaps;
 
-	R_SetupRenderFuncSpan(texture, pl->render.renderstyle, pl->render.rendertable, NULL);
+	R_SetupRenderFuncSpan(pl->render.renderstyle, pl->render.rendertable, NULL, pl->is3d);
 
 	pl->top[pl->maxx+1] = 0x7fff;
 	pl->top[pl->minx-1] = 0x7fff;

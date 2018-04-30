@@ -491,7 +491,7 @@ void* Z_Calloc(int size, int count)
 
 //
 // [kg] enlarge block
-// limited use, there mus be free space after this block
+// limited use, there must be free space after this block
 
 void Z_Enlarge(void *ptr, int size)
 {

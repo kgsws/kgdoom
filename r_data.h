@@ -11,44 +11,26 @@
 // [kg] default white color, black fog
 int colormap_lump;
 
-// A single patch from a texture definition,
-//  basically a rectangular area within
-//  the texture rectangle.
+// [kg] rewrite for 2D array storage
+// palette index 0 can be transparent
 typedef struct
 {
-    // Block origin (allways UL),
-    // which has allready accounted
-    // for the internal origin of the patch.
-    int		originx;	
-    int		originy;
-    int		patch;
-} texpatch_t;
+	char name[8];		
+	uint16_t width;
+	uint16_t height;
 
+	uint8_t material;
+	uint8_t flags;
+	uint8_t scalex;
+	uint8_t scaley;
 
-// A maptexturedef_t describes a rectangular texture,
-//  which is composed of one or more mappatch_t structures
-//  that arrange graphic patches.
-typedef struct
-{
-    // Keep name for switch changing, etc.
-    char	name[8];		
-    short	width;
-    short	height;
-
-    uint8_t	material; // [kg] custom texture materials
-    uint8_t	flags;
-    uint8_t	scalex;
-    uint8_t	scaley;
-
-    // All the patches[patchcount]
-    //  are drawn back to front into the cached texture.
-    short	patchcount;
-    texpatch_t	patches[1];		
-    
+	uint8_t *data;
 } texture_t;
 
-extern int		numtextures;
-extern texture_t**	textures;
+extern int numtextures;
+extern texture_t *textures;
+
+extern int flatstart;
 
 // [kg] better looks
 extern boolean r_fakecontrast;
