@@ -36,6 +36,8 @@ fixed_t		tmy;
 
 // [kg] keep track of projectile hits
 mobj_t *hitmobj;
+line_t *hitline;
+int hitpic;
 // [kg] for thing Z collision checking
 mobj_t *thzcbot;
 mobj_t *thzctop;
@@ -78,6 +80,7 @@ boolean PIT_CheckLine (line_t* ld)
 {
     extraplane_t *pl;
     boolean is_blocking = false;
+    int hitside = 0;
 
     if (tmbbox[BOXRIGHT] <= ld->bbox[BOXLEFT]
 	|| tmbbox[BOXLEFT] >= ld->bbox[BOXRIGHT]
@@ -98,9 +101,15 @@ boolean PIT_CheckLine (line_t* ld)
     // NOTE: specials are NOT sorted by order,
     // so two special lines that are only 8 pixels apart
     // could be crossed in either order.
-    
+
     if (!ld->backsector)
+    {
+	hitline = ld;
+	hitpic = sides[ld->sidenum[0]].midtexture;
 	goto nocross;		// one sided line
+    }
+
+    hitside = P_PointOnLineSide(tmthing->x, tmthing->y, ld);
 
     // [kg] new blocking style
     if(~tmthing->canpass & ld->blocking)
@@ -108,9 +117,13 @@ boolean PIT_CheckLine (line_t* ld)
 
     // [kg] 3D midtex check
     if(is_blocking && (!isHexen || (!sides[ld->sidenum[0]].midtexture && !sides[ld->sidenum[1]].midtexture)))
+    {
 	// blocking with no textures - use full height
 	// ... or in Doom map format
+	hitpic = sides[ld->sidenum[hitside]].midtexture;
+	hitline = ld;
 	goto nocross;
+    }
 
     // set openrange, opentop, openbottom
     P_LineOpening (ld);
@@ -120,6 +133,8 @@ boolean PIT_CheckLine (line_t* ld)
     {
 	fixed_t z0, z1;
 	side_t *side;
+
+	hitline = ld;
 
 	// front side
 	side = &sides[ld->sidenum[0]];
@@ -141,8 +156,10 @@ boolean PIT_CheckLine (line_t* ld)
 
 	    if(	z0 > tmthing->z + tmthing->info->stepheight &&
 		z1 < tmthing->z + tmthing->height
-	    )
+	    ) {
+		hitpic = sides[ld->sidenum[0]].midtexture;
 		goto nocross;
+	    }
 
 	    // floor
 	    if(z0 > openbottom && z0 <= tmthing->z + tmthing->info->stepheight)
@@ -168,8 +185,10 @@ boolean PIT_CheckLine (line_t* ld)
 
 	    if(	z0 > tmthing->z + tmthing->info->stepheight &&
 		z1 < tmthing->z + tmthing->height
-	    )
+	    ) {
+		hitpic = sides[ld->sidenum[1]].midtexture;
 		goto nocross;
+	    }
 
 	    // floor
 	    if(z0 > openbottom && z0 <= tmthing->z + tmthing->info->stepheight)
@@ -178,10 +197,12 @@ boolean PIT_CheckLine (line_t* ld)
 	    if(z1 < opentop && z1 > tmthing->z)
 		opentop = z1;
 	}
+
+	hitline = NULL;
     }
 
     // [kg] 3D floors check
-    if(P_PointOnLineSide(tmthing->x, tmthing->y, ld))
+    if(hitside)
     {
 	pl = ld->frontsector->exfloor;
 	while(pl)
@@ -189,8 +210,11 @@ boolean PIT_CheckLine (line_t* ld)
 	    if( ~tmthing->canpass & pl->blocking &&
 		pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
 		pl->source->floorheight < tmthing->z + tmthing->height
-	    )
+	    ) {
+		hitline = pl->line;
+		hitpic = sides[hitline->sidenum[0]].midtexture;
 		goto nocross;
+	    }
 	    if( ~tmthing->canpass & pl->blocking &&
 		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
@@ -213,8 +237,11 @@ boolean PIT_CheckLine (line_t* ld)
 	    if( ~tmthing->canpass & pl->blocking &&
 		pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
 		pl->source->floorheight < tmthing->z + tmthing->height
-	    )
+	    ) {
+		hitline = pl->line;
+		hitpic = sides[hitline->sidenum[0]].midtexture;
 		goto nocross;
+	    }
 	    if( ~tmthing->canpass & pl->blocking &&
 		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
@@ -256,12 +283,24 @@ boolean PIT_CheckLine (line_t* ld)
     {
 	tmceilingz = opentop;
 	ceilingline = ld;
+	// [kg] this side was hit
+	if(tmthing->z + tmthing->height > opentop)
+	{
+	    hitline = ld;
+	    hitpic = sides[ld->sidenum[hitside]].toptexture;
+	}
     }
 
     if (openbottom > tmfloorz)
     {
 	tmfloorz = openbottom;	
 	floorline = ld;
+	// [kg] this side was hit
+	if(tmthing->z < openbottom)
+	{
+	    hitline = ld;
+	    hitpic = sides[ld->sidenum[hitside]].bottomtexture;
+	}
     }
 
     if (lowfloor < tmdropoffz)
@@ -1152,6 +1191,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 
     int tmphl;
     angle_t ang;
+    int material = 0;
 
     uint16_t canopass = ~mobjinfo[la_pufftype].canpass;
 
@@ -1222,7 +1262,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 						texnum = curline->sidedef->bottomtexture;
 				} else
 					texnum = sides[pl->line->sidenum[0]].midtexture;
-				puf->tag = textures[texnum].material;
+				material = textures[texnum].material;
 				// mark 3D side hit
 				is_3dhit = true;
 				goto hitline;
@@ -1260,7 +1300,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 					z = *pl->height;
 					frac = -FixedDiv( FixedMul(frac, shootz - *pl->height), dz);
 					// [kg] set material
-					puf->tag = 0; // TODO: floor texture
+					material = textures[*pl->pic].material;
 					goto hit3dplane;
 				}
 				pl = pl->next;
@@ -1287,7 +1327,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 					z = *pl->height-1;
 					frac = -FixedDiv( FixedMul(frac, shootz - *pl->height), dz);
 					// [kg] set material
-					puf->tag = 0; // TODO: ceiling texture
+					material = textures[*pl->pic].material;
 					goto hit3dplane;
 				}
 				pl = pl->next;
@@ -1342,12 +1382,12 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		if (frontsector->ceilingpic == skyflatnum)
 		{
 		    // don't shoot the sky!
-		    if (z > frontsector->ceilingheight)
+		    if(z > frontsector->ceilingheight)
 			return false;
 		    
 		    // it's a sky hack wall
-		    if	(backsector && backsector->ceilingpic == skyflatnum && backsector->ceilingheight <= z)
-			return false;		
+		    if(backsector && backsector->ceilingpic == skyflatnum && backsector->ceilingheight <= z)
+			return false;
 		}
 	}
 
@@ -1355,26 +1395,27 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	if(z <= li->frontsector->floorheight)
 	{
 		// floor hit
-		puf->tag = 0; // TODO: floor texture
+		material = textures[frontsector->floorpic].material;
 	} else
 	if(z >= li->frontsector->ceilingheight)
 	{
 		// ceiling hit
-		puf->tag = 0; // TODO: ceiling texture
+		material = textures[frontsector->ceilingpic].material;
 	} else
 	if(!is_3dhit)
 	{
+		int side = frontsector == li->frontsector ? 0 : 1;
 		// line texture
-		if(!li->backsector)
-			puf->tag = textures[sides[li->sidenum[0]].midtexture].material;
+		if(!backsector)
+			material = textures[sides[li->sidenum[side]].midtexture].material;
 		else
 		if(z < backsector->floorheight)
-			puf->tag = textures[sides[li->sidenum[0]].bottomtexture].material;
+			material = textures[sides[li->sidenum[side]].bottomtexture].material;
 		else
 		if(z > backsector->ceilingheight)
-			puf->tag = textures[sides[li->sidenum[0]].toptexture].material;
+			material = textures[sides[li->sidenum[side]].toptexture].material;
 		else
-			puf->tag = textures[sides[li->sidenum[0]].midtexture].material;
+			material = textures[sides[li->sidenum[side]].midtexture].material;
 	}
 
       hit3dplane:
@@ -1411,6 +1452,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 
 	// Spawn bullet puffs.
 	puf = P_SpawnPuff (x,y,z, NULL, shootthing);
+	puf->material = material;
 
 #ifdef SERVER
 	// tell clients about this
@@ -1480,6 +1522,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 
     puf->damage = tmphl - th->health;
     puf->health = th->health;
+    puf->material = th->material;
 
 #ifdef SERVER
     // tell clients about this

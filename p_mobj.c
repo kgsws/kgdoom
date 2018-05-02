@@ -19,6 +19,8 @@
 // [kg] LUA support
 #include "kg_lua.h"
 
+#include "kg_3dfloor.h"
+
 #ifdef SERVER
 #include <netinet/in.h>
 #include "network.h"
@@ -29,6 +31,8 @@
 
 // [kg] keep track of projectile hits
 extern mobj_t *hitmobj;
+extern line_t *hitline;
+extern int hitpic;
 // [kg] for thing Z collision checking
 extern mobj_t *thzcbot;
 extern mobj_t *thzctop;
@@ -187,6 +191,7 @@ void P_XYMovement (mobj_t* mo)
 	ymove -= stepy;
 
 	hitmobj = NULL;
+	hitline = NULL;
 	if (!P_TryMove (mo, ptryx, ptryy))
 	{
 	    // blocked move
@@ -236,7 +241,13 @@ void P_XYMovement (mobj_t* mo)
 			if(mo->info->bouncesound)
 				S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
 		} else
-		P_ExplodeMissile (mo);
+		{
+			P_ExplodeMissile(mo);
+			if(hitmobj)
+				mo->material = hitmobj->material;
+			if(hitline)
+				mo->material = textures[hitpic].material;
+		}
 #ifdef SERVER
 		// [kg] explode clientside projectile
 		if(hitmobj)
@@ -335,6 +346,8 @@ void P_ZMovement (mobj_t* mo)
     floorz = mo->floorz;
     ceilingz = mo->ceilingz;
 
+    mobj_t *floorthing = NULL;
+
     // [kg] mobj Z collision
     if(mo->z > floorz && !(mo->flags & (MF_MISSILE | MF_NOZCHANGE | MF_NOCLIP)))
     {
@@ -343,6 +356,7 @@ void P_ZMovement (mobj_t* mo)
 	if(thzcbot && thzcbot->z + thzcbot->height > mo->floorz)
 	{
 	    floorz = thzcbot->z + thzcbot->height;
+	    floorthing = thzcbot;
 	}
 	thzcbot = NULL; // and reset it now
     }
@@ -413,7 +427,27 @@ void P_ZMovement (mobj_t* mo)
 	    else
 	    if(!mo->bounce || !mo->momz)
 	    {
-		P_ExplodeMissile (mo);
+		P_ExplodeMissile(mo);
+		// [kg] material check
+		if(floorthing)
+		    mo->material = floorthing->material;
+		else
+		if(mo->z <= mo->subsector->sector->floorheight)
+		    mo->material = textures[mo->subsector->sector->floorpic].material;
+		else
+		{
+		    extraplane_t *pl;
+		    pl = mo->subsector->sector->exfloor;
+		    while(pl)
+		    {
+			if(*pl->height == mo->z)
+			{
+			    mo->material = textures[*pl->pic].material;
+			    break;
+			}
+			pl = pl->next;
+		    }
+		}
 		return;
 	    }
 	}
@@ -455,6 +489,23 @@ void P_ZMovement (mobj_t* mo)
 	    if(!mo->bounce || !mo->momz)
 	    {
 		P_ExplodeMissile (mo);
+		// [kg] material check
+		if(mo->z >= mo->subsector->sector->ceilingheight)
+		    mo->material = textures[mo->subsector->sector->ceilingpic].material;
+		else
+		{
+		    extraplane_t *pl;
+		    pl = mo->subsector->sector->exceiling;
+		    while(pl)
+		    {
+			if(*pl->height == mo->z)
+			{
+			    mo->material = textures[*pl->pic].material;
+			    break;
+			}
+			pl = pl->next;
+		    }
+		}
 		return;
 	    }
 	}
@@ -676,6 +727,7 @@ P_SpawnMobj
     mobj->bounce = info->bounce;
     mobj->blocking = info->blocking;
     mobj->canpass = info->canpass;
+    mobj->material = info->material;
     mobj->translation = info->translation;
     mobj->render.renderstyle = info->render.renderstyle;
     mobj->render.rendertable = info->render.rendertable;
@@ -1157,8 +1209,9 @@ void P_CheckMissileSpawn (mobj_t* th)
     th->y += (th->momy>>1);
     th->z += (th->momz>>1);
 
-    if (!P_TryMove (th, th->x, th->y))
-	P_ExplodeMissile (th);
+// [kg] can't explode here, material is not known
+//    if (!P_TryMove (th, th->x, th->y))
+//	P_ExplodeMissile (th);
 }
 
 

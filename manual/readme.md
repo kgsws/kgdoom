@@ -14,7 +14,7 @@ When you start kgdoom, you will see WAD menu where you can pick IWAD, and option
 This manual documents kgDoom Lua game API. I assume you already know how to make doom maps / mods and know Lua scripting.
 Hexen map formap is recommended. Doom map format is present only for compatibility reasons.
 
-### Terms
+### Terms and notes
 These are terms used in Lua API.
 
 - mobj
@@ -39,6 +39,13 @@ These are terms used in Lua API.
   - Used for example for light effects.
 - textureScroll
   - This is used to add texture scroll effect to lines.
+- texture
+  - Wall textures are internaly converted into 2D array instead of being kept in original column/post format.
+  - This means that one of avalable palette color had to be chosen as transparent. This is color at index 0.
+  - Loading routine will atempt to remap all used colors 0 to other palette color with exactly same RGB values.
+    - Which is color 247 in original Doom palette.
+    - If no matching color is found, index 0 won't get remapped and stay transparent for masked textures.
+  - In Hexen map format you can use wall textures on flats and flat textures on walls.
 - material
   - Every texture can have specific material ID for extra effects.
   - Material is identified by integer from 0 to 255. 0 is default material.
@@ -46,7 +53,11 @@ These are terms used in Lua API.
     - ZDoom uses this offset as a uint16_t flags, but only MSB (bit 15) is defined.
   - Material ID is passed to `puff` mobj as `tag` when line or plane is hit.
   - Only textures from TEXTUREx can have materials assigned. Flat textures are always material 0.
-    - Planned feature will solve this.
+    - In Hexen map format, you can use wall textures on flats.
+  - This material ID will be passed to spawned bullet puffs and exploding projeciles.
+- blocking middle textures
+  - In Hexen map format, blocking lines with middle textures are blocking only across its actual height.
+  - You can even walk on middle textures.
 
 ### Lua scripts
 Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have multiple GAMELUA lumps in multiple wads.
@@ -342,6 +353,9 @@ Mobjtype can contain these parameters. Default 0 / none, unless specified otherw
 - `pass`
   - See blocking. If specified bit is set, this mobj won't be blocked by other mobjs, lines or 3D floors with same `block` bit set as it normally would.
   - Integer, 16 bit only.
+- `material`
+  - Material of this mobj.
+  - Integer. Material ID. See `materials`.
 - `icon`
   - Icon to be used for this mobj. Usage depends on mobj type, or can be used for custom Lua scripts.
   - `addWeaponType` expects this to be set to valid icon. If not found or invalid, this weapon won't be listed in selection menu.
@@ -490,6 +504,9 @@ Mobjs have all parameters copied from mobjtype when spawned. Most parameters can
 - `pass`
   - See mobjtype.
   - Integer, 16 bit only.
+- `material`
+  - Material of this mobj.
+  - Integer. Material ID. See `materials`.
 - `attacktype`
   - Last damage type dealed to this thing. Best used in `_pain`, `_death` or `_xdeath` animation.
   - Integer. See `damage types`.
@@ -573,7 +590,7 @@ Functions called from mobj. All functions are read only and can't be redefined.
     - `damage` to actual damage dealt
     - `damagetype` to actual damage type
     - `health` to remaining health
-    - `tag` texture material, if line or plane was hit, see `materials`
+    - `material` texture or mobj material, see `materials`
   - Returns target mobj or nil.
 - `Thrust(speed [, angle])`
   - Thrust thing at either specified absolute `angle` or mobjs current `angle`.

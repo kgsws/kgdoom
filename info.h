@@ -113,6 +113,7 @@ typedef struct
 	int shootz;
 	int bobz;
 	int icon;
+	int material;
 
 	// [kg] renderer
 	colormap_t translation;

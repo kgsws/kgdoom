@@ -14,7 +14,7 @@ typedef struct extraplane_s
 	line_t *line;
 	sector_t *source;
 	fixed_t *height;
-	int *pic;
+	uint16_t *pic;
 	short *lightlevel;
 	int validcount;
 	short *clip;

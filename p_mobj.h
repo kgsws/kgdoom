@@ -316,6 +316,9 @@ typedef struct mobj_s
     // [kg] tag
     int tag;
 
+    // [kg] material
+    int material;
+
     // [kg] blocking
     int blocking;
     int canpass;
