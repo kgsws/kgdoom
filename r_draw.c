@@ -56,6 +56,8 @@ byte*	dc_source;
 int	dc_src_height;
 int	dc_src_width;
 
+boolean dc_is_sprite;
+
 // just for profiling 
 int			dccount;
 
@@ -69,6 +71,7 @@ int dc_texture;
 // Thus a special case loop for very fast rendering can
 //  be used. It has also been used with Wolfenstein 3D.
 // 
+// [kg] shared with solid walls and sprites
 void R_DrawColumn(void)
 { 
     int			count; 
@@ -100,8 +103,16 @@ void R_DrawColumn(void)
     frac = dc_texturemid + (dc_yl-centery)*fracstep;
     if(frac < 0)
     {
-	fixed_t tx = dc_src_height << FRACBITS;
-	frac += ((-frac + (tx-1)) / tx) * tx;
+	// [kg] fix offset
+	if(dc_is_sprite)
+		// sprite column can't start negative
+		frac = 0;
+	else
+	{
+		// wall column wrap-around
+		fixed_t tx = dc_src_height << FRACBITS;
+		frac += ((-frac + (tx-1)) / tx) * tx;
+	}
     }
 
     // Inner loop that does the actual texture mapping,
@@ -119,6 +130,7 @@ void R_DrawColumn(void)
     } while (count--); 
 }
 
+// [kg] used for mid walls only
 void R_DrawColumnMasked(void)
 { 
     int			count; 
@@ -150,6 +162,7 @@ void R_DrawColumnMasked(void)
     frac = dc_texturemid + (dc_yl-centery)*fracstep;
     if(frac < 0)
     {
+	// [kg] wall column wrap-around
 	fixed_t tx = dc_src_height << FRACBITS;
 	frac += (((-frac) + (tx-1)) / tx) * tx;
     }
@@ -172,6 +185,7 @@ void R_DrawColumnMasked(void)
 }
 
 // [kg] column with holes (skip every pixel)
+// sprites only
 void R_DrawColumnHoley (void)
 { 
     int			count; 
@@ -202,7 +216,10 @@ void R_DrawColumnHoley (void)
     // Determine scaling,
     //  which is the only mapping to be done.
     fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+	// [kg] sprite column can't start negative
+	frac = 0;
 
     // Inner loop that does the actual texture mapping,
     //  e.g. a DDA-lile scaling.
@@ -221,6 +238,7 @@ void R_DrawColumnHoley (void)
     } while (count--); 
 }
 
+// [kg] for mid walls
 void R_DrawColumnHoleyMasked(void)
 { 
     int			count; 
@@ -251,7 +269,13 @@ void R_DrawColumnHoleyMasked(void)
     // Determine scaling,
     //  which is the only mapping to be done.
     fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+    {
+	// [kg] wall column wrap-around
+	fixed_t tx = dc_src_height << FRACBITS;
+	frac += (((-frac) + (tx-1)) / tx) * tx;
+    }
 
     // Inner loop that does the actual texture mapping,
     //  e.g. a DDA-lile scaling.
@@ -435,7 +459,7 @@ void R_DrawFuzzColumnMasked(void)
 //  of the BaronOfHell, the HellKnight, uses
 //  identical sprites, kinda brightened up.
 //
-
+// [kg] sprites and solid walls
 void R_DrawTranslatedColumn (void)
 { 
     int			count; 
@@ -462,7 +486,20 @@ void R_DrawTranslatedColumn (void)
 
     // Looks familiar.
     fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+    {
+	// [kg] fix offset
+	if(dc_is_sprite)
+		// sprite column can't start negative
+		frac = 0;
+	else
+	{
+		// wall column wrap-around
+		fixed_t tx = dc_src_height << FRACBITS;
+		frac += ((-frac + (tx-1)) / tx) * tx;
+	}
+    }
 
     // Here we do an additional index re-mapping.
     do 
@@ -479,6 +516,7 @@ void R_DrawTranslatedColumn (void)
     } while (count--); 
 }
 
+// [kg] mid walls only
 void R_DrawTranslatedColumnMasked (void)
 { 
     int			count; 
@@ -505,7 +543,13 @@ void R_DrawTranslatedColumnMasked (void)
 
     // Looks familiar.
     fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+    {
+	// [kg] wall column wrap-around
+	fixed_t tx = dc_src_height << FRACBITS;
+	frac += (((-frac) + (tx-1)) / tx) * tx;
+    }
 
     // Here we do an additional index re-mapping.
     do 
@@ -554,10 +598,10 @@ int			dscount;
 void R_DrawSpan (void)
 { 
     uint32_t		xfrac;
-    uint32_t		yfrac; 
-    byte*		dest; 
+    uint32_t		yfrac;
+    byte*		dest;
     int			count;
-    int			spot; 
+    int			spot;
 	 
 #ifdef RANGECHECK 
     if (ds_x2 < ds_x1
@@ -571,9 +615,10 @@ void R_DrawSpan (void)
 //	dscount++; 
 #endif 
 
-    
-    xfrac = 0x80000000 + ds_xfrac;
-    yfrac = 0x80000000 + ds_yfrac;
+    xfrac = dc_src_height << FRACBITS;
+    yfrac = dc_src_width << FRACBITS;
+    xfrac = ((0x80000000 / xfrac)*xfrac) + ds_xfrac;
+    yfrac = ((0x80000000 / yfrac)*yfrac) + ds_yfrac;
 
     dest = ylookup[ds_y] + columnofs[ds_x1];
 
@@ -584,7 +629,7 @@ void R_DrawSpan (void)
     {
 	// Current texture index in u,v.
 //	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
-	spot = (((yfrac>>16) % dc_src_height) * dc_src_width) + ((xfrac>>16) % dc_src_width);
+	spot = (((xfrac>>16) % dc_src_height) * dc_src_width) + ((yfrac>>16) % dc_src_width);
 
 	// Lookup pixel from flat texture tile,
 	//  re-index using light/colormap.
@@ -618,8 +663,10 @@ void R_DrawSpanMasked(void)
 #endif 
 
     
-    xfrac = 0x80000000 + ds_xfrac;
-    yfrac = 0x80000000 + ds_yfrac;
+    xfrac = dc_src_height << FRACBITS;
+    yfrac = dc_src_width << FRACBITS;
+    xfrac = ((0x80000000 / xfrac)*xfrac) + ds_xfrac;
+    yfrac = ((0x80000000 / yfrac)*yfrac) + ds_yfrac;
 
     dest = ylookup[ds_y] + columnofs[ds_x1];
 
@@ -630,7 +677,7 @@ void R_DrawSpanMasked(void)
     {
 	// Current texture index in u,v.
 //	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
-	spot = (((yfrac>>16) % dc_src_height) * dc_src_width) + ((xfrac>>16) % dc_src_width);
+	spot = (((xfrac>>16) % dc_src_height) * dc_src_width) + ((yfrac>>16) % dc_src_width);
 
 	// Lookup pixel from flat texture tile,
 	//  re-index using light/colormap.
@@ -648,8 +695,8 @@ void R_DrawSpanMasked(void)
 // draw shadow span
 void R_DrawSpanShadow (void)
 { 
-    fixed_t		xfrac;
-    fixed_t		yfrac; 
+    uint32_t		xfrac;
+    uint32_t		yfrac; 
     byte*		dest; 
     int			count;
     int			spot; 
@@ -667,8 +714,10 @@ void R_DrawSpanShadow (void)
 #endif 
 
     
-    xfrac = 0x70000000 + ds_xfrac;
-    yfrac = 0x70000000 + ds_yfrac;
+    xfrac = dc_src_height << FRACBITS;
+    yfrac = dc_src_width << FRACBITS;
+    xfrac = ((0x80000000 / xfrac)*xfrac) + ds_xfrac;
+    yfrac = ((0x80000000 / yfrac)*yfrac) + ds_yfrac;
 
     dest = ylookup[ds_y] + columnofs[ds_x1];
 
@@ -679,7 +728,7 @@ void R_DrawSpanShadow (void)
     {
 	// Current texture index in u,v.
 //	spot = ((yfrac>>(16-6))&(63*64)) + ((xfrac>>16)&63);
-	spot = (((yfrac>>16) % dc_src_height) * dc_src_width) + ((xfrac>>16) % dc_src_width);
+	spot = (((xfrac>>16) % dc_src_height) * dc_src_width) + ((yfrac>>16) % dc_src_width);
 
 	// Lookup pixel from flat texture tile,
 	//  re-index using light/colormap.

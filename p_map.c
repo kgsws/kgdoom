@@ -1431,12 +1431,14 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	tmbbox[BOXRIGHT] = x + mobjinfo[la_pufftype].radius;
 	tmbbox[BOXLEFT] = x - mobjinfo[la_pufftype].radius;
 
-	if(	// back sector is step up (or ceiling overhang)
+	if(	is_3dhit || (
+		// back sector is step up (or ceiling overhang)
 		(!backsector || (aimslope < 0 && backsector->floorheight > frontsector->floorheight) || (aimslope > 0 && backsector->ceilingheight < frontsector->ceilingheight))
 		// thing might touch this line
 		&& !(tmbbox[BOXRIGHT] <= li->bbox[BOXLEFT] || tmbbox[BOXLEFT] >= li->bbox[BOXRIGHT] || tmbbox[BOXTOP] <= li->bbox[BOXBOTTOM] || tmbbox[BOXBOTTOM] >= li->bbox[BOXTOP])
 		// thing is touching this line
 		&& P_BoxOnLineSide (tmbbox, li) == -1
+		)
 	) {
 		// it is and has to be moved, relative to wall (original hit point)
 		x = trace.x + FixedMul (trace.dx, in->frac);

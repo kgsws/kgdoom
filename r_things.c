@@ -356,11 +356,11 @@ void R_DrawMaskedColumn (column_t* column)
 	{
 	    dc_source = (byte *)column + 3;
 	    dc_texturemid = basetexturemid - (column->topdelta<<FRACBITS);
-	    // dc_source = (byte *)column + 3 - column->topdelta;
-
+	    // [kg] use column height for rendering
+	    dc_src_height = column->length;
 	    // Drawn by either R_DrawColumn
 	    //  or (SHADOW) R_DrawFuzzColumn.
-	    colfunc ();	
+	    colfunc ();
 	}
 	column = (column_t *)(  (byte *)column + column->length + 4);
     }
@@ -499,7 +499,6 @@ R_DrawVisSprite
 //	break;
 #endif
 	column = (column_t *) ((byte *)patch + LONG(patch->columnofs[texturecolumn]));
-	dc_src_height = patch->height;
 	R_DrawMaskedColumn (column);
     }
 
@@ -1048,6 +1047,7 @@ void R_DrawMaskedClip (void)
     vissprite_t *spr;
     drawseg_t *ds;
 
+    dc_is_sprite = true;
     if (vissprite_p > vissprites)
     {
 	// draw all vissprites back to front
@@ -1061,6 +1061,7 @@ void R_DrawMaskedClip (void)
     }
 
     // render any remaining masked mid textures
+    dc_is_sprite = false;
     for (ds=ds_p-1 ; ds >= drawsegs ; ds--)
 	if (ds->maskedtexturecol)
 	    R_RenderMaskedSegRange (ds, ds->x1, ds->x2);
@@ -1107,10 +1108,14 @@ void R_DrawMasked (void)
 
 	// draw the psprites on top of everything
 	//  but does not draw on side views
+	dc_is_sprite = true;
 	clip_bot = -1;
 	clip_top = -1;
 	if (!viewangleoffset)		
 		R_DrawPlayerSprites ();
+
+	// no mre sprites
+	dc_is_sprite = false;
 }
 
 #endif

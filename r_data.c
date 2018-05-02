@@ -283,6 +283,8 @@ void R_InitTextures (void)
 			int num = lastflat[i] - firstflat[i] + 1;
 			for(tmp = 0; tmp < num; tmp++)
 			{
+				int x, y;
+				uint8_t *src;
 				int lump = (i << 24) | (firstflat[i] + tmp);
 				memcpy(textures[idx].name, W_LumpNumName(lump), 8);
 				textures[idx].width = 64;
@@ -293,8 +295,18 @@ void R_InitTextures (void)
 				textures[idx].scaley = 8;
 				textures[idx].data = pixelpos;
 				Z_Enlarge(pixelstorage, 64 * 64);
-				memcpy(pixelpos, W_CacheLumpNum(lump), 64 * 64);
-				pixelpos += 64 * 64;
+				src = W_CacheLumpNum(lump);
+				// rotate plane pixels to match wall orientation
+				for(y = 0; y < 64; y++)
+				{
+					for(x = 0; x < 64; x++)
+					{
+						*pixelpos = *src;
+						pixelpos++;
+						src += 64;
+					}
+					src -= 64 * 64 - 1;
+				}
 				idx++;
 			}
 		}

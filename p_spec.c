@@ -139,9 +139,6 @@ void P_InitPicAnims (void)
 	    lastanim->picnum = R_FlatNumForName (animdefs[i].endname);
 	    lastanim->basepic = R_FlatNumForName (animdefs[i].startname);
 
-	    // [kg] frames must be in same WAD
-	    if((lastanim->picnum & 0xFF000000) != (lastanim->basepic & 0xFF000000))
-		continue;
 	}
 
 	lastanim->istexture = animdefs[i].istexture;

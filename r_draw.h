@@ -58,6 +58,8 @@ extern uint8_t *dc_colormap;
 extern uint8_t *dc_translation;
 extern uint8_t *dc_lightcolor;
 
+extern boolean dc_is_sprite;
+
 extern int dc_holestep;
 
 // Span blitting for rows, floor/ceiling.
