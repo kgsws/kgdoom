@@ -333,7 +333,7 @@ P_DamageMobj
 /*    if ( (!target->threshold || target->type == MT_VILE)
 	 && source && source != target
 	 && source->type != MT_VILE)*/
-    if ( target->flags & MF_ISMONSTER && (!target->threshold) && source && source != target)
+    if ( target->flags & MF_ISMONSTER && (!target->threshold) && source && source != target && !(source->flags & MF_NOTARGET))
     {
 	// if not intent on another player,
 	// chase after this one

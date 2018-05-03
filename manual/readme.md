@@ -116,6 +116,11 @@ To make save games possible, do not store anything related to gamestate in globa
   - If you want to have secret / scriptable weapons, you do not have to register them.
 - function `addKeyType(mobjtype)`
   - This fucntion registers key as mobjtype. This registration is only for display in HUD.
+- function `addAnimation(ticrate, ...)` or `addAnimation(is_flat, ticrate, ...)`
+  - This function defines texture animation sequence.
+  - Animation speed is defined by `ticrate`.
+  - Animation sequence is defined by number of `...` arguments. All arguments have to be strings. Texture or flat names.
+  - Optional `is_flat` limits animation usage on flats if se to `true` or on textures if set to `false.
 ###### Map stage
 - function `doomRandom()`
   - This will return a prandom number from 0 to 255. It uses original doom random table.
@@ -283,6 +288,9 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
 - `__invulnerable`
   - This mobj can't be hurt.
   - Used by invunlerability sphere in doom.
+- `__noTarget`
+  - This mobj can't be targetted by internal enemy AI.
+  - This mobj won't be set as new `target` when used as source of damage.
 - `__wallBounce`
   - Used on projectiles. Projectile will bounce off walls.
 - `__mobjBounce`

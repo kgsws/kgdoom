@@ -208,6 +208,9 @@ typedef enum
     MF_WALLBOUNCE	= 0x400000000,
     MF_MOBJBOUNCE	= 0x800000000,
 
+    // [kg] can't be targetted by internal AI
+    MF_NOTARGET		= 0x1000000000,
+
 } mobjflag_t;
 
 

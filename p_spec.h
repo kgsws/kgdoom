@@ -1,6 +1,17 @@
 #ifndef __P_SPEC__
 #define __P_SPEC__
 
+// [kg] new animation definitions
+typedef struct animdef_t
+{
+	struct animdef_t *next;
+	int target;
+	int ticrate;
+	int count;
+	uint16_t anim[];
+} animdef_t;
+
+animdef_t *P_AddAnimation(int target, int ticrate, int count);
 
 //
 // End-level timer (-TIMER option)

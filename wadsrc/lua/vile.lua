@@ -154,6 +154,7 @@ mtype = {
 	pass = 1,
 	damageScale = {0},
 	__Monster = true,
+	__noTarget = true,
 	_spawn = {
 		{"VILEA", 10, a.Look},
 		{"VILEB", 10, a.Look},

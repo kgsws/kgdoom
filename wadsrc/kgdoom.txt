@@ -1,3 +1,4 @@
+GAMELUA=lua/animation.lua
 GAMELUA=lua/common.lua
 GAMELUA=lua/decoration.lua
 GAMELUA=lua/hitscan.lua

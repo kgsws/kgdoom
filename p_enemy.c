@@ -570,6 +570,9 @@ void A_Look (mobj_t* actor)
     if(actor->target)
 	targ = actor->target;
 
+    if(targ && targ->flags & MF_NOTARGET)
+	targ = NULL;
+
     if (targ
 	&& (targ->flags & MF_SHOOTABLE) )
     {
@@ -657,8 +660,9 @@ void A_Chase (mobj_t*	actor)
     }
 
     if (!actor->target
-	|| !(actor->target->flags&MF_SHOOTABLE))
-    {
+	|| !(actor->target->flags&MF_SHOOTABLE)
+	|| actor->target->flags & MF_NOTARGET
+    ) {
 	// look for a new target
 	if (P_LookForPlayers(actor,true))
 	    return; 	// got a new target

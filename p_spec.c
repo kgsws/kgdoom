@@ -27,141 +27,36 @@
 
 boolean P_ExtraLineSpecial(mobj_t *mobj, line_t *line, int side, int act);
 
-//
-// Animating textures and planes
-// There is another anim_t used in wi_stuff, unrelated.
-//
-typedef struct
+// [kg] new animation definitions
+
+animdef_t *anim_top;
+animdef_t *anim_cur;
+
+animdef_t *P_AddAnimation(int target, int ticrate, int count)
 {
-    boolean	istexture;
-    int		picnum;
-    int		basepic;
-    int		numpics;
-    int		speed;
-    
-} anim_t;
+	animdef_t *ret;
 
-//
-//      source animation definition
-//
-typedef struct
-{
-    boolean	istexture;	// if false, it is a flat
-    char	endname[9];
-    char	startname[9];
-    int		speed;
-} animdef_t;
+	ret = malloc(sizeof(animdef_t) + sizeof(uint16_t) * count);
+	if(!ret)
+		I_Error("P_AddAnimation: out of memory");
 
+	ret->target = target;
+	ret->ticrate = ticrate;
+	ret->count = count;
+	ret->next = NULL;
 
+	if(anim_cur)
+		anim_cur->next = ret;
+	anim_cur = ret;
+	if(!anim_top)
+		anim_top = ret;
 
-#define MAXANIMS                32
-
-extern anim_t	anims[MAXANIMS];
-extern anim_t*	lastanim;
-
-//
-// P_InitPicAnims
-//
-
-// Floor/ceiling animation sequences,
-//  defined by first and last frame,
-//  i.e. the flat (64x64 tile) name to
-//  be used.
-// The full animation sequence is given
-//  using all the flats between the start
-//  and end entry, in the order found in
-//  the WAD file.
-//
-animdef_t		animdefs[] =
-{
-    {false,	"NUKAGE3",	"NUKAGE1",	8},
-    {false,	"FWATER4",	"FWATER1",	8},
-    {false,	"SWATER4",	"SWATER1", 	8},
-    {false,	"LAVA4",	"LAVA1",	8},
-    {false,	"BLOOD3",	"BLOOD1",	8},
-
-    // DOOM II flat animations.
-    {false,	"RROCK08",	"RROCK05",	8},		
-    {false,	"SLIME04",	"SLIME01",	8},
-    {false,	"SLIME08",	"SLIME05",	8},
-    {false,	"SLIME12",	"SLIME09",	8},
-
-    {true,	"BLODGR4",	"BLODGR1",	8},
-    {true,	"SLADRIP3",	"SLADRIP1",	8},
-
-    {true,	"BLODRIP4",	"BLODRIP1",	8},
-    {true,	"FIREWALL",	"FIREWALA",	8},
-    {true,	"GSTFONT3",	"GSTFONT1",	8},
-    {true,	"FIRELAVA",	"FIRELAV3",	8},
-    {true,	"FIREMAG3",	"FIREMAG1",	8},
-    {true,	"FIREBLU2",	"FIREBLU1",	8},
-    {true,	"ROCKRED3",	"ROCKRED1",	8},
-
-    {true,	"BFALL4",	"BFALL1",	8},
-    {true,	"SFALL4",	"SFALL1",	8},
-    {true,	"WFALL4",	"WFALL1",	8},
-    {true,	"DBRAIN4",	"DBRAIN1",	8},
-	
-    {-1}
-};
-
-anim_t		anims[MAXANIMS];
-anim_t*		lastanim;
-
-
-//
-//      Animating line specials
-//
-
-void P_InitPicAnims (void)
-{
-    int		i;
-
-    
-    //	Init animation
-    lastanim = anims;
-    for (i=0 ; animdefs[i].istexture != -1 ; i++)
-    {
-	if (animdefs[i].istexture)
-	{
-	    // different episode ?
-	    if (R_CheckTextureNumForName(animdefs[i].startname) == -1)
-		continue;	
-
-	    lastanim->picnum = R_TextureNumForName (animdefs[i].endname);
-	    lastanim->basepic = R_TextureNumForName (animdefs[i].startname);
-	}
-	else
-	{
-	    if (W_CheckNumForName(animdefs[i].startname) == -1)
-		continue;
-
-	    lastanim->picnum = R_FlatNumForName (animdefs[i].endname);
-	    lastanim->basepic = R_FlatNumForName (animdefs[i].startname);
-
-	}
-
-	lastanim->istexture = animdefs[i].istexture;
-	lastanim->numpics = lastanim->picnum - lastanim->basepic + 1;
-
-	if (lastanim->numpics < 2)
-	    I_Error ("P_InitPicAnims: bad cycle from %s to %s",
-		     animdefs[i].startname,
-		     animdefs[i].endname);
-	
-	lastanim->speed = animdefs[i].speed;
-	lastanim++;
-    }
-	
+	return ret;
 }
-
-
 
 //
 // UTILITIES
 //
-
-
 
 //
 // getSide()
@@ -504,12 +399,11 @@ int		levelTimeCount;
 
 void P_UpdateSpecials (void)
 {
-    anim_t*	anim;
     int		pic;
     int		i;
-    line_t*	line;
+    line_t	*line;
+    animdef_t	*anim = anim_top;
 
-    
     //	LEVEL TIMER
     if (levelTimer == true)
     {
@@ -519,21 +413,20 @@ void P_UpdateSpecials (void)
     }
 
     //	ANIMATE FLATS AND TEXTURES GLOBALLY
-    for (anim = anims ; anim < lastanim ; anim++)
+    while(anim)
     {
-	for (i=anim->basepic ; i<anim->basepic+anim->numpics ; i++)
+	for(i = 0; i < anim->count; i++)
 	{
-	    pic = anim->basepic + ( (leveltime/anim->speed + i)%anim->numpics );
-	    if(anim->istexture)
-	    {
-		if(i < flatstart)
-		    texturetranslation[i] = pic;
-	    } else
-	    {
-		if(i >= flatstart)
-		    texturetranslation[i] = pic;
-	    }
+	    int basepic = anim->anim[i];
+	    pic = anim->anim[( (leveltime/anim->ticrate + i)%anim->count )];
+	    if(
+		anim->target < 0 ||
+		(basepic < flatstart && anim->target == 0) ||
+		(basepic >= flatstart && anim->target == 1)
+	    )
+		texturetranslation[basepic] = pic;
 	}
+	anim = anim->next;
     }
 
     //	DO BUTTONS

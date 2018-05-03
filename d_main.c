@@ -703,12 +703,12 @@ void D_DoomMain (void)
     M_Init ();
 #endif
 
+    printf ("R_Init: Init DOOM refresh daemon.\n");
+    R_Init ();
+
 // [kg] load main game script
     printf("L_Init: Init kgsws' DoomLUA\n");
     L_Init();
-
-    printf ("R_Init: Init DOOM refresh daemon.\n");
-    R_Init ();
 
     printf ("P_Init: Init Playloop state.\n");
     P_Init ();

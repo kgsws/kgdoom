@@ -127,6 +127,7 @@ static int LUA_createMobjType(lua_State *L);
 static int LUA_setPlayerType(lua_State *L);
 static int LUA_addWeaponType(lua_State *L);
 static int LUA_addKeyType(lua_State *L);
+static int LUA_addAnimation(lua_State *L);
 static int LUA_doomRandom(lua_State *L);
 static int LUA_spawnMobj(lua_State *L);
 static int LUA_blockThingsIterator(lua_State *L);
@@ -319,6 +320,7 @@ static const luafunc_t lua_functions[] =
 	{"setPlayerType", LUA_setPlayerType, LUA_EXPORT_SETUP},
 	{"addWeaponType", LUA_addWeaponType, LUA_EXPORT_SETUP},
 	{"addKeyType", LUA_addKeyType, LUA_EXPORT_SETUP},
+	{"addAnimation", LUA_addAnimation, LUA_EXPORT_SETUP},
 	// map stage
 	{"doomRandom", LUA_doomRandom, LUA_EXPORT_LEVEL},
 	{"spawnMobj", LUA_spawnMobj, LUA_EXPORT_LEVEL},
@@ -368,6 +370,7 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"invulnerable", MF_INVULNERABLE},
 	{"wallBounce", MF_WALLBOUNCE},
 	{"mobjBounce", MF_MOBJBOUNCE},
+	{"noTarget", MF_NOTARGET},
 	// flag combinations
 	{"Monster", MF_ISMONSTER | MF_COUNTKILL | MF_SOLID | MF_SHOOTABLE},
 	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF | MF_NOZCHANGE},
@@ -2471,6 +2474,59 @@ static int LUA_addKeyType(lua_State *L)
 	int type;
 	type = LUA_GetMobjTypeParam(L, 1);
 	ST_AddKeyType(type);
+	return 0;
+}
+
+static int LUA_addAnimation(lua_State *L)
+{
+	int top = lua_gettop(L);
+	int ticrate, i;
+	animdef_t *anim;
+	int (*func)(char*);
+	int arg = 1;
+	int target = -1;
+
+	// target; optional
+	if(lua_type(L, 1) == LUA_TBOOLEAN)
+	{
+		top--;
+		arg++;
+		target = lua_toboolean(L, 1);
+	}
+
+	// ticrate; required
+	luaL_checktype(L, arg, LUA_TNUMBER);
+	ticrate = lua_tointeger(L, arg);
+	if(ticrate <= 0)
+		ticrate = 1;
+
+	// texture list; at least 2 required
+	top--;
+	if(top < 2)
+		return luaL_error(L, "addAnimation: incorrect number of arguments");
+	arg++;
+
+	func = R_TextureNumForName;
+	if(target < 0)
+		isHexen = 1;
+	else
+	if(target)
+		func = R_FlatNumForName;
+
+	anim = P_AddAnimation(target, ticrate, top);
+printf("add animation; %i %i %i\n", target, ticrate, top);
+	for(i = 0; i < top; i++)
+	{
+		char name[8];
+		const char *str;
+
+		luaL_checktype(L, arg+i, LUA_TSTRING);
+		str = lua_tostring(L, arg+i);
+printf("\t%s\n", str);
+		strncpy(name, str, 8);
+		anim->anim[i] = func(name);
+	}
+
 	return 0;
 }
 

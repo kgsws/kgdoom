@@ -996,7 +996,6 @@ P_SetupLevel
 void P_Init (void)
 {
     P_InitSwitchList ();
-    P_InitPicAnims ();
 #ifdef SERVER
     R_InitSpriteDefs();
 #else

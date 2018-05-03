@@ -659,16 +659,16 @@ extern int	screenblocks;
 
 void R_Init (void)
 {
+    printf ("R_InitData\n");
     R_InitData ();
-    printf ("\nR_InitData");
 #ifndef SERVER
+    printf ("R_InitPlanes\n");
     R_SetViewSize (screenblocks, detailLevel);
     R_InitPlanes ();
-    printf ("\nR_InitPlanes");
+    printf ("R_InitLightTables\n");
     R_InitLightTables ();
-    printf ("\nR_InitLightTables");
+    printf ("R_InitSkyMap\n");
     R_InitSkyMap ();
-    printf ("\nR_InitSkyMap");
 #endif
     framecount = 0;
 }
