@@ -429,41 +429,173 @@ V_DrawPatchFlipped
 // V_DrawBlock
 // Draw a linear block of pixels into the view buffer.
 //
-void
-V_DrawBlock
-( int		x,
-  int		y,
-  int		scrn,
-  int		width,
-  int		height,
-  byte*		src ) 
-{ 
-    byte*	dest; 
-	 
-#ifdef RANGECHECK 
+// [kg] modified for new font rendering
+void V_DrawBlock1(int x, int y, byte *colormap, int width, int height, byte *src)
+{
+    byte *dest;
+
+#ifdef RANGECHECK
     if (x<0
 	||x+width >SCREENWIDTH
 	|| y<0
-	|| y+height>SCREENHEIGHT 
-	|| (unsigned)scrn>4 )
+	|| y+height>SCREENHEIGHT )
     {
-	I_Error ("Bad V_DrawBlock");
+//	I_Error ("Bad V_DrawBlock");
+	return;
     }
-#endif 
- 
-    V_MarkRect (x, y, width, height); 
- 
+#endif
+
+//    V_MarkRect (x, y, width, height); 
+
     dest = screens[0] + y*SCREENWIDTH+x; 
 
     while (height--) 
-    { 
-	memcpy (dest, src, width); 
-	src += width; 
-	dest += SCREENWIDTH; 
-    } 
-} 
- 
+    {
+	int count = width;
+	while(count--)
+	{
+		if(*src)
+			*dest = colormap[*src];
+		src++;
+		dest++;
+	}
+	dest += SCREENWIDTH - width;
+    }
+}
 
+// [kg] double pixels
+void V_DrawBlock2(int x, int y, byte *colormap, int width, int height, byte *src)
+{
+    byte *dest;
+
+#ifdef RANGECHECK
+    if (x<0
+	||x+width*2 >SCREENWIDTH
+	|| y<0
+	|| y+height*2>SCREENHEIGHT )
+    {
+//	I_Error ("Bad V_DrawBlock");
+	return;
+    }
+#endif
+
+//    V_MarkRect (x, y, width, height); 
+
+    dest = screens[0] + y*SCREENWIDTH+x; 
+
+    while (height--) 
+    {
+	int count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 2;
+		src++;
+	}
+	dest += SCREENWIDTH - width*2;
+	src -= width;
+	count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 2;
+		src++;
+	}
+	dest += SCREENWIDTH - width*2;
+    }
+}
+
+// [kg] triple pixels
+void V_DrawBlock3(int x, int y, byte *colormap, int width, int height, byte *src)
+{
+    byte *dest;
+
+#ifdef RANGECHECK
+    if (x<0
+	||x+width*3 >SCREENWIDTH
+	|| y<0
+	|| y+height*3>SCREENHEIGHT )
+    {
+//	I_Error ("Bad V_DrawBlock");
+	return;
+    }
+#endif
+
+//    V_MarkRect (x, y, width, height); 
+
+    dest = screens[0] + y*SCREENWIDTH+x; 
+
+    while (height--) 
+    {
+	int count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 3;
+		src++;
+	}
+	dest += SCREENWIDTH - width*3;
+	src -= width;
+	count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 3;
+		src++;
+	}
+	dest += SCREENWIDTH - width*3;
+	src -= width;
+	count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 3;
+		src++;
+	}
+	dest += SCREENWIDTH - width*3;
+    }
+}
 
 //
 // V_GetBlock

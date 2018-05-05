@@ -168,6 +168,7 @@ static int LUA_mobjTickerDel(lua_State *L);
 static int LUA_mobjTickerCheck(lua_State *L);
 
 static int LUA_setPlayerMessage(lua_State *L);
+static int LUA_playerHudMessage(lua_State *L);
 static int LUA_setPlayerWeapon(lua_State *L);
 static int LUA_playerRefireWeapon(lua_State *L);
 static int LUA_playerFlashWeapon(lua_State *L);
@@ -252,6 +253,7 @@ static int func_set_colorfog(lua_State *L, void *dst, void *o);
 static int func_get_colorfog(lua_State *L, void *dst, void *o);
 
 static int func_setplayermessage(lua_State *L, void *dst, void *o);
+static int func_playerhudmessage(lua_State *L, void *dst, void *o);
 static int func_setplayerweapon(lua_State *L, void *dst, void *o);
 static int func_playerrefire(lua_State *L, void *dst, void *o);
 static int func_playerwflash(lua_State *L, void *dst, void *o);
@@ -553,6 +555,7 @@ static const lua_table_model_t lua_player[] =
 	{"forceWeapon", offsetof(player_t, force_weapon), LUA_TBOOLEAN},
 	// functions
 	{"Message", 0, LUA_TFUNCTION, func_set_readonly, func_setplayermessage},
+	{"HudMessage", 0, LUA_TFUNCTION, func_set_readonly, func_playerhudmessage},
 	{"SetWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},
 	{"WeaponRefire", 0, LUA_TFUNCTION, func_set_readonly, func_playerrefire},
 	{"WeaponFlash", 0, LUA_TFUNCTION, func_set_readonly, func_playerwflash},
@@ -1598,6 +1601,14 @@ static int func_setplayermessage(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_setPlayerMessage, 1);
+	return 1;
+}
+
+// return hud message function
+static int func_playerhudmessage(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_playerHudMessage, 1);
 	return 1;
 }
 
@@ -4246,6 +4257,11 @@ static int LUA_setPlayerMessage(lua_State *L)
 
 	pl->message = msg;
 
+	return 0;
+}
+
+static int LUA_playerHudMessage(lua_State *L)
+{
 	return 0;
 }
 

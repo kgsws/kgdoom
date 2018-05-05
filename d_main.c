@@ -47,6 +47,7 @@
 
 #include "p_generic.h"
 #include "kg_lua.h"
+#include "kg_text.h"
 
 #include "t_text.h"
 
@@ -724,6 +725,7 @@ void D_DoomMain (void)
 #else
     printf ("HU_Init: Setting up heads up display.\n");
     HU_Init ();
+    HT_Init();
 
     printf ("ST_Init: Init status bar.\n");
     ST_Init ();

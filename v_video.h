@@ -115,10 +115,26 @@ V_CopyRect
 
 // Draw a linear block of pixels into the view buffer.
 void
-V_DrawBlock
+V_DrawBlock1
 ( int		x,
   int		y,
-  int		scrn,
+  byte*         colormap,
+  int		width,
+  int		height,
+  byte*		src );
+void
+V_DrawBlock2
+( int		x,
+  int		y,
+  byte*         colormap,
+  int		width,
+  int		height,
+  byte*		src );
+void
+V_DrawBlock3
+( int		x,
+  int		y,
+  byte*         colormap,
   int		width,
   int		height,
   byte*		src );

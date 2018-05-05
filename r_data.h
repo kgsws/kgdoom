@@ -32,6 +32,8 @@ extern texture_t *textures;
 
 extern int flatstart;
 
+extern uint8_t transpixel;
+
 // [kg] better looks
 extern boolean r_fakecontrast;
 
