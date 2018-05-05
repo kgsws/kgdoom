@@ -2525,7 +2525,6 @@ static int LUA_addAnimation(lua_State *L)
 		func = R_FlatNumForName;
 
 	anim = P_AddAnimation(target, ticrate, top);
-printf("add animation; %i %i %i\n", target, ticrate, top);
 	for(i = 0; i < top; i++)
 	{
 		char name[8];
@@ -2533,7 +2532,6 @@ printf("add animation; %i %i %i\n", target, ticrate, top);
 
 		luaL_checktype(L, arg+i, LUA_TSTRING);
 		str = lua_tostring(L, arg+i);
-printf("\t%s\n", str);
 		strncpy(name, str, 8);
 		anim->anim[i] = func(name);
 	}

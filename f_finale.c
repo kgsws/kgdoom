@@ -9,6 +9,8 @@
 #include "w_wad.h"
 #include "s_sound.h"
 
+#include "kg_text.h"
+
 // Data.
 #include "dstrings.h"
 
@@ -268,35 +270,7 @@ void F_TextWrite (void)
     cy = 10;
     ch = finaletext;
 	
-    count = (finalecount - 10)/TEXTSPEED;
-    if (count < 0)
-	count = 0;
-    for ( ; count ; count-- )
-    {
-	c = *ch++;
-	if (!c)
-	    break;
-	if (c == '\n')
-	{
-	    cx = 10;
-	    cy += 11;
-	    continue;
-	}
-		
-	c = toupper(c) - HU_FONTSTART;
-	if (c < 0 || c> HU_FONTSIZE)
-	{
-	    cx += 4;
-	    continue;
-	}
-		
-	w = SHORT (hu_font[c]->width);
-	if (cx+w > SCREENWIDTH)
-	    break;
-	V_DrawPatch(cx, cy, 0, hu_font[c]);
-	cx+=w;
-    }
-	
+    HT_PutText(cx, cy, ch);
 }
 
 //
@@ -492,52 +466,13 @@ boolean F_CastResponder (event_t* ev)
 
 void F_CastPrint (char* text)
 {
-    char*	ch;
-    int		c;
     int		cx;
-    int		w;
     int		width;
-    
-    // find width
-    ch = text;
-    width = 0;
-	
-    while (ch)
-    {
-	c = *ch++;
-	if (!c)
-	    break;
-	c = toupper(c) - HU_FONTSTART;
-	if (c < 0 || c> HU_FONTSIZE)
-	{
-	    width += 4;
-	    continue;
-	}
-		
-	w = SHORT (hu_font[c]->width);
-	width += w;
-    }
-    
+
     // draw it
+    width = HT_TextWidth(text);
     cx = 160-width/2;
-    ch = text;
-    while (ch)
-    {
-	c = *ch++;
-	if (!c)
-	    break;
-	c = toupper(c) - HU_FONTSTART;
-	if (c < 0 || c> HU_FONTSIZE)
-	{
-	    cx += 4;
-	    continue;
-	}
-		
-	w = SHORT (hu_font[c]->width);
-	V_DrawPatch(cx, 180, 0, hu_font[c]);
-	cx+=w;
-    }
-	
+    HT_PutText(cx, 180, text);
 }
 
 

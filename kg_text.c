@@ -37,12 +37,18 @@ typedef struct
 	uint16_t count;
 } kfn_range_t;
 
+// for some reason there is letter 'Y' graphics present in every IWAD
+// however, this letter is actually showing up as 'I'
+// so, match this data and ignore it if found
+static const uint8_t hack_char[] = {0x04, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x07, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xFF, 0x00, 0x07, 0xBF, 0xBF, 0xB1, 0xB5, 0xB5, 0xB5, 0xB5, 0xBF, 0xBF, 0xFF, 0x00, 0x07, 0xBF, 0xBF, 0xB1, 0xB3, 0xB6, 0xB5, 0xB3, 0xBF, 0xBF, 0xFF, 0x00, 0x07, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF, 0xFF};
+
+static int hack_char_active;
 static int font_height;
 static uint32_t pixel_offs;
 static kfn_head_t *doom_small_font;
 static kfn_head_t *hud_font;
 static uint8_t *hud_colormap;
-static int hud_font_scale;
+int hud_font_scale;
 static void (*hud_draw_func)(int, int, uint8_t*, int, int, uint8_t*);
 
 static uint16_t fake_space[4] = {4, 0, 0, 0};
@@ -104,17 +110,30 @@ static void *HT_AddRangeDoom(kfn_head_t *font, void *ptr, char *basename, int st
 	{
 		int lump;
 		kfn_cinfo_t *info = ptr;
-		sprintf(name, basename, start + i);
-		lump = W_CheckNumForName(name);
-		if(lump < 0)
-			patch = (patch_t*)fake_space;
+		if(hack_char_active && start + i == 121)
+			lump = -1;
 		else
+		{
+			sprintf(name, basename, start + i);
+			lump = W_CheckNumForName(name);
+		}
+		if(lump < 0)
+		{
+			if(start + i == 0x20)
+				patch = (patch_t*)fake_space;
+			else
+			{
+				sprintf(name, basename, (start + i) & 0xDF);
+				patch = W_CacheLumpName(name);
+				// TODO: avoid duplicating character pixels
+			}
+		} else
 			patch = W_CacheLumpNum(lump);
 		info->width = SHORT(patch->width);
 		info->height = SHORT(patch->height);
 		info->space = info->width;
-		info->x = SHORT(patch->leftoffset);
-		info->y = SHORT(patch->topoffset);
+		info->x = -SHORT(patch->leftoffset);
+		info->y = -SHORT(patch->topoffset);
 		if(font_height < info->height)
 			font_height = info->height;
 		info->pixo = pixel_offs;
@@ -137,6 +156,8 @@ static kfn_head_t *HT_DoomFont(char *basename)
 	int last = -1;
 	int num_ranges = 0;
 
+	hack_char_active = 0;
+
 	pixel_offs = 0;
 	font_height = 0;
 
@@ -149,11 +170,25 @@ static kfn_head_t *HT_DoomFont(char *basename)
 		int lump, len;
 		len = sprintf(name, basename, i);
 		if(len <= 8 && i != 65536)
+		{
 			lump = W_CheckNumForName(name);
-		else
+			if(lump >= 0 && W_LumpLength(lump) == sizeof(hack_char) && !memcmp(hack_char, W_CacheLumpNum(lump), sizeof(hack_char)))
+			{
+				hack_char_active = 1;
+				lump = -1;
+			}
+		} else
 			lump = -1;
-		if(i == 0x20 && lump < 0)
-			lump = 666;
+		if(lump < 0)
+		{
+			if(i == 0x20)
+				lump = 666;
+			if(i >= 'a' && i <= 'z')
+			{
+				sprintf(name, basename, i & 0xDF);
+				lump = W_CheckNumForName(name);
+			}
+		}
 		if(lump >= 0)
 		{
 			if(last < 0)
@@ -212,8 +247,18 @@ static kfn_head_t *HT_DoomFont(char *basename)
 			kfn_cinfo_t *info = ptr;
 			ptr += sizeof(kfn_cinfo_t);
 			info->pixo += pixo;
-			sprintf(name, basename, range->first + j);
-			lump = W_CheckNumForName(name);
+			if(hack_char_active && range->first + j == 121)
+				lump = -1;
+			else
+			{
+				sprintf(name, basename, range->first + j);
+				lump = W_CheckNumForName(name);
+			}
+			if(lump < 0)
+			{
+				sprintf(name, basename, (range->first + j) & 0xDF);
+				lump = W_CheckNumForName(name);
+			}
 			if(lump >= 0)
 				HT_RenderToTexture(((void*)font) + info->pixo, W_CacheLumpNum(lump));
 		}
@@ -252,17 +297,20 @@ static const char *HT_DecodeUTF8(const char *src, uint16_t *dst)
 void HT_Init()
 {
 	doom_small_font = HT_DoomFont("STCFN%.3d");
-	HT_SetSmallFont(3);
+	HT_SetSmallFont(3, NULL);
 }
 
-void HT_SetSmallFont(int scale)
+void HT_SetSmallFont(int scale, uint8_t *cm)
 {
 	if(scale > 3)
 		scale = 3;
 	if(scale < 1)
 		scale = 1;
 	hud_font = doom_small_font;
-	hud_colormap = W_CacheLumpName("COLORMAP");
+	if(cm)
+		hud_colormap = cm;
+	else
+		hud_colormap = W_CacheLumpName("COLORMAP");
 	hud_draw_func = hud_funcs[scale-1];
 	hud_font_scale = scale;
 }
@@ -284,7 +332,7 @@ int HT_PutChar(int x, int y, uint16_t num)
 			kfn_cinfo_t *info = ptr + sizeof(kfn_range_t) + sizeof(kfn_cinfo_t) * (num - range->first);
 			// draw
 			if(info->width && info->height && hud_draw_func)
-				hud_draw_func(x, y, hud_colormap, info->width, info->height, ((void*)hud_font) + info->pixo);
+				hud_draw_func(x + info->x * hud_font_scale, y + info->y * hud_font_scale, hud_colormap, info->width, info->height, ((void*)hud_font) + info->pixo);
 			// done
 			return info->space * hud_font_scale;
 		} else
@@ -323,5 +371,10 @@ int HT_TextWidth(const char *text)
 int HT_FontHeight()
 {
 	return hud_font->line_height;
+}
+
+void HT_SetColormap(uint8_t *cm)
+{
+	hud_colormap = cm;
 }
 

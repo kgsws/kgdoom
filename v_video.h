@@ -18,6 +18,9 @@
 #define KG_GUI_OFFSET_X	((SCREENWIDTH/2)-(320+160))
 #define KG_GUI_OFFSET_Y	((SCREENHEIGHT/2)-(200+100))
 
+#define KG_GUI_POS_X(x)	(((x)*3)+KG_GUI_OFFSET_X)
+#define KG_GUI_POS_Y(y)	(((y)*3)+KG_GUI_OFFSET_Y)
+
 // [kg] patch positioning
 typedef enum
 {

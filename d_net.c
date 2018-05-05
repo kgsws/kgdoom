@@ -13,6 +13,7 @@
 #include "hu_stuff.h"
 #include "m_swap.h"
 #include "kg_record.h"
+#include "kg_text.h"
 
 // [kg] new gameplay stuff
 
@@ -99,9 +100,9 @@ void D_NetDrawer()
 				char old = *msg;
 
 				*msg = 0;
-				x = 160 - M_StringWidth(ptr) / 2;
-				M_WriteText(x, y, ptr);
-				y += SHORT(hu_font[0]->height) + 1;
+				x = 160 - HT_TextWidth(ptr) / 2;
+				HT_PutText(x, y, ptr);
+				y += HT_FontHeight() + 1;
 
 				*msg = old;
 				ptr = msg + 1;

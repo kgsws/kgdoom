@@ -27,6 +27,7 @@
 #include "m_menu.h"
 
 #include "kg_record.h"
+#include "kg_text.h"
 
 #include "t_text.h"
 
@@ -469,9 +470,9 @@ void M_ChangeKey(int choice)
 static void M_OptColormap(int opt)
 {
 	if(opt == itemOn)
-		v_patch_colormap = v_colormap_normal;
+		HT_SetColormap(v_colormap_normal);
 	else
-		v_patch_colormap = v_colormap_normal + (256*16);
+		HT_SetColormap(v_colormap_normal + (256*16));
 }
 
 void M_Options(int choice)
@@ -494,20 +495,20 @@ void M_DrawOptions()
 	// stick roles
 	M_OptColormap(0);
 	tmp = i_ctrl_roles ? "MOVE / LOOK" : "LOOK / MOVE";
-	M_WriteText(x - M_StringWidth(tmp), y, tmp);
-	y += SHORT(hu_font[0]->height) + 1;
+	HT_PutText(KG_GUI_POS_X(x) - HT_TextWidth(tmp), KG_GUI_POS_Y(y), tmp);
+	y += HT_FontHeight() + 1;
 
 	// keys
 	for(i = 0; i < NUM_JOYCON_BUTTONS; i++)
 	{
 		tmp = i_ctrl_names[i_ctrl_btn[i]];
 		M_OptColormap(i + 1);
-		M_WriteText(x - M_StringWidth(tmp), y, tmp);
-		y += SHORT(hu_font[0]->height) + 1;
+		HT_PutText(KG_GUI_POS_X(x) - HT_TextWidth(tmp), KG_GUI_POS_Y(y), tmp);
+		y += HT_FontHeight() + 1;
 	}
 
 	// done
-	v_patch_colormap = v_colormap_normal;
+	HT_SetColormap(v_colormap_normal);
 }
 
 //
@@ -558,7 +559,7 @@ void M_DrawLoad(void)
     for (i = 0;i < load_end; i++)
     {
 	M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
-	M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,savegamestrings[i]);
+	HT_PutText(KG_GUI_POS_X(LoadDef.x),KG_GUI_POS_Y(LoadDef.y+LINEHEIGHT*i),savegamestrings[i]);
     }
 }
 
@@ -623,13 +624,7 @@ void M_DrawSave(void)
     for (i = 0;i < load_end; i++)
     {
 	M_DrawSaveLoadBorder(LoadDef.x,LoadDef.y+LINEHEIGHT*i);
-	M_WriteText(LoadDef.x,LoadDef.y+LINEHEIGHT*i,savegamestrings[i]);
-    }
-	
-    if (saveStringEnter)
-    {
-	i = M_StringWidth(savegamestrings[saveSlot]);
-	M_WriteText(LoadDef.x + i,LoadDef.y+LINEHEIGHT*saveSlot,"_");
+	HT_PutText(KG_GUI_POS_X(LoadDef.x),KG_GUI_POS_Y(LoadDef.y+LINEHEIGHT*i),savegamestrings[i]);
     }
 }
 
@@ -1116,36 +1111,13 @@ void M_StopMessage(void)
 }
 
 //
-// Find string width from hu_font chars
-//
-int M_StringWidth(const char* string)
-{
-    int             i;
-    int             w = 0;
-    int             c;
-	
-    for (i = 0;i < strlen(string);i++)
-    {
-	c = (uint8_t)toupper(string[i]) - HU_FONTSTART;
-	if (c < 0 || c >= HU_FONTSIZE)
-	    w += 4;
-	else
-	    w += SHORT (hu_font[c]->width);
-    }
-		
-    return w;
-}
-
-
-
-//
 //      Find string height from hu_font chars
 //
 int M_StringHeight(const char* string)
 {
     int             i;
     int             h;
-    int             height = SHORT(hu_font[0]->height) + 1;
+    int             height = HT_FontHeight() + 1;
 	
     h = height;
     for (i = 0;i < strlen(string);i++)
@@ -1154,56 +1126,6 @@ int M_StringHeight(const char* string)
 		
     return h;
 }
-
-
-//
-//      Write a string using the hu_font
-//
-void
-M_WriteText
-( int		x,
-  int		y,
-  const char*		string)
-{
-    int		w;
-    const char*	ch;
-    int		c;
-    int		cx;
-    int		cy;
-		
-
-    ch = string;
-    cx = x;
-    cy = y;
-	
-    while(1)
-    {
-	c = *ch++;
-	if (!c)
-	    break;
-	if (c == '\n')
-	{
-	    cx = x;
-	    cy += 12;
-	    continue;
-	}
-		
-	c = toupper(c) - HU_FONTSTART;
-	if (c < 0 || c>= HU_FONTSIZE)
-	{
-	    cx += 4;
-	    continue;
-	}
-		
-	w = SHORT (hu_font[c]->width);
-	if (cx+w > SCREENWIDTH)
-	    break;
-	V_DrawPatch(cx, cy, 0, hu_font[c]);
-	cx+=w;
-    }
-}
-
-
 
 //
 // CONTROL PANEL
@@ -1377,8 +1299,7 @@ boolean M_Responder (event_t* ev)
 		    break;
 	    if (ch >= 32 && ch <= 127 &&
 		saveCharIndex < SAVESTRINGSIZE-1 &&
-		M_StringWidth(savegamestrings[saveSlot]) <
-		(SAVESTRINGSIZE-2)*8)
+		HT_TextWidth(savegamestrings[saveSlot]) < (SAVESTRINGSIZE-2)*8)
 	    {
 		savegamestrings[saveSlot][saveCharIndex++] = ch;
 		savegamestrings[saveSlot][saveCharIndex] = 0;
@@ -1557,7 +1478,7 @@ void M_Drawer (void)
     if (messageToPrint)
     {
 	start = 0;
-	y = 100 - M_StringHeight(messageString)/2;
+	y = KG_GUI_POS_Y(100 - M_StringHeight(messageString)/2);
 	while(*(messageString+start))
 	{
 	    for (i = 0;i < strlen(messageString+start);i++)
@@ -1575,9 +1496,9 @@ void M_Drawer (void)
 		start += i;
 	    }
 
-	    x = 160 - M_StringWidth(string)/2;
-	    M_WriteText(x,y,string);
-	    y += SHORT(hu_font[0]->height)+1;
+	    x = KG_GUI_POS_X(160) - HT_TextWidth(string)/2;
+	    HT_PutText(x,y,string);
+	    y += (HT_FontHeight() + 1)*3;
 	}
 	return;
     }
@@ -1603,14 +1524,14 @@ void M_Drawer (void)
 	    if (currentMenu->menuitems[i].name[0])
 	    {
 		if(i == itemOn)
-			v_patch_colormap = v_colormap_normal;
+			HT_SetColormap(v_colormap_normal);
 		else
-			v_patch_colormap = v_colormap_normal + (256*16);
-		M_WriteText(x, y, currentMenu->menuitems[i].name);
+			HT_SetColormap(v_colormap_normal + (256*16));
+		HT_PutText(KG_GUI_POS_X(x), KG_GUI_POS_Y(y), currentMenu->menuitems[i].name);
 	    }
-	    y += SHORT(hu_font[0]->height) + 1;
+	    y += HT_FontHeight() + 1;
 	}
-	v_patch_colormap = v_colormap_normal;
+	HT_SetColormap(v_colormap_normal);
     } else
     {
 	for (i=0;i<max;i++)

@@ -14,4 +14,5 @@ void T_Init();
 void T_Enable(int en);
 void T_Colors(int front, int back);
 void T_InitWads();
+void T_PutChar(uint8_t c);
 

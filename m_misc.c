@@ -40,39 +40,6 @@
 //
 extern patch_t*		hu_font[HU_FONTSIZE];
 
-int
-M_DrawText
-( int		x,
-  int		y,
-  boolean	direct,
-  char*		string )
-{
-    int 	c;
-    int		w;
-
-    while (*string)
-    {
-	c = (uint8_t)toupper(*string) - HU_FONTSTART;
-	string++;
-	if (c < 0 || c> HU_FONTSIZE)
-	{
-	    x += 4;
-	    continue;
-	}
-		
-	w = SHORT (hu_font[c]->width);
-	if (x+w > SCREENWIDTH)
-	    break;
-	V_DrawPatch(x, y, 0, hu_font[c]);
-	x+=w;
-    }
-
-    return x;
-}
-
-
-
-
 //
 // M_WriteFile
 //
@@ -202,11 +169,8 @@ typedef struct
 
 default_t	defaults[] =
 {
-	{"mouse_sensitivity",&mouseSensitivity, 8},
-	{"sfx_volume",&snd_SfxVolume, 15},
-	{"music_volume",&snd_MusicVolume, 8},
-
 #ifdef LINUX
+	{"mouse_sensitivity",&mouseSensitivity, 8},
 
 	{"key_right",&key_right, KEY_RIGHTARROW},
 	{"key_left",&key_left, KEY_LEFTARROW},

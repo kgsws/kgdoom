@@ -5,12 +5,13 @@
 #include "m_swap.h"
 
 #include "hu_stuff.h"
-#include "hu_lib.h"
 #include "w_wad.h"
 
 #include "s_sound.h"
 
 #include "doomstat.h"
+
+#include "kg_text.h"
 
 // Data.
 #include "dstrings.h"
@@ -23,63 +24,22 @@
 #define HU_TITLEP	(mapnamesp[gamemap-1])
 #define HU_TITLET	(mapnamest[gamemap-1])
 #define HU_TITLEHEIGHT	1
-//#define HU_TITLEX	0
-//#define HU_TITLEY	(167 - SHORT(hu_font[0]->height))
-#define HU_TITLEX	220
-#define HU_TITLEY	(((SCREENHEIGHT/2)-4) - SHORT(hu_font[0]->height))
 
-#define HU_INPUTTOGGLE	't'
-#define HU_INPUTX	HU_MSGX
-#define HU_INPUTY	(HU_MSGY + HU_MSGHEIGHT*(SHORT(hu_font[0]->height) +1))
-#define HU_INPUTWIDTH	64
-#define HU_INPUTHEIGHT	1
-
-
-
-char*	chat_macros[] =
-{
-    HUSTR_CHATMACRO0,
-    HUSTR_CHATMACRO1,
-    HUSTR_CHATMACRO2,
-    HUSTR_CHATMACRO3,
-    HUSTR_CHATMACRO4,
-    HUSTR_CHATMACRO5,
-    HUSTR_CHATMACRO6,
-    HUSTR_CHATMACRO7,
-    HUSTR_CHATMACRO8,
-    HUSTR_CHATMACRO9
-};
-
-char*	player_names[] =
-{
-    HUSTR_PLRGREEN,
-    HUSTR_PLRINDIGO,
-    HUSTR_PLRBROWN,
-    HUSTR_PLRRED
-};
-
-
-char			chat_char; // remove later.
 static player_t*	plr;
-patch_t*		hu_font[HU_FONTSIZE];
-static hu_textline_t	w_title;
-boolean			chat_on;
-static hu_itext_t	w_chat;
 static boolean		always_off = false;
-static char		chat_dest[MAXPLAYERS];
-static hu_itext_t w_inputbuffer[MAXPLAYERS];
 
 static boolean		message_on;
 boolean			message_dontfuckwithme;
 static boolean		message_nottobefuckedwith;
 
-static hu_stext_t	w_message;
 static int		message_counter;
 
 extern int		showMessages;
 extern boolean		automapactive;
 
 static boolean		headsupactive = false;
+
+char plr_message[256];
 
 //
 // Builtin map names.
@@ -303,20 +263,7 @@ const char english_shiftxform[] =
 
 void HU_Init(void)
 {
-
-    int		i;
-    int		j;
-    char	buffer[9];
-
     shiftxform = english_shiftxform;
-    // load the heads-up font
-    j = HU_FONTSTART;
-    for (i=0;i<HU_FONTSIZE;i++)
-    {
-	sprintf(buffer, "STCFN%.3d", j++);
-	hu_font[i] = (patch_t *) W_CacheLumpName(buffer);
-    }
-
 }
 
 void HU_Stop(void)
@@ -337,77 +284,23 @@ void HU_Start(void)
     message_on = false;
     message_dontfuckwithme = false;
     message_nottobefuckedwith = false;
-    chat_on = false;
-
-    // create the message widget
-    HUlib_initSText(&w_message,
-		    HU_MSGX, HU_MSGY, HU_MSGHEIGHT,
-		    hu_font,
-		    HU_FONTSTART, &message_on);
-
-    // create the map title widget
-    HUlib_initTextLine(&w_title,
-		       HU_TITLEX, HU_TITLEY,
-		       hu_font,
-		       HU_FONTSTART);
-    
-    switch ( gamemode )
-    {
-      case shareware:
-      case registered:
-      case retail:
-	s = HU_TITLE;
-	break;
-
-/* FIXME
-      case pack_plut:
-	s = HU_TITLEP;
-	break;
-      case pack_tnt:
-	s = HU_TITLET;
-	break;
-*/
-	
-      case commercial:
-      default:
-	 s = HU_TITLE2;
-	 break;
-    }
-    
-    while (*s)
-	HUlib_addCharToTextLine(&w_title, *(s++));
-
-    // create the chat widget
-    HUlib_initIText(&w_chat,
-		    HU_INPUTX, HU_INPUTY,
-		    hu_font,
-		    HU_FONTSTART, &chat_on);
-
-    // create the inputbuffer widgets
-    for (i=0 ; i<MAXPLAYERS ; i++)
-	HUlib_initIText(&w_inputbuffer[i], 0, 0, 0, 0, &always_off);
 
     headsupactive = true;
-
 }
 
 void HU_Drawer(void)
 {
-
-    HUlib_drawSText(&w_message);
-    HUlib_drawIText(&w_chat);
-    if (automapactive)
-	HUlib_drawTextLine(&w_title, false);
-
+	if(plr_message[0])
+	{
+		HT_SetSmallFont(2, NULL);
+		HT_PutText(0, 0, plr_message);
+		HT_SetSmallFont(3, NULL);
+	}
 }
 
 void HU_Erase(void)
 {
-
-    HUlib_eraseSText(&w_message);
-    HUlib_eraseIText(&w_chat);
-    HUlib_eraseTextLine(&w_title);
-
+//	plr_message[0] = 0;
 }
 
 void HU_Ticker(void)
@@ -419,6 +312,7 @@ void HU_Ticker(void)
     // tick down message counter if message is up
     if (message_counter && !--message_counter)
     {
+	plr_message[0] = 0;
 	message_on = false;
 	message_nottobefuckedwith = false;
     }
@@ -429,7 +323,7 @@ void HU_Ticker(void)
 	if ((plr->message && !message_nottobefuckedwith)
 	    || (plr->message && message_dontfuckwithme))
 	{
-	    HUlib_addMessageToSText(&w_message, 0, plr->message);
+	    strncpy(plr_message, plr->message, sizeof(plr_message));
 	    plr->message = 0;
 	    message_on = true;
 	    message_counter = HU_MSGTIMEOUT;
