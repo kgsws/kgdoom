@@ -19,6 +19,8 @@
 
 #include "doomstat.h"
 
+#include "hu_stuff.h"
+
 #include "p_generic.h"
 #include "p_inventory.h"
 #include "kg_lua.h"
@@ -791,7 +793,10 @@ P_SetupLevel
 
     // Initial height of PointOfView
     // will be set by player think.
-    players[consoleplayer].viewz = 1; 
+    players[consoleplayer].viewz = 1;
+
+    // [kg] clear HUD messages
+    HU_Erase();
 
     // Make sure all sounds are stopped before Z_FreeTags.
     S_Start ();			

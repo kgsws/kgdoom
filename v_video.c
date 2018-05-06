@@ -597,6 +597,110 @@ void V_DrawBlock3(int x, int y, byte *colormap, int width, int height, byte *src
     }
 }
 
+// [kg] quad pixels
+void V_DrawBlock4(int x, int y, byte *colormap, int width, int height, byte *src)
+{
+    byte *dest;
+
+#ifdef RANGECHECK
+    if (x<0
+	||x+width*4 >SCREENWIDTH
+	|| y<0
+	|| y+height*4>SCREENHEIGHT )
+    {
+//	I_Error ("Bad V_DrawBlock");
+	return;
+    }
+#endif
+
+//    V_MarkRect (x, y, width, height); 
+
+    dest = screens[0] + y*SCREENWIDTH+x; 
+
+    while (height--) 
+    {
+	int count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 4;
+		src++;
+	}
+	dest += SCREENWIDTH - width*4;
+	src -= width;
+	count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 4;
+		src++;
+	}
+	dest += SCREENWIDTH - width*4;
+	src -= width;
+	count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 4;
+		src++;
+	}
+	dest += SCREENWIDTH - width*4;
+	src -= width;
+	count = width;
+	while(count--)
+	{
+		uint8_t idx = *src;
+		if(idx)
+		{
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+			*dest = colormap[idx];
+			dest++;
+		} else
+			dest += 4;
+		src++;
+	}
+	dest += SCREENWIDTH - width*4;
+    }
+}
+
 //
 // V_GetBlock
 // Gets a linear block of pixels from the view buffer.

@@ -2,7 +2,9 @@
 // by kgsws
 // using VGA(?) font
 
+#ifndef LINUX
 #define VIDEO_STDOUT
+#endif
 
 #ifdef LINUX
 #define BASE_PATH	""

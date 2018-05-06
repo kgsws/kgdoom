@@ -141,6 +141,14 @@ V_DrawBlock3
   int		width,
   int		height,
   byte*		src );
+void
+V_DrawBlock4
+( int		x,
+  int		y,
+  byte*         colormap,
+  int		width,
+  int		height,
+  byte*		src );
 
 // Reads a linear block of pixels into the view buffer.
 void

@@ -58,6 +58,12 @@ These are terms used in Lua API.
 - blocking middle textures
   - In Hexen map format, blocking lines with middle textures are blocking only across its actual height.
   - You can even walk on middle textures.
+- HUD messages
+  - HUD messages are extra texts that can be displayed on the screen.
+  - Every HUD message has uniquie ID. This ID is any arbitrary integer value.
+    - Only one message with specific ID can exist. Defining new message with existing ID will replace old one.
+  - Message options, such as scale and alignment, are stored internaly and modified by specific functions before creating HUD message.
+    - Any new HUD message will use currently set message options.
 
 ### Lua scripts
 Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have multiple GAMELUA lumps in multiple wads.
@@ -683,6 +689,16 @@ Player functions.
 - `Message(text)`
   - Message for player in top left corner. Used for pickups.
   - `text` is string.
+- `HudMessage(id, x, y, text [, tics])`
+  - Hud message for player.
+  - `id` is unique ID of this message. Integer.
+  - `x` and `y` are absolute coordinates on the screen. Integers. 1280x720.
+  - `text` is string to show.
+  - `tics` is optional duration to show this message. Integer.
+- `HudMessageAlign(align)`
+  - `align` is message alignment. Integer, 0 = left, 1 = center, 2 = right.
+- `HudMessageScale(scale)`
+  - `scale` is text scaling. Only whole numbers are supported. Range 1 to 4.
 - `SetWeapon(mobjtype [, forced])`
   - Set player weapon to `mobjtype`. This can be any weapon, even secret one not listed in weapon selection.
   - If `forced` is `true`, weapon will be forced instantly without lowering (or even finishing shooting) of old one.

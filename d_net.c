@@ -92,7 +92,7 @@ void D_NetDrawer()
 	// message
 	if(*msg && !menuactive)
 	{
-		y = 100 - M_StringHeight(network_message)/2;
+		y = KG_GUI_POS_Y(100) - M_StringHeight(network_message)/2;
 		while(1)
 		{
 			if(*msg == '\n' || !*msg)
@@ -100,7 +100,7 @@ void D_NetDrawer()
 				char old = *msg;
 
 				*msg = 0;
-				x = 160 - HT_TextWidth(ptr) / 2;
+				x = KG_GUI_POS_X(160) - HT_TextWidth(ptr) / 2;
 				HT_PutText(x, y, ptr);
 				y += HT_FontHeight() + 1;
 

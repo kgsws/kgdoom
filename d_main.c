@@ -171,9 +171,6 @@ void D_Display (void)
 	oldgamestate = -1;                      // force background redraw
     }
 
-    if (gamestate == GS_LEVEL && gametic)
-	HU_Erase();
-    
     // do buffered drawing
     switch (gamestate)
     {
@@ -724,8 +721,7 @@ void D_DoomMain (void)
     G_InitNew (startskill, startepisode, startmap);
 #else
     printf ("HU_Init: Setting up heads up display.\n");
-    HU_Init ();
-    HT_Init();
+    HU_Init();
 
     printf ("ST_Init: Init status bar.\n");
     ST_Init ();

@@ -23,6 +23,19 @@
 
 #define HU_MSGTIMEOUT	(4*TICRATE)
 
+// [kg] new HUD messages
+typedef struct hudmsg_s
+{
+	struct hudmsg_s *next;
+	int id, x, y, tics, scale, align;
+	void *font;
+	void *colormap;
+	char text[];
+} hudmsg_t;
+
+extern int hudmsg_align;
+extern int hudmsg_scale;
+
 //
 // HEADS UP TEXT
 //
@@ -34,9 +47,11 @@ boolean HU_Responder(event_t* ev);
 
 void HU_Ticker(void);
 void HU_Drawer(void);
-char HU_dequeueChatChar(void);
 void HU_Erase(void);
 
+// [kg] HUD messages
+void HU_MessageAlign(int align);
+void HU_MessagePlain(int id, int x, int y, int tics, const char *text);
 
 #endif
 

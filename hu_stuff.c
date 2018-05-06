@@ -1,4 +1,5 @@
 #include "doomdef.h"
+#include "i_system.h"
 
 #include "z_zone.h"
 
@@ -8,6 +9,7 @@
 #include "w_wad.h"
 
 #include "s_sound.h"
+#include "v_video.h"
 
 #include "doomstat.h"
 
@@ -39,13 +41,21 @@ extern boolean		automapactive;
 
 static boolean		headsupactive = false;
 
+// [kg] player message
 char plr_message[256];
+
+// [kg] new hud messages
+static hudmsg_t *hudmsg_top;
+static void *hudmsg_font;
+int hudmsg_scale;
+int hudmsg_align;
+static uint8_t *hudmsg_color;
 
 //
 // Builtin map names.
 // The actual names can be found in DStrings.h.
 //
-
+/*
 char*	mapnames[] =	// DOOM shareware/registered/retail (Ultimate) names.
 {
 
@@ -215,55 +225,12 @@ char *mapnamest[] =	// TNT WAD map names.
     THUSTR_31,
     THUSTR_32
 };
-
-
-const char*	shiftxform;
-
-const char english_shiftxform[] =
-{
-
-    0,
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-    31,
-    ' ', '!', '"', '#', '$', '%', '&',
-    '"', // shift-'
-    '(', ')', '*', '+',
-    '<', // shift-,
-    '_', // shift--
-    '>', // shift-.
-    '?', // shift-/
-    ')', // shift-0
-    '!', // shift-1
-    '@', // shift-2
-    '#', // shift-3
-    '$', // shift-4
-    '%', // shift-5
-    '^', // shift-6
-    '&', // shift-7
-    '*', // shift-8
-    '(', // shift-9
-    ':',
-    ':', // shift-;
-    '<',
-    '+', // shift-=
-    '>', '?', '@',
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    '[', // shift-[
-    '!', // shift-backslash - OH MY GOD DOES WATCOM SUCK
-    ']', // shift-]
-    '"', '_',
-    '\'', // shift-`
-    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
-    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-    '{', '|', '}', '~', 127
-};
+*/
 
 void HU_Init(void)
 {
-    shiftxform = english_shiftxform;
+	HT_Init(&hudmsg_font, &hudmsg_scale);
+	hudmsg_color = W_CacheLumpName("COLORMAP");
 }
 
 void HU_Stop(void)
@@ -290,273 +257,153 @@ void HU_Start(void)
 
 void HU_Drawer(void)
 {
+	boolean changed = false;
+	hudmsg_t *msg = hudmsg_top;
+	// hud messages
+	while(msg)
+	{
+		int x = msg->x;
+		changed = true;
+		HT_SetFont(msg->font, msg->scale, msg->colormap);
+		switch(msg->align)
+		{
+			case 1:
+				x -= HT_TextWidth(msg->text) / 2;
+			break;
+			case 2:
+				x -= HT_TextWidth(msg->text);
+			break;
+		}
+		HT_PutText(x, msg->y, msg->text);
+		msg = msg->next;
+	}
+	// "pickup" message
 	if(plr_message[0])
 	{
-		HT_SetSmallFont(2, NULL);
+		HT_SetSmallFont(2, v_colormap_normal);
 		HT_PutText(0, 0, plr_message);
-		HT_SetSmallFont(3, NULL);
+		changed = true;
 	}
+	if(changed)
+		HT_SetSmallFont(3, v_colormap_normal);
 }
 
 void HU_Erase(void)
 {
-//	plr_message[0] = 0;
+	hudmsg_t *msg = hudmsg_top;
+
+	plr_message[0] = 0;
+
+	while(msg)
+	{
+		hudmsg_t *tmp = msg;
+		msg = msg->next;
+		free(tmp);
+	}
+	hudmsg_top = NULL;
 }
 
 void HU_Ticker(void)
 {
+	int i, rc;
+	char c;
 
-    int i, rc;
-    char c;
-
-    // tick down message counter if message is up
-    if (message_counter && !--message_counter)
-    {
-	plr_message[0] = 0;
-	message_on = false;
-	message_nottobefuckedwith = false;
-    }
-
-    if (showMessages || message_dontfuckwithme)
-    {
-	// display message if necessary
-	if ((plr->message && !message_nottobefuckedwith)
-	    || (plr->message && message_dontfuckwithme))
+	hudmsg_t *msg = hudmsg_top;
+	hudmsg_t **mld = &hudmsg_top;
+	// hud messages
+	while(msg)
 	{
-	    strncpy(plr_message, plr->message, sizeof(plr_message));
-	    plr->message = 0;
-	    message_on = true;
-	    message_counter = HU_MSGTIMEOUT;
-	    message_nottobefuckedwith = message_dontfuckwithme;
-	    message_dontfuckwithme = 0;
-	}
-
-    } // else message_on = false;
-/*
-    // check for incoming chat characters
-    if (netgame)
-    {
-	for (i=0 ; i<MAXPLAYERS; i++)
-	{
-	    if (!playeringame[i])
-		continue;
-	    if (i != consoleplayer
-		&& (c = players[i].cmd.chatchar))
-	    {
-		if (c <= HU_BROADCAST)
-		    chat_dest[i] = c;
-		else
+		if(msg->tics > 0)
 		{
-		    if (c >= 'a' && c <= 'z')
-			c = (char) shiftxform[(unsigned char) c];
-		    rc = HUlib_keyInIText(&w_inputbuffer[i], c);
-		    if (rc && c == KEY_ENTER)
-		    {
-			if (w_inputbuffer[i].l.len
-			    && (chat_dest[i] == consoleplayer+1
-				|| chat_dest[i] == HU_BROADCAST))
+			msg->tics--;
+			if(!msg->tics)
 			{
-			    HUlib_addMessageToSText(&w_message,
-						    player_names[i],
-						    w_inputbuffer[i].l.l);
-			    
-			    message_nottobefuckedwith = true;
-			    message_on = true;
-			    message_counter = HU_MSGTIMEOUT;
-			    if ( gamemode == commercial )
-			      S_StartSound(0, sfx_radio, 0);
-			    else
-			      S_StartSound(0, sfx_tink, 0);
+				hudmsg_t *tmp = msg;
+				*mld = msg->next;
+				msg = msg->next;
+				free(tmp);
+				continue;
 			}
-			HUlib_resetIText(&w_inputbuffer[i]);
-		    }
 		}
-		players[i].cmd.chatchar = 0;
-	    }
+		mld = &msg->next;
+		msg = msg->next;
 	}
-    }
-*/
-}
 
-#define QUEUESIZE		128
+	// tick down message counter if message is up
+	if (message_counter && !--message_counter)
+	{
+		plr_message[0] = 0;
+		message_on = false;
+		message_nottobefuckedwith = false;
+	}
 
-static char	chatchars[QUEUESIZE];
-static int	head = 0;
-static int	tail = 0;
-
-
-void HU_queueChatChar(char c)
-{
-    if (((head + 1) & (QUEUESIZE-1)) == tail)
-    {
-	plr->message = HUSTR_MSGU;
-    }
-    else
-    {
-	chatchars[head] = c;
-	head = (head + 1) & (QUEUESIZE-1);
-    }
-}
-
-char HU_dequeueChatChar(void)
-{
-    char c;
-
-    if (head != tail)
-    {
-	c = chatchars[tail];
-	tail = (tail + 1) & (QUEUESIZE-1);
-    }
-    else
-    {
-	c = 0;
-    }
-
-    return c;
+	if (showMessages || message_dontfuckwithme)
+	{
+		// display message if necessary
+		if ((plr->message && !message_nottobefuckedwith)
+		|| (plr->message && message_dontfuckwithme))
+		{
+			strncpy(plr_message, plr->message, sizeof(plr_message));
+			plr->message = 0;
+			message_on = true;
+			message_counter = HU_MSGTIMEOUT;
+			message_nottobefuckedwith = message_dontfuckwithme;
+			message_dontfuckwithme = 0;
+		}
+	} // else message_on = false;
 }
 
 boolean HU_Responder(event_t *ev)
 {
-/*
-    static char		lastmessage[HU_MAXLINELENGTH+1];
-    char*		macromessage;
-    boolean		eatkey = false;
-    static boolean	shiftdown = false;
-    static boolean	altdown = false;
-    unsigned char 	c;
-    int			i;
-    int			numplayers;
-    
-    static char		destination_keys[MAXPLAYERS] =
-    {
-	HUSTR_KEYGREEN,
-	HUSTR_KEYINDIGO,
-	HUSTR_KEYBROWN,
-	HUSTR_KEYRED
-    };
-    
-    static int		num_nobrainers = 0;
-
-    numplayers = 0;
-    for (i=0 ; i<MAXPLAYERS ; i++)
-	numplayers += playeringame[i];
-
-    if (ev->data1 == KEY_RSHIFT)
-    {
-	shiftdown = ev->type == ev_keydown;
 	return false;
-    }
-    else if (ev->data1 == KEY_RALT || ev->data1 == KEY_LALT)
-    {
-	altdown = ev->type == ev_keydown;
-	return false;
-    }
+}
 
-    if (ev->type != ev_keydown)
-	return false;
+//
+// [kg] HUD messages
 
-    if (!chat_on)
-    {
-	if (ev->data1 == HU_MSGREFRESH)
+void HU_MessagePlain(int id, int x, int y, int tics, const char *text)
+{
+	int len = strlen(text);
+	hudmsg_t *msg = hudmsg_top;
+	hudmsg_t **mld = &hudmsg_top;
+	hudmsg_t *new = NULL;
+
+	if(len)
 	{
-	    message_on = true;
-	    message_counter = HU_MSGTIMEOUT;
-	    eatkey = true;
+		new = malloc(sizeof(hudmsg_t) + len + 1);
+		if(!new)
+			I_Error("HU_MessagePlain: Memory allocation error.");
 	}
-	else if (netgame && ev->data1 == HU_INPUTTOGGLE)
+
+	while(msg)
 	{
-	    eatkey = chat_on = true;
-	    HUlib_resetIText(&w_chat);
-	    HU_queueChatChar(HU_BROADCAST);
-	}
-	else if (netgame && numplayers > 2)
-	{
-	    for (i=0; i<MAXPLAYERS ; i++)
-	    {
-		if (ev->data1 == destination_keys[i])
+		if(msg->id == id)
 		{
-		    if (playeringame[i] && i!=consoleplayer)
-		    {
-			eatkey = chat_on = true;
-			HUlib_resetIText(&w_chat);
-			HU_queueChatChar(i+1);
+			hudmsg_t *tmp = msg;
+			msg = msg->next;
+			free(tmp);
 			break;
-		    }
-		    else if (i == consoleplayer)
-		    {
-			num_nobrainers++;
-			if (num_nobrainers < 3)
-			    plr->message = HUSTR_TALKTOSELF1;
-			else if (num_nobrainers < 6)
-			    plr->message = HUSTR_TALKTOSELF2;
-			else if (num_nobrainers < 9)
-			    plr->message = HUSTR_TALKTOSELF3;
-			else if (num_nobrainers < 32)
-			    plr->message = HUSTR_TALKTOSELF4;
-			else
-			    plr->message = HUSTR_TALKTOSELF5;
-		    }
 		}
-	    }
+		mld = &msg->next;
+		msg = msg->next;
 	}
-    }
-    else
-    {
-	c = ev->data1;
-	// send a macro
-	if (altdown)
-	{
-	    c = c - '0';
-	    if (c > 9)
-		return false;
-	    // fprintf(stderr, "got here\n");
-	    macromessage = chat_macros[c];
-	    
-	    // kill last message with a '\n'
-	    HU_queueChatChar(KEY_ENTER); // DEBUG!!!
-	    
-	    // send the macro message
-	    while (*macromessage)
-		HU_queueChatChar(*macromessage++);
-	    HU_queueChatChar(KEY_ENTER);
-	    
-	    // leave chat mode and notify that it was sent
-	    chat_on = false;
-	    strcpy(lastmessage, chat_macros[c]);
-	    plr->message = lastmessage;
-	    eatkey = true;
-	}
-	else
-	{
-	    if (french)
-		c = ForeignTranslation(c);
-	    if (shiftdown || (c >= 'a' && c <= 'z'))
-		c = shiftxform[c];
-	    eatkey = HUlib_keyInIText(&w_chat, c);
-	    if (eatkey)
-	    {
-		// static unsigned char buf[20]; // DEBUG
-		HU_queueChatChar(c);
-		
-		// sprintf(buf, "KEY: %d => %d", ev->data1, c);
-		//      plr->message = buf;
-	    }
-	    if (c == KEY_ENTER)
-	    {
-		chat_on = false;
-		if (w_chat.l.len)
-		{
-		    strcpy(lastmessage, w_chat.l.l);
-		    plr->message = lastmessage;
-		}
-	    }
-	    else if (c == KEY_ESCAPE)
-		chat_on = false;
-	}
-    }
 
-    return eatkey;
-*/
-	return false;
+	if(!new)
+	{
+		*mld = msg;
+		return;
+	}
+
+	new->id = id;
+	new->x = x;
+	new->y = y;
+	new->tics = tics;
+	new->scale = hudmsg_scale;
+	new->align = hudmsg_align;
+	new->font = hudmsg_font;
+	new->colormap = hudmsg_color;
+	strcpy(new->text, text);
+	new->next = msg;
+	*mld = new;
 }
 

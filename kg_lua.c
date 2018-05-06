@@ -20,6 +20,7 @@
 #include "g_game.h"
 
 #include "st_stuff.h"
+#include "hu_stuff.h"
 
 #ifdef LINUX
 #include <lua5.3/lua.h>
@@ -169,6 +170,8 @@ static int LUA_mobjTickerCheck(lua_State *L);
 
 static int LUA_setPlayerMessage(lua_State *L);
 static int LUA_playerHudMessage(lua_State *L);
+static int LUA_playerHudAlign(lua_State *L);
+static int LUA_playerHudScale(lua_State *L);
 static int LUA_setPlayerWeapon(lua_State *L);
 static int LUA_playerRefireWeapon(lua_State *L);
 static int LUA_playerFlashWeapon(lua_State *L);
@@ -254,6 +257,8 @@ static int func_get_colorfog(lua_State *L, void *dst, void *o);
 
 static int func_setplayermessage(lua_State *L, void *dst, void *o);
 static int func_playerhudmessage(lua_State *L, void *dst, void *o);
+static int func_playerhudalign(lua_State *L, void *dst, void *o);
+static int func_playerhudscale(lua_State *L, void *dst, void *o);
 static int func_setplayerweapon(lua_State *L, void *dst, void *o);
 static int func_playerrefire(lua_State *L, void *dst, void *o);
 static int func_playerwflash(lua_State *L, void *dst, void *o);
@@ -556,6 +561,8 @@ static const lua_table_model_t lua_player[] =
 	// functions
 	{"Message", 0, LUA_TFUNCTION, func_set_readonly, func_setplayermessage},
 	{"HudMessage", 0, LUA_TFUNCTION, func_set_readonly, func_playerhudmessage},
+	{"HudMessageAlign", 0, LUA_TFUNCTION, func_set_readonly, func_playerhudalign},
+	{"HudMessageScale", 0, LUA_TFUNCTION, func_set_readonly, func_playerhudscale},
 	{"SetWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_setplayerweapon},
 	{"WeaponRefire", 0, LUA_TFUNCTION, func_set_readonly, func_playerrefire},
 	{"WeaponFlash", 0, LUA_TFUNCTION, func_set_readonly, func_playerwflash},
@@ -1604,11 +1611,27 @@ static int func_setplayermessage(lua_State *L, void *dst, void *o)
 	return 1;
 }
 
-// return hud message function
+// return HUD message function
 static int func_playerhudmessage(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_playerHudMessage, 1);
+	return 1;
+}
+
+// return HUD message alignment set function
+static int func_playerhudalign(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_playerHudAlign, 1);
+	return 1;
+}
+
+//
+static int func_playerhudscale(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_playerHudScale, 1);
 	return 1;
 }
 
@@ -4242,7 +4265,6 @@ static int LUA_setPlayerMessage(lua_State *L)
 	player_t *pl;
 
 	pl = lua_touserdata(L, lua_upvalueindex(1));
-
 	if(pl != &players[displayplayer])
 		return 0;
 
@@ -4260,6 +4282,70 @@ static int LUA_setPlayerMessage(lua_State *L)
 
 static int LUA_playerHudMessage(lua_State *L)
 {
+	int id, x, y;
+	const char *txt;
+	int tics = 0;
+	player_t *pl;
+
+	pl = lua_touserdata(L, lua_upvalueindex(1));
+	if(pl != &players[displayplayer])
+		return 0;
+
+	// ID; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	id = lua_tointeger(L, 1);
+
+	// X; required
+	luaL_checktype(L, 2, LUA_TNUMBER);
+	x = lua_tointeger(L, 2);
+
+	// Y; required
+	luaL_checktype(L, 3, LUA_TNUMBER);
+	y = lua_tointeger(L, 3);
+
+	// text; required
+	luaL_checktype(L, 4, LUA_TSTRING);
+	txt = lua_tostring(L, 4);
+
+	// tics; optional
+	if(lua_gettop(L) > 4)
+	{
+		luaL_checktype(L, 5, LUA_TNUMBER);
+		tics = lua_tointeger(L, 5);
+	}
+
+	HU_MessagePlain(id, x, y, tics, txt);
+
+	return 0;
+}
+
+static int LUA_playerHudAlign(lua_State *L)
+{
+	int in;
+
+	// align; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	in = lua_tointeger(L, 1);
+	if(in < 0 || in > 2)
+		return luaL_error(L, "Invalid alignment %i.", in);
+
+	hudmsg_align = in;
+
+	return 0;
+}
+
+static int LUA_playerHudScale(lua_State *L)
+{
+	int in;
+
+	// scale; required
+	luaL_checktype(L, 1, LUA_TNUMBER);
+	in = lua_tointeger(L, 1);
+	if(in < 1 || in > 4)
+		return luaL_error(L, "Invalid alignment %i.", in);
+
+	hudmsg_scale = in;
+
 	return 0;
 }
 

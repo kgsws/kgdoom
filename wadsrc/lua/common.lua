@@ -206,6 +206,17 @@ function mapSetupPlayers(player)
 		player.SetWeapon(MT_FINALEWEAPON, true)
 		player.hideStatusBar = true
 	end
+	-- easter egg map
+	if game.map == "KGSECRET" then
+		player.HudMessageAlign(1)
+		player.HudMessageScale(4)
+		player.HudMessage(0, 640, 128, "Secert level!", 35*14)
+		player.HudMessageScale(2)
+		player.HudMessage(1, 640, 200, "You have found kgDoom's super secret level.", 35*14)
+		player.HudMessage(2, 640, 224, "Unlike other secret levels, this one will reward you.", 35*14)
+		player.HudMessage(3, 640, 248, "Press 4 switches to get your reward.", 35*14)
+		player.mo.reactiontime = 35*6
+	end
 end
 
 function mapLoaded()

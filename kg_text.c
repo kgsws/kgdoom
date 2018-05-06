@@ -12,6 +12,8 @@
 
 #include "kg_text.h"
 
+#define KFN_ID	0x006e666b
+
 // kfn info
 typedef struct
 {
@@ -57,7 +59,8 @@ static void *hud_funcs[] =
 {
 	V_DrawBlock1,
 	V_DrawBlock2,
-	V_DrawBlock3
+	V_DrawBlock3,
+	V_DrawBlock4
 };
 
 // [kg] render patch to texture
@@ -294,18 +297,16 @@ static const char *HT_DecodeUTF8(const char *src, uint16_t *dst)
 	return src + 1;
 }
 
-void HT_Init()
+void HT_Init(void **font, int *scale)
 {
 	doom_small_font = HT_DoomFont("STCFN%.3d");
 	HT_SetSmallFont(3, NULL);
+	*scale = hud_font_scale;
+	*font = hud_font;
 }
 
 void HT_SetSmallFont(int scale, uint8_t *cm)
 {
-	if(scale > 3)
-		scale = 3;
-	if(scale < 1)
-		scale = 1;
 	hud_font = doom_small_font;
 	if(cm)
 		hud_colormap = cm;
@@ -313,6 +314,25 @@ void HT_SetSmallFont(int scale, uint8_t *cm)
 		hud_colormap = W_CacheLumpName("COLORMAP");
 	hud_draw_func = hud_funcs[scale-1];
 	hud_font_scale = scale;
+}
+
+void HT_SetFont(void *font, int scale, uint8_t *cm)
+{
+	hud_colormap = cm;
+	hud_draw_func = hud_funcs[scale-1];
+	hud_font_scale = scale;
+	hud_font = font;
+}
+
+void *HT_CheckFont(char *font)
+{
+	kfn_head_t *data;
+
+	data = W_CacheLumpName(font);
+	if(data->id != KFN_ID || data->format != 1)
+		I_Error("HT_SetFont: Invalid font.");
+	// TODO: more font checks
+	return font;
 }
 
 int HT_PutChar(int x, int y, uint16_t num)
