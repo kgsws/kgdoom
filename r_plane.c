@@ -228,8 +228,9 @@ R_FindPlane
 	    && fogmap == check->fogmap
 	    // [kg] 3D planes
 	    && is3d == check->is3d
-	    // [kg] render style; TODO: table check
+	    // [kg] render style
 	    && render->renderstyle == check->render.renderstyle
+	    && render->rendertable == check->render.rendertable
 	)
 	{
 	    break;
@@ -319,6 +320,8 @@ R_CheckPlane
     lastvisplane->colormap = pl->colormap;
     lastvisplane->fogmap = pl->fogmap;
     lastvisplane->is3d = pl->is3d;
+    lastvisplane->render.renderstyle = pl->render.renderstyle;
+    lastvisplane->render.rendertable = pl->render.rendertable;
 
     if (lastvisplane - visplanes == MAXVISPLANES)
 	I_Error ("R_FindPlane: no more visplanes");

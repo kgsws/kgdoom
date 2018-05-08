@@ -787,6 +787,8 @@ void R_RenderPlayerView (player_t* player)
     R_ClearSprites ();
     // [kg] reset 3D floors
     e3d_Reset();
+    // [kg] reset rendering
+    R_SetupRenderFuncWall(RENDER_NORMAL, NULL, NULL);
     
     // check for new console commands.
     NetUpdate ();

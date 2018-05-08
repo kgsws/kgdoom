@@ -174,7 +174,7 @@ To make save games possible, do not store anything related to gamestate in globa
   - Doom uses fake contrast on walls, so it is enabled by default.
 - function `setBackground(patchlump)`
   - This function will set screen background to this gfx from any WAD.
-  - Use of this function is not recommendes as specified image will only show trough holes in map (= bad map).
+  - Use of this function is not recommended as specified image will only show trough holes in map (= bad map).
   - It is only used for Doom2 finale emulation.
 
 #### mobj states
@@ -716,6 +716,16 @@ Sectors are part of the map. Most parameters can be modified on the fly.
   - Fixed point.
 - `ceilingheight`
   - Fixed point.
+- `spanwFloorheight`
+  - Original umodified floor height value.
+    - You can use this to find original map value.
+    - You can modify this for any other special uses.
+  - Fixed point.
+- `spanwCeilingheight`
+  - Original umodified floor height value.
+    - You can use this to find original map value.
+    - You can modify this for any other special uses.
+  - Fixed point.
 - `floorpic`
   - Floor texture.
   - String. Flat texture name.
@@ -781,6 +791,7 @@ Sector functions.
   - Add or replace generic floor movement for this sector.
   - `stopz` is fixed point, target floor height.
   - `speed` is fixed point, movement speed. Units per tic.
+    - Speed value 0 is instant movement.
   - `crush_speed` is fixed point for speed change when there is solid thing to crush.
     - Crushing is optional, setting 0 or nil will make movement to stop.
   - `*_sound` is sfx lump to play.
@@ -810,11 +821,12 @@ Sector functions.
   - `damage_type` is type of damage. See `damage types`
   - If `in_air` is `true`, any `mobj` will get damaged even when not touching this sector floor.
   - If `source_sector` is used, all parameters are copied from source sector instead.
-- `AddFloor(sector_model, line_model [, blocking])`
+- `AddFloor(sector_model, line_model)`
   - Add 3D floor to this sector.
   - `sector_model` model for added 3D planes. Keep in mind that ceiling and floor is inverted.
-  - `line_model` is model for added 3D sides. Also, rederstyle from this line is copied to 3D planes.
-  - `blocking` is optional, defaults to 0xFFFF. See `blocking`.
+  - `line_model` is model for added 3D sides.
+    - Rederstyle of this side is used on planes.
+    - Blocking of this line is used on planes.
 - `SoundBody(...)` `SoundWeapon(...)` `SoundPickup(...)`
   - See same functions for `mobj`.
 
@@ -844,12 +856,18 @@ Access to specific side is controled by `side`.
 - `tag`
   - Line tag.
   - This can be set in Doom map format only, but can be used in Hexen format.
+- `angle`
+  - Line angle in map.
+  - Angle (0 - 8191). Read only.
 - `render`
   - Line render style. See `render` in `mobjtype`.
 - `horizon`
   - If set `true` this line is rendered as an infinite horizon. Floor and ceiling will stretch to infinity.
   - Can be used only on single sided lines.
   - Boolean.
+- `block`
+  - See mobjtype.
+  - Integer, 16 bit only.
 - `sectorFront`
   - Front sector from perspective of current `side`.
   - Sector. Read only.
@@ -884,7 +902,7 @@ Line functions.
   - Do button texture swap effect on current line `side`. See `switch textures`.
     - Nothing will happen if line does not have `switch texture`.
   - If special is not zero, button will be "unpressed" later.
-    - Note: In Hexen map format, special will be automaticaly cleared if line is not repeatable.
+    - Note: In Hexen map format, special is automaticaly cleared if line is not repeatable.
   - `sound_press` use sound. String, sfx lump.
   - `sound_release` release sound. String, sfx lump.
   - `release_tics` time to "unpress" this button. Integer, default 35.
@@ -1014,7 +1032,7 @@ This table is read only and its variables too.
   - Integer. Number of tics elapsed from lever start.
 - `DoomExit(secret)`
   - Function to exit level doom way. Levels are ordered as in original Doom. Depends on game IWAD.
-  - Set `secret` for secret exit.
+  - Set `secret` to `true` for secret exit.
 - `Exit(map_lump)`
   - Exit to any level named by string `map_lump`.
   - This should be primary way to exit custom games.
@@ -1024,6 +1042,9 @@ This table is read only and its variables too.
 - `doomEpisode`
   - Integer, current doom episode.
   - Used in Doom Lua scripts.
+
+Global variables `finesine` and `finecosine` are sine and cosine tables to be used with `angle` variables.
+As angles are in range 0 to 8191, both of these tables contain 8192 entries.
 
 ### sound channels
 Every sound source has multiple sound channels. Every channel can play single sound at a time.

@@ -207,7 +207,7 @@ boolean PIT_CheckLine (line_t* ld)
 	pl = ld->frontsector->exfloor;
 	while(pl)
 	{
-	    if( ~tmthing->canpass & pl->blocking &&
+	    if( ~tmthing->canpass & *pl->blocking &&
 		pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
 		pl->source->floorheight < tmthing->z + tmthing->height
 	    ) {
@@ -215,7 +215,7 @@ boolean PIT_CheckLine (line_t* ld)
 		hitpic = sides[hitline->sidenum[0]].midtexture;
 		goto nocross;
 	    }
-	    if( ~tmthing->canpass & pl->blocking &&
+	    if( ~tmthing->canpass & *pl->blocking &&
 		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
 	    pl = pl->next;
@@ -224,7 +224,7 @@ boolean PIT_CheckLine (line_t* ld)
 	pl = ld->backsector->exfloor;
 	while(pl)
 	{
-	    if( ~tmthing->canpass & pl->blocking &&
+	    if( ~tmthing->canpass & *pl->blocking &&
 		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
 	    pl = pl->next;
@@ -234,7 +234,7 @@ boolean PIT_CheckLine (line_t* ld)
 	pl = ld->backsector->exfloor;
 	while(pl)
 	{
-	    if( ~tmthing->canpass & pl->blocking &&
+	    if( ~tmthing->canpass & *pl->blocking &&
 		pl->source->ceilingheight > tmthing->z + tmthing->info->stepheight &&
 		pl->source->floorheight < tmthing->z + tmthing->height
 	    ) {
@@ -242,7 +242,7 @@ boolean PIT_CheckLine (line_t* ld)
 		hitpic = sides[hitline->sidenum[0]].midtexture;
 		goto nocross;
 	    }
-	    if( ~tmthing->canpass & pl->blocking &&
+	    if( ~tmthing->canpass & *pl->blocking &&
 		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
 	    pl = pl->next;
@@ -251,7 +251,7 @@ boolean PIT_CheckLine (line_t* ld)
 	pl = ld->frontsector->exfloor;
 	while(pl)
 	{
-	    if( ~tmthing->canpass & pl->blocking &&
+	    if( ~tmthing->canpass & *pl->blocking &&
 		*pl->height > openbottom && *pl->height <= tmthing->z + tmthing->info->stepheight)
 		openbottom = *pl->height;
 	    pl = pl->next;
@@ -264,7 +264,7 @@ boolean PIT_CheckLine (line_t* ld)
     {
 	if(*pl->height <= tmthing->z)
 	    break;
-	if( ~tmthing->canpass & pl->blocking && *pl->height < opentop)
+	if( ~tmthing->canpass & *pl->blocking && *pl->height < opentop)
 	    opentop = *pl->height;
 	pl = pl->next;
     }
@@ -273,7 +273,7 @@ boolean PIT_CheckLine (line_t* ld)
     {
 	if(*pl->height <= tmthing->z)
 	    break;
-	if( ~tmthing->canpass & pl->blocking && *pl->height < opentop)
+	if( ~tmthing->canpass & *pl->blocking && *pl->height < opentop)
 	    opentop = *pl->height;
 	pl = pl->next;
     }
@@ -519,7 +519,7 @@ P_CheckPosition
     {
 	if(*pl->height > tmthing->z)
 	    break;
-	if(*pl->height > tmfloorz)
+	if(*pl->height > tmfloorz && ~tmthing->canpass & *pl->blocking)
 	    tmfloorz = *pl->height;
 	pl = pl->next;
     }
@@ -529,7 +529,7 @@ P_CheckPosition
     {
 	if(*pl->height <= tmthing->z)
 	    break;
-	if(*pl->height < tmceilingz)
+	if(*pl->height < tmceilingz && ~tmthing->canpass & *pl->blocking)
 	    tmceilingz = *pl->height;
 	pl = pl->next;
     }
@@ -905,7 +905,7 @@ boolean PTR_SlideTraverse (intercept_t* in)
 	pl = li->frontsector->exfloor;
 	while(pl)
 	{
-	    if(	~slidemo->canpass & pl->blocking &&
+	    if(	~slidemo->canpass & *pl->blocking &&
 		pl->source->ceilingheight > slidemo->z + slidemo->info->stepheight &&
 		pl->source->floorheight < slidemo->z + slidemo->height
 	    )
@@ -917,7 +917,7 @@ boolean PTR_SlideTraverse (intercept_t* in)
 	pl = li->backsector->exfloor;
 	while(pl)
 	{
-	    if(	~slidemo->canpass & pl->blocking &&
+	    if(	~slidemo->canpass & *pl->blocking &&
 		pl->source->ceilingheight > slidemo->z + slidemo->info->stepheight &&
 		pl->source->floorheight < slidemo->z + slidemo->height
 	    )
@@ -1250,7 +1250,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 		z = shootz + dz;
 		while(pl)
 		{
-			if(canopass & pl->blocking && z >= pl->source->floorheight && z <= pl->source->ceilingheight && pl->source->floorheight < backsector->ceilingheight && pl->source->ceilingheight > backsector->floorheight)
+			if(canopass & *pl->blocking && z >= pl->source->floorheight && z <= pl->source->ceilingheight && pl->source->floorheight < backsector->ceilingheight && pl->source->ceilingheight > backsector->floorheight)
 			{
 				// set material
 				int texnum;
@@ -1292,7 +1292,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 				z = frontsector->floorheight;
 			while(pl)
 			{
-				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((pl->hitover && z < *pl->height) || (!pl->hitover && z >= *pl->height)))
+				if(canopass & *pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((pl->hitover && z < *pl->height) || (!pl->hitover && z >= *pl->height)))
 				{
 					// position
 					frac = in->frac;
@@ -1319,7 +1319,7 @@ boolean PTR_ShootTraverse (intercept_t* in)
 				z = frontsector->ceilingheight;
 			while(pl)
 			{
-				if(canopass & pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((pl->hitover && z < *pl->height) || (!pl->hitover && z >= *pl->height)))
+				if(canopass & *pl->blocking && *pl->height > frontsector->floorheight && *pl->height < frontsector->ceilingheight && ((pl->hitover && z < *pl->height) || (!pl->hitover && z >= *pl->height)))
 				{
 					// position
 					frac = in->frac;

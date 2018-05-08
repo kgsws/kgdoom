@@ -245,7 +245,9 @@ void P_LoadSectors (int lump)
     {
 	ss->soundorg.thinker.lua_type = TT_SECTOR;
 	ss->floorheight = SHORT(ms->floorheight)<<FRACBITS;
+	ss->Sfloorheight = ss->floorheight;
 	ss->ceilingheight = SHORT(ms->ceilingheight)<<FRACBITS;
+	ss->Sceilingheight = ss->ceilingheight;
 	ss->floorpic = R_FlatNumForName(ms->floorpic);
 	ss->ceilingpic = R_FlatNumForName(ms->ceilingpic);
 	ss->lightlevel = SHORT(ms->lightlevel);
@@ -939,8 +941,12 @@ P_SetupLevel
     P_LoadNodes (lumpnum+ML_NODES);
     P_LoadSegs (lumpnum+ML_SEGS);
     P_LoadSubsectors (lumpnum+ML_SSECTORS);
-	
-    rejectmatrix = W_CacheLumpNum (lumpnum+ML_REJECT);
+
+    if(W_LumpLength(lumpnum+ML_REJECT))
+	rejectmatrix = W_CacheLumpNum (lumpnum+ML_REJECT);
+    else
+	rejectmatrix = NULL;
+
     P_GroupLines ();
 
     bodyqueslot = 0;

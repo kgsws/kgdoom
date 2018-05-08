@@ -301,7 +301,10 @@ void R_InitTextures (void)
 				{
 					for(x = 0; x < 64; x++)
 					{
-						*pixelpos = *src;
+						if(*src)
+							*pixelpos = *src;
+						else
+							*pixelpos = transpixel;
 						pixelpos++;
 						src += 64;
 					}

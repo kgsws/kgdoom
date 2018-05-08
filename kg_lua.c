@@ -574,6 +574,8 @@ static const lua_table_model_t lua_sector[] =
 	// soundorg?
 	{"floorheight", offsetof(sector_t, floorheight), LUA_TNUMBER, func_set_sectorheight, func_get_fixedt},
 	{"ceilingheight", offsetof(sector_t, ceilingheight), LUA_TNUMBER, func_set_sectorheight, func_get_fixedt},
+	{"spawnFloorheight", offsetof(sector_t, Sfloorheight), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"spawnCeilingheight", offsetof(sector_t, Sceilingheight), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"floorpic", offsetof(sector_t, floorpic), LUA_TSTRING, func_set_flattexture, func_get_flattexture},
 	{"ceilingpic", offsetof(sector_t, ceilingpic), LUA_TSTRING, func_set_flattexture, func_get_flattexture},
 	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},
@@ -623,8 +625,10 @@ static const lua_table_model_t lua_linedef[] =
 	{"arg3", offsetof(line_t, arg)+3, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"arg4", offsetof(line_t, arg)+4, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"tag", offsetof(line_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
+	{"angle", offsetof(line_t, angle), LUA_TNUMBER, func_set_readonly, func_get_mobjangle},
 	{"render", offsetof(line_t, render), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
 	{"horizon", 0, LUA_TBOOLEAN, func_set_line_horizon, func_get_line_horizon},
+	{"block", offsetof(line_t, blocking), LUA_TNUMBER},
 	// sectors
 	{"sectorFront", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorF},
 	{"sectorBack", 0, LUA_TLIGHTUSERDATA, func_set_readonly, func_get_linedefsectorB},
@@ -4364,7 +4368,7 @@ static int LUA_setPlayerWeapon(lua_State *L)
 		forced = lua_toboolean(L, 2);
 	}
 
-	if(forced)
+	if(forced || !pl->psprites[ps_weapon].state)
 		P_BringUpWeapon(pl);
 
 	return 0;
@@ -4427,8 +4431,6 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 	// speed; required
 	luaL_checktype(L, 2, LUA_TNUMBER);
 	gen.speed = (fixed_t)(lua_tonumber(L, 2) * (lua_Number)FRACUNIT);
-	if(gen.speed < 0)
-		gen.speed = -gen.speed;
 
 	// crush speed; optional
 	if(top > 2 && lua_type(L, 3) != LUA_TNIL)
@@ -4473,6 +4475,11 @@ static int LUA_genericPlaneFromSector(lua_State *L)
 		gen.stoppic = gen.sector->floorpic;
 	else
 		gen.stoppic = gen.sector->ceilingpic;
+
+	if(!gen.speed)
+		gen.speed = gen.startz - gen.stopz;
+	if(gen.speed < 0)
+		gen.speed = -gen.speed;
 
 	if(floor)
 	{
@@ -5473,6 +5480,9 @@ void L_SetupMap()
 
 void L_SpawnPlayer(player_t *pl)
 {
+	pl->psprites[ps_flash].state = NULL;
+	pl->psprites[ps_weapon].state = NULL;
+	pl->readyweapon = wp_nochange;
 	lua_getglobal(luaS_game, "playerSpawn");
 	if(lua_type(luaS_game, -1) == LUA_TFUNCTION)
 	{

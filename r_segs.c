@@ -270,6 +270,21 @@ R_RenderMaskedSegRange
     {
 	if(height_top > pl->source->floorheight && height_top <= pl->source->ceilingheight)
 	{
+	    // skip texture of same floor
+	    extraplane_t *epl = frontsector->exfloor;
+	    while(epl)
+	    {
+		if(epl->source == pl->source)
+		    break;
+		epl = epl->next;
+	    }
+	    if(epl)
+	    {
+		// next
+		pl = pl->next;
+		continue;
+	    }
+	    // draw texture
 	    spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
 	    // texture
 	    if(pl->line->flags & LF_DONTPEGTOP)

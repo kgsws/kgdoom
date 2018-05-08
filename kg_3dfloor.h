@@ -18,7 +18,7 @@ typedef struct extraplane_s
 	short *lightlevel;
 	int validcount;
 	short *clip;
-	uint16_t blocking;
+	uint16_t *blocking;
 	// hitscan
 	boolean hitover;
 	// renderer
@@ -33,7 +33,7 @@ extern extraplane_t *fakeplane;
 extern height3d_t height3top;
 extern height3d_t height3bot;
 
-void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line, int block);
+void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line);
 
 void e3d_Reset();
 short *e3d_NewClip(short *source);

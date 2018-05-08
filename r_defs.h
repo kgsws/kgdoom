@@ -90,6 +90,10 @@ typedef	struct
     short	special;
     short	tag;
 
+    // [kg] unmodified heights
+    fixed_t	Sfloorheight;
+    fixed_t	Sceilingheight;
+
     // 0 = untraversed, 1,2 = sndlines -1
     int		soundtraversed;
 
