@@ -131,6 +131,7 @@ void P_CalcHeight (player_t* player)
 //
 void P_MovePlayer (player_t* player)
 {
+    fixed_t sidemove, forwardmove;
     ticcmd_t*		cmd;
 #ifndef SERVER
     player_t *localpl = &players[consoleplayer];
@@ -160,11 +161,15 @@ void P_MovePlayer (player_t* player)
     // Do not let the player control movement
     //  if not onground.
 
+    // [kg] speed scaling
+    forwardmove = FixedMul(cmd->forwardmove * 2048, player->mo->speed);
+    sidemove = FixedMul(cmd->sidemove * 2048, player->mo->speed);
+
     if (cmd->forwardmove && player->mo->onground)
-	P_Thrust (player, player->mo->angle, cmd->forwardmove*2048);
+	P_Thrust (player, player->mo->angle, forwardmove);
     
     if (cmd->sidemove && player->mo->onground)
-	P_Thrust (player, player->mo->angle-ANG90, cmd->sidemove*2048);
+	P_Thrust (player, player->mo->angle-ANG90, sidemove);
 
 #ifndef SERVER
     if(local_player_predict)

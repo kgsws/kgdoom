@@ -157,7 +157,7 @@ To make save games possible, do not store anything related to gamestate in globa
   - Calls a callback `func` with optional argument `arg` for every mobj in level.
   - Callback should be function defined as `somecb(thing)` or `somecb(thing, arg)`.
   - Return logic is same as in `blockThingsIterator`.
-- function `thingTagIterator(func [, arg])`
+- function `thingTagIterator(tag, func [, arg])`
   - same as `globalThingsIterator` but with automatic TID filter.
 - function `globalSectorsIterator(func [, arg])`
   - Calls a callback `func` with optional argument `arg` for every sector in level.
@@ -702,7 +702,7 @@ Player functions.
 - `SetWeapon(mobjtype [, forced])`
   - Set player weapon to `mobjtype`. This can be any weapon, even secret one not listed in weapon selection.
   - If `forced` is `true`, weapon will be forced instantly without lowering (or even finishing shooting) of old one.
-  - This function with `forced` set to `true` must be used on newly spawned players. Otherwise players won't be able to change weapon.
+  - If `mobjtype` is `nil`, weapon will be forced to none.
 - `WeaponRefire(offset)`
   - Fire player weapon again, with `offset` of frames skipped from original shooting animation.
   - `offset` is integer.

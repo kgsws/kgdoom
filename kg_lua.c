@@ -360,7 +360,7 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"float", MF_FLOAT},
 	{"missile", MF_MISSILE},
 	{"dropped", MF_DROPPED},
-	{"noblood", MF_NOBLOOD},
+	{"noBlood", MF_NOBLOOD},
 	{"corpse", MF_CORPSE},
 	{"countKill", MF_COUNTKILL},
 	{"countItem", MF_COUNTITEM},
@@ -487,7 +487,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"momy", offsetof(mobj_t, momy), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"momz", offsetof(mobj_t, momz), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"gravity", offsetof(mobj_t, gravity), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
-	{"bounce", offsetof(mobjinfo_t, bounce), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"bounce", offsetof(mobj_t, bounce), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"movedir", offsetof(mobj_t, movedir), LUA_TNUMBER},
 	{"movecount", offsetof(mobj_t, movecount), LUA_TNUMBER},
 	{"target", offsetof(mobj_t, target), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
@@ -4359,6 +4359,15 @@ static int LUA_setPlayerWeapon(lua_State *L)
 	boolean forced = false;
 
 	pl = lua_touserdata(L, lua_upvalueindex(1));
+
+	if(lua_type(L, 1) == LUA_TNIL)
+	{
+		pl->psprites[ps_weapon].state = NULL;
+		pl->psprites[ps_flash].state = NULL;
+		pl->readyweapon = wp_nochange;
+		return 0;
+	}
+
 	pl->pendingweapon = LUA_GetMobjTypeParam(L, 1);
 	pl->lua_weapon_change = 1;
 
@@ -4679,7 +4688,7 @@ static int LUA_sectorAdd3DFloor(lua_State *L)
 
 	dst = lua_touserdata(L, lua_upvalueindex(1));
 
-	e3d_AddExtraFloor(dst, src, line, block);
+	e3d_AddExtraFloor(dst, src, line);
 
 	return 0;
 }

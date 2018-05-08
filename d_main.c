@@ -456,10 +456,11 @@ void D_DoomMain (void)
 	gamemode = shareware;
 	iwad = "doom1.wad";
 
-	if(M_CheckParm("-custom"))
+	p = M_CheckParm ("-custom");
+	if(p)
 	{
 		// custom game; all wads added using '-file'
-		gamemode = commercial;
+		sscanf(myargv[p+1], "%d", &gamemode);
 		iwad = NULL;
 	} else
 	if(M_CheckParm("-doom"))

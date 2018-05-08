@@ -113,6 +113,26 @@ void P_ExplodeMissile (mobj_t* mo)
 	S_StartSound (mo, mo->info->deathsound, SOUND_BODY);
 }
 
+// [kg] bounce off mobj
+void BounceMobjMobj(mobj_t *mo)
+{
+	mo->angle = ((mo->angle - ANG180) - ANG45) + (P_Random() << 22);
+	mo->momx = FixedMul(mo->speed, finecosine[mo->angle>>ANGLETOFINESHIFT]);
+	mo->momy = FixedMul(mo->speed, finesine[mo->angle>>ANGLETOFINESHIFT]);
+	if(mo->info->bouncesound)
+		S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
+}
+
+// [kg] bounce off wall
+void BounceMobjWall(mobj_t *mo)
+{
+	line_t *l = ceilingline ? ceilingline : floorline;
+	mo->angle = 2 * l->angle - mo->angle;
+	mo->momx = FixedMul(mo->speed, finecosine[mo->angle>>ANGLETOFINESHIFT]);
+	mo->momy = FixedMul(mo->speed, finesine[mo->angle>>ANGLETOFINESHIFT]);
+	if(mo->info->bouncesound)
+		S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
+}
 
 //
 // P_XYMovement  
@@ -226,20 +246,11 @@ void P_XYMovement (mobj_t* mo)
 		}
 		if(hitmobj && mo->flags & MF_MOBJBOUNCE)
 		{
-			mo->angle = ((mo->angle - ANG180) - ANG45) + (P_Random() << 22);
-			mo->momx = FixedMul(mo->speed, finecosine[mo->angle>>ANGLETOFINESHIFT]);
-			mo->momy = FixedMul(mo->speed, finesine[mo->angle>>ANGLETOFINESHIFT]);
-			if(mo->info->bouncesound)
-				S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
+			BounceMobjMobj(mo);
 		} else
 		if((ceilingline || floorline) && mo->flags & MF_WALLBOUNCE)
 		{
-			line_t *l = ceilingline ? ceilingline : floorline;
-			mo->angle = 2 * l->angle - mo->angle;
-			mo->momx = FixedMul(mo->speed, finecosine[mo->angle>>ANGLETOFINESHIFT]);
-			mo->momy = FixedMul(mo->speed, finesine[mo->angle>>ANGLETOFINESHIFT]);
-			if(mo->info->bouncesound)
-				S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
+			BounceMobjWall(mo);
 		} else
 		{
 			P_ExplodeMissile(mo);
@@ -257,8 +268,18 @@ void P_XYMovement (mobj_t* mo)
 	    }
 	    else
 	    {
-		mo->momx = mo->momy = 0;
-		break;
+		if(hitmobj && mo->flags & MF_MOBJBOUNCE)
+		{
+			BounceMobjMobj(mo);
+		} else
+		if((ceilingline || floorline) && mo->flags & MF_WALLBOUNCE)
+		{
+			BounceMobjWall(mo);
+		} else
+		{
+			mo->momx = mo->momy = 0;
+			break;
+		}
 	    }
 	}
 	// [kg] check line special location change
@@ -410,7 +431,7 @@ void P_ZMovement (mobj_t* mo)
 	    // [kg] call 'floor hit' callback
 	    L_CrashThing(mo);
 	    // [kg] added bounce effect
-	    if(!mo->bounce || mo->momz > -FRACUNIT*3)
+	    if(!mo->bounce || (!(mo->flags & MF_NOGRAVITY) && mo->momz > -FRACUNIT*3)) // TODO: gravity scaled treshold
 		mo->momz = 0;
 	}
 	mo->z = floorz;
@@ -471,7 +492,7 @@ void P_ZMovement (mobj_t* mo)
 	// hit the ceiling
 
 	// [kg] added bounce effect
-	if(!mo->bounce || mo->momz < FRACUNIT*3)
+	if(!mo->bounce || (!(mo->flags & MF_NOGRAVITY) && mo->momz < FRACUNIT*3)) // TODO: gravity scaled treshold
 	    mo->momz = 0;
 
 	mo->z = ceilingz - mo->height;

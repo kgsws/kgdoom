@@ -27,7 +27,7 @@ mtype = {
 		{"*BEXPA", 5},
 		{"*BEXPB", 5, a.SoundDeath},
 		{"*BEXPC", 5},
-		{"*BEXPD", 1, a.BarelExplode},
+		{"*BEXPD", 5, a.BarelExplode},
 		{"*BEXPE", 10}
 	}
 }
