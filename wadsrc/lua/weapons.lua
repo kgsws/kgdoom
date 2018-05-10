@@ -271,7 +271,7 @@ function pickupWeapon(mobj, spec, arg)
 		left = 0
 	end
 	if mobj.InventoryCheck(spec.info) > 0 then
-		if left >= arg[2] then
+		if left >= count then
 			return pickup.doNotPickup
 		end
 	else

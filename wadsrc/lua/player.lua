@@ -57,6 +57,7 @@ mtype = {
 	shootz = 32,
 	viewz = 41,
 	bobz = 16,
+	speed = 1,
 	pass = 2,
 	action_crash = playerCrash,
 	__solid = true,

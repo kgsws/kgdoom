@@ -16,7 +16,7 @@ mtype = {
 	mass = 100,
 	__solid = true,
 	__shootable = true,
-	__noblood = true,
+	__noBlood = true,
 	_spawn = {
 		{"BAR1A", 6},
 		{"BAR1B", 6},
