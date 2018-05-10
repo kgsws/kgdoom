@@ -383,6 +383,7 @@ R_DrawVisSprite
     fixed_t		frac;
     patch_t*		patch;
     boolean bot_clip = true;
+    int	old_x;
 
     // TODO: translucent floors
     if(vis->mo)
@@ -490,15 +491,25 @@ R_DrawVisSprite
 	}
     }
 
+    // [kg] reset fuzz
+    old_x = frac >> FRACBITS;
+    dc_column = vis->x1;
+
     for (dc_x=vis->x1 ; dc_x<=vis->x2 ; dc_x++, frac += vis->xiscale)
     {
 	texturecolumn = frac>>FRACBITS;
+	if(texturecolumn != old_x)
+	{
+	    dc_column = dc_x;
+	    old_x = texturecolumn;
+	}
 #ifdef RANGECHECK
 	if (texturecolumn < 0 || texturecolumn >= SHORT(patch->width))
 	    I_Error ("R_DrawSpriteRange: bad texturecolumn");
 //	break;
 #endif
 	column = (column_t *) ((byte *)patch + LONG(patch->columnofs[texturecolumn]));
+	dc_fz_buffer = dc_fz_buf; // [kg] reset fuzz
 	R_DrawMaskedColumn (column);
     }
 

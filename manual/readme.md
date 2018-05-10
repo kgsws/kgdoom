@@ -256,7 +256,7 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
 - `__dropped`
   - Used as a marker for dropped items. Engine either deletes this mobj, or sets state to `_crush` when there is not enough space in changing sector for this mobj.
   - Doom logic (Lua scripts) also use this flag to give half ammo from items dropped by monsters.
-- `__noblood`
+- `__noBlood`
   - Bullet puffs on this mobj are spawned as is instead of having state set to `_pain`.
 - `__corpse`
   - This flag is automatically set on things with `__shootable` flag set when killed (health <= 0).
@@ -597,7 +597,7 @@ Functions called from mobj. All functions are read only and can't be redefined.
   - `z` is offset relative to `shootz` and mobj current `z`.
   - `x` is offset relative to mobj current location with `angle` rotation.
   - `range` defaults to 4096.
-  - If hit mobj has no `__noblood` enabled `_pain` animation of spawned `pufftype` will be entered, if defined.
+  - If hit mobj has no `__noBlood` enabled `_pain` animation of spawned `pufftype` will be entered, if defined.
   - Newly spawned `pufftype` will have:
     - `target` field set to shooter (this mobj)
     - `source` to hit mobj (what is damaged) or nil

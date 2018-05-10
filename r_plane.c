@@ -421,6 +421,8 @@ void R_DrawPlanes(fixed_t height)
 	    if(!skytexture)
 		continue;
 
+	    colfunc = R_DrawColumn;
+
 	    dc_iscale = pspriteiscale>>detailshift;
 
 	    dc_lightcolor = colormaps;

@@ -104,11 +104,20 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
     column_t*	col;
     int		topscreen;
     int 	bottomscreen;
+    int	old_x;
 
     dc_src_height = textures[texnum].height;
+    old_x = maskedtexturecol[x1] & 0x7FFF;
+    dc_column = x1;
 
     for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
     {
+	int mtc = maskedtexturecol[dc_x] & 0x7FFF;
+	if(old_x != mtc)
+	{
+	    dc_column = dc_x;
+	    old_x = mtc;
+	}
 	// [kg] add 3D clip
 	if(height_top != ONCEILINGZ)
 	{
@@ -164,7 +173,7 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
 
 		if (dc_yl <= dc_yh)
 		{
-		    dc_source = R_GetColumn(texnum, maskedtexturecol[dc_x] & 0x7FFF);
+		    dc_source = R_GetColumn(texnum, mtc);
 		    colfunc ();	
 		}
 

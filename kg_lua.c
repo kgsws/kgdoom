@@ -2163,6 +2163,26 @@ static int func_set_renderstyle(lua_State *L, void *dst, void *o)
 
 	tmp = lua_tostring(L, -1);
 
+	if(tmp[0] == '+' || tmp[0] == '-')
+	{
+		int lump;
+		char name[8];
+
+		strncpy(name, tmp+1, 8);
+		lump = W_GetNumForName(name);
+		if(W_LumpLength(lump) < 0x10000)
+			return luaL_error(L, "invalid render table '%s'", tmp);
+
+		// 64k table
+		if(tmp[0] == '-')
+			render->renderstyle = RENDER_TABLEI;
+		else
+			render->renderstyle = RENDER_TABLE;
+		render->rendertable = W_CacheLumpNum(lump);
+
+		return 0;
+	}
+
 	if(!strcmp(tmp, "!NORMAL"))
 	{
 		render->renderstyle = RENDER_NORMAL;

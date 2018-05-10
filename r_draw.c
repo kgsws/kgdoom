@@ -48,13 +48,17 @@ int			dc_holestep;
 
 // [kg] updated handling of colorization
 uint8_t *dc_colormap; // this is light offset
-uint8_t *dc_translation; // this is color remap (for sprites)
+uint8_t *dc_translation; // this is color remap
 uint8_t *dc_lightcolor; // this is sector light color
+uint8_t *dc_table; // this is color blend
 
 // first pixel in a column (possibly virtual) 
 byte*	dc_source;
 int	dc_src_height;
 int	dc_src_width;
+int	dc_column;
+byte	dc_fz_buf[1024];
+byte 	*dc_fz_buffer;
 
 boolean dc_is_sprite;
 
@@ -82,7 +86,7 @@ void R_DrawColumn(void)
     count = dc_yh - dc_yl; 
 
     // Zero length, column does not exceed a pixel.
-    if (count < 0) 
+    if (count <= 0) 
 	return; 
 				 
 #ifdef RANGECHECK 
@@ -94,8 +98,8 @@ void R_DrawColumn(void)
 
     // Framebuffer destination address.
     // Use ylookup LUT to avoid multiply with ScreenWidth.
-    // Use columnofs LUT for subwindows? 
-    dest = ylookup[dc_yl] + columnofs[dc_x];  
+    // Use columnofs LUT for subwindows?
+    dest = ylookup[dc_yl] + columnofs[dc_x];
 
     // Determine scaling,
     //  which is the only mapping to be done.
@@ -141,7 +145,7 @@ void R_DrawColumnMasked(void)
     count = dc_yh - dc_yl; 
 
     // Zero length, column does not exceed a pixel.
-    if (count < 0) 
+    if (count <= 0) 
 	return; 
 				 
 #ifdef RANGECHECK 
@@ -184,6 +188,114 @@ void R_DrawColumnMasked(void)
     } while (count--); 
 }
 
+// [kg] used for mid walls only
+void R_DrawColumnTabled0Masked(void)
+{ 
+    int			count; 
+    byte*		dest; 
+    fixed_t		frac;
+    fixed_t		fracstep;	 
+ 
+    count = dc_yh - dc_yl; 
+
+    // Zero length, column does not exceed a pixel.
+    if (count <= 0) 
+	return; 
+				 
+#ifdef RANGECHECK 
+    if ((unsigned)dc_x >= SCREENWIDTH
+	|| dc_yl < 0
+	|| dc_yh >= SCREENHEIGHT) 
+	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x); 
+#endif 
+
+    // Framebuffer destination address.
+    // Use ylookup LUT to avoid multiply with ScreenWidth.
+    // Use columnofs LUT for subwindows? 
+    dest = ylookup[dc_yl] + columnofs[dc_x];  
+
+    // Determine scaling,
+    //  which is the only mapping to be done.
+    fracstep = dc_iscale; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+    {
+	// [kg] wall column wrap-around
+	fixed_t tx = dc_src_height << FRACBITS;
+	frac += (((-frac) + (tx-1)) / tx) * tx;
+    }
+
+    // Inner loop that does the actual texture mapping,
+    //  e.g. a DDA-lile scaling.
+    // This is as fast as it gets.
+    do 
+    {
+	// Re-map color indices from wall texture column
+	//  using a lighting/special effects LUT.
+	uint8_t *src = &dc_source[(frac>>FRACBITS) % dc_src_height];
+	if(*src) // [kg] transparet pixel
+	    *dest = dc_colormap[dc_lightcolor[dc_table[*src + *dest * 256]]];
+	
+	dest += SCREENWIDTH; 
+	frac += fracstep;
+	
+    } while (count--); 
+}
+
+// [kg] used for mid walls only
+void R_DrawColumnTabled1Masked(void)
+{ 
+    int			count; 
+    byte*		dest; 
+    fixed_t		frac;
+    fixed_t		fracstep;	 
+ 
+    count = dc_yh - dc_yl; 
+
+    // Zero length, column does not exceed a pixel.
+    if (count <= 0) 
+	return; 
+				 
+#ifdef RANGECHECK 
+    if ((unsigned)dc_x >= SCREENWIDTH
+	|| dc_yl < 0
+	|| dc_yh >= SCREENHEIGHT) 
+	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x); 
+#endif 
+
+    // Framebuffer destination address.
+    // Use ylookup LUT to avoid multiply with ScreenWidth.
+    // Use columnofs LUT for subwindows? 
+    dest = ylookup[dc_yl] + columnofs[dc_x];  
+
+    // Determine scaling,
+    //  which is the only mapping to be done.
+    fracstep = dc_iscale; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+    if(frac < 0)
+    {
+	// [kg] wall column wrap-around
+	fixed_t tx = dc_src_height << FRACBITS;
+	frac += (((-frac) + (tx-1)) / tx) * tx;
+    }
+
+    // Inner loop that does the actual texture mapping,
+    //  e.g. a DDA-lile scaling.
+    // This is as fast as it gets.
+    do 
+    {
+	// Re-map color indices from wall texture column
+	//  using a lighting/special effects LUT.
+	uint8_t *src = &dc_source[(frac>>FRACBITS) % dc_src_height];
+	if(*src) // [kg] transparet pixel
+	    *dest = dc_colormap[dc_lightcolor[dc_table[*src * 256 + *dest]]];
+	
+	dest += SCREENWIDTH; 
+	frac += fracstep;
+	
+    } while (count--); 
+}
+
 // [kg] column with holes (skip every pixel)
 // sprites only
 void R_DrawColumnHoley (void)
@@ -198,7 +310,7 @@ void R_DrawColumnHoley (void)
     count = dc_yh - dc_yl; 
 
     // Zero length, column does not exceed a pixel.
-    if (count < 0) 
+    if (count <= 0) 
 	return; 
 				 
 #ifdef RANGECHECK 
@@ -251,7 +363,7 @@ void R_DrawColumnHoleyMasked(void)
     count = dc_yh - dc_yl; 
 
     // Zero length, column does not exceed a pixel.
-    if (count < 0) 
+    if (count <= 0) 
 	return; 
 				 
 #ifdef RANGECHECK 
@@ -298,117 +410,25 @@ void R_DrawColumnHoleyMasked(void)
 //
 // Spectre/Invisibility.
 //
-#define FUZZOFF	(SCREENWIDTH)
 
-int fuzzoffset[] =
-{
-    FUZZOFF,-FUZZOFF
-}; 
+// [kg] fuzz effect is now totally different
+// basicaly atempt to "merge" pixels behind
 
-//
-// Framebuffer postprocessing.
-// Creates a fuzzy image by copying pixels
-//  from adjacent ones to left and right.
-// Used with an all black colormap, this
-//  could create the SHADOW effect,
-//  i.e. spectres and invisible players.
-//
-void R_DrawFuzzColumn (void) 
-{
-    int			count; 
-    byte*		dest; 
-    fixed_t		frac;
-    fixed_t		fracstep;	 
-
-    // Adjust borders. Low... 
-    if (!dc_yl) 
-	dc_yl = 1;
-
-    // .. and high.
-    if (dc_yh == viewheight-1) 
-	dc_yh = viewheight - 2; 
-		 
-    count = dc_yh - dc_yl; 
-
-    // Zero length.
-    if (count < 0) 
-	return; 
-
-    
-#ifdef RANGECHECK 
-    if ((unsigned)dc_x >= SCREENWIDTH
-	|| dc_yl < 0 || dc_yh >= SCREENHEIGHT)
-    {
-	I_Error ("R_DrawFuzzColumn: %i to %i at %i",
-		 dc_yl, dc_yh, dc_x);
-    }
-#endif
-
-
-    // Keep till detailshift bug in blocky mode fixed,
-    //  or blocky mode removed.
-    /* WATCOM code 
-    if (detailshift)
-    {
-	if (dc_x & 1)
-	{
-	    outpw (GC_INDEX,GC_READMAP+(2<<8) ); 
-	    outp (SC_INDEX+1,12); 
-	}
-	else
-	{
-	    outpw (GC_INDEX,GC_READMAP); 
-	    outp (SC_INDEX+1,3); 
-	}
-	dest = destview + dc_yl*80 + (dc_x>>1); 
-    }
-    else
-    {
-	outpw (GC_INDEX,GC_READMAP+((dc_x&3)<<8) ); 
-	outp (SC_INDEX+1,1<<(dc_x&3)); 
-	dest = destview + dc_yl*80 + (dc_x>>2); 
-    }*/
-
-    
-    // Does not work with blocky mode.
-    dest = ylookup[dc_yl] + columnofs[dc_x];
-
-    // Looks familiar.
-    fracstep = dc_iscale; 
-    frac = dc_texturemid + (dc_yl-centery)*fracstep; 
-
-    // Looks like an attempt at dithering,
-    //  using the colormap #6 (of 0-31, a bit
-    //  brighter than average).
-    do 
-    {
-	// Lookup framebuffer, and retrieve
-	//  a pixel that is either one column
-	//  left or right of the current one.
-	// Add index from colormap to index.
-	*dest = colormaps[6*256+dest[fuzzoffset[rand() & 1]]]; // [kg] now random
-
-	// Clamp table lookup index.
-//	if (++fuzzpos == FUZZTABLE) 
-//	    fuzzpos = 0;
-	
-	dest += SCREENWIDTH;
-
-	frac += fracstep; 
-    } while (count--); 
-} 
-
-void R_DrawFuzzColumnMasked(void)
+void R_DrawFuzzColumn(void)
 { 
-    int			count; 
-    byte*		dest; 
+    int			count;
+    byte*		dest;
+    byte*		col;
+    byte*		cola;
+    int			srcpos;
     fixed_t		frac;
-    fixed_t		fracstep;	 
- 
+    fixed_t		fracstep;
+    uint8_t		val;
+
     count = dc_yh - dc_yl; 
 
     // Zero length, column does not exceed a pixel.
-    if (count < 0) 
+    if (count <= 0) 
 	return; 
 				 
 #ifdef RANGECHECK 
@@ -421,7 +441,90 @@ void R_DrawFuzzColumnMasked(void)
     // Framebuffer destination address.
     // Use ylookup LUT to avoid multiply with ScreenWidth.
     // Use columnofs LUT for subwindows? 
-    dest = ylookup[dc_yl] + columnofs[dc_x];  
+    dest = ylookup[dc_yl] + columnofs[dc_x];
+
+    // Determine scaling,
+    //  which is the only mapping to be done.
+    fracstep = dc_iscale; 
+    frac = dc_texturemid + (dc_yl-centery)*fracstep;
+	// [kg] sprite column can't start negative
+	frac = 0;
+
+    if(dc_column != dc_x)
+    {
+	do
+	{
+		*dest = dc_fz_buffer[frac >> FRACBITS];
+		dest += SCREENWIDTH; 
+		frac += fracstep;
+
+	} while (count--);
+	dc_fz_buffer += dc_src_height;
+	return;
+    }
+
+    col = ylookup[dc_yl] + columnofs[dc_column];
+    cola = col;
+    val = dc_translation[*col];
+
+    srcpos = frac >> FRACBITS;
+
+    // Inner loop that does the actual texture mapping,
+    //  e.g. a DDA-lile scaling.
+    // This is as fast as it gets.
+    while(1)
+    {
+	int oldpos = srcpos;
+
+	*dest = val;
+	dc_fz_buffer[srcpos] = val;
+
+	count--;
+	if(!count)
+	    break;
+
+	cola += SCREENWIDTH;
+	frac += fracstep;
+	srcpos = frac >> FRACBITS;
+	if(srcpos != oldpos)
+	{
+		col = cola;
+		val = dc_translation[*col];
+	}
+	dest += SCREENWIDTH;
+    }
+
+    dc_fz_buffer += dc_src_height;
+}
+
+void R_DrawFuzzColumnMasked(void)
+{ 
+    int			count;
+    byte*		dest;
+    byte*		col;
+    byte*		cola;
+    int			srcpos;
+    fixed_t		frac;
+    fixed_t		fracstep;
+    uint8_t		val;
+
+    count = dc_yh - dc_yl; 
+
+    // Zero length, column does not exceed a pixel.
+    if (count <= 0) 
+	return; 
+				 
+#ifdef RANGECHECK 
+    if ((unsigned)dc_x >= SCREENWIDTH
+	|| dc_yl < 0
+	|| dc_yh >= SCREENHEIGHT) 
+	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x); 
+#endif 
+
+    // Framebuffer destination address.
+    // Use ylookup LUT to avoid multiply with ScreenWidth.
+    // Use columnofs LUT for subwindows? 
+    dest = ylookup[dc_yl] + columnofs[dc_x];
 
     // Determine scaling,
     //  which is the only mapping to be done.
@@ -433,21 +536,50 @@ void R_DrawFuzzColumnMasked(void)
 	frac += ((-frac + (tx-1)) / tx) * tx;
     }
 
+    if(dc_column != dc_x)
+    {
+	do
+	{
+		if(dc_source[(frac >> FRACBITS) % dc_src_height]) // [kg] transparet pixel
+			*dest = dc_fz_buf[(frac >> FRACBITS) & 1023];
+
+		dest += SCREENWIDTH; 
+		frac += fracstep;
+
+	} while (count--);
+	return;
+    }
+
+    col = ylookup[dc_yl] + columnofs[dc_column];
+    cola = col;
+
+    srcpos = frac >> FRACBITS;
+
     // Inner loop that does the actual texture mapping,
     //  e.g. a DDA-lile scaling.
     // This is as fast as it gets.
-    do 
+    while(1)
     {
-	// Re-map color indices from wall texture column
-	//  using a lighting/special effects LUT.
-	uint8_t *src = &dc_source[(frac>>FRACBITS) % dc_src_height];
-	if(*src) // [kg] transparet pixel
-	    *dest = colormaps[6*256+dest[fuzzoffset[rand() & 1]]]; // [kg] now random
+	int oldpos = srcpos;
 
-	dest += SCREENWIDTH; 
+	if(dc_source[srcpos % dc_src_height])
+	    *dest = val;
+	dc_fz_buf[srcpos & 1023] = val;
+
+	count--;
+	if(!count)
+	    break;
+
+	cola += SCREENWIDTH;
 	frac += fracstep;
-	
-    } while (count--); 
+	srcpos = frac >> FRACBITS;
+	if(srcpos != oldpos)
+	{
+		col = cola;
+		val = dc_translation[*col];
+	}
+	dest += SCREENWIDTH;
+    }
 }
 
 //
@@ -468,7 +600,7 @@ void R_DrawTranslatedColumn (void)
     fixed_t		fracstep;	 
  
     count = dc_yh - dc_yl; 
-    if (count < 0) 
+    if (count <= 0) 
 	return; 
 				 
 #ifdef RANGECHECK 
@@ -525,7 +657,7 @@ void R_DrawTranslatedColumnMasked (void)
     fixed_t		fracstep;	 
  
     count = dc_yh - dc_yl; 
-    if (count < 0) 
+    if (count <= 0) 
 	return; 
 				 
 #ifdef RANGECHECK 
@@ -733,7 +865,7 @@ void R_DrawSpanShadow (void)
 	// Lookup pixel from flat texture tile,
 	//  re-index using light/colormap.
 	if(dc_source[spot])
-	    *dest = colormaps[6*256+dest[fuzzoffset[rand() & 1]]];
+	    *dest = colormaps[6*256+*dest]; // TODO: fuzz
 	dest++;
 
 	// Next step in u,v.
@@ -789,6 +921,7 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 	switch(style)
 	{
 		case RENDER_SHADOW:
+			dc_translation = colormaps + 256 * 6;
 			colfunc = R_DrawFuzzColumn;
 		break;
 		case RENDER_HOLEY0:
@@ -812,10 +945,11 @@ void R_SetupRenderFunc(int style, void *table, void *translation)
 
 void R_SetupRenderFuncWall(int style, void *table, void *translation)
 {
-	// TODO: translation for effects (holey)
+	// TODO: translation for effects (holey, table)
 	switch(style)
 	{
 		case RENDER_SHADOW:
+			dc_translation = colormaps + 256 * 7;
 			colfunc = R_DrawFuzzColumnMasked;
 		break;
 		case RENDER_HOLEY0:
@@ -825,6 +959,14 @@ void R_SetupRenderFuncWall(int style, void *table, void *translation)
 		case RENDER_HOLEY1:
 			colfunc = R_DrawColumnHoleyMasked;
 			dc_holestep = 1;
+		break;
+		case RENDER_TABLE:
+			dc_table = table;
+			colfunc = R_DrawColumnTabled0Masked;
+		break;
+		case RENDER_TABLEI:
+			dc_table = table;
+			colfunc = R_DrawColumnTabled1Masked;
 		break;
 		default:
 			if(translation)

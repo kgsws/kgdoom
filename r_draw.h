@@ -58,6 +58,10 @@ extern uint8_t *dc_colormap;
 extern uint8_t *dc_translation;
 extern uint8_t *dc_lightcolor;
 
+extern int dc_column;
+extern byte *dc_fz_buffer;
+extern byte dc_fz_buf[1024];
+
 extern boolean dc_is_sprite;
 
 extern int dc_holestep;
