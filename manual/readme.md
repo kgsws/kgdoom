@@ -305,6 +305,9 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
   - Flag combination of `__isMonster`, `__countKill`, `__solid` and `__shootable`
 - `__Projectile`
   - Flag combination of `__missile`, `__noBlockmap`, `__noGravity`, `__dropOff` and `__noZChange`
+- `__custom0` up to `__custom3` (4 flags total)
+  - Custom flags for anything in Lua.
+  - Used for example in Doom scripts for "bad aim" on inivisible targets.
 
 #### mobjtype
 Mobjtype can contain these parameters. Default 0 / none, unless specified otherwise.
@@ -383,12 +386,23 @@ Mobjtype can contain these parameters. Default 0 / none, unless specified otherw
   - Translation table is 256 bytes long. Lump itself can be bigger and offset can be specified. Example: `BLOODMAP:1`. `BLOODMAP` is same as `BLOODMAP:0`.
   - String.
 - `render`
-  - Render style. For now there are only few supported internal styles.
+  - Render style.
   - `!NORMAL` no effects.
-  - `!SHADOW` original doom invisibility fuzz effect.
+  - `!FUZZ` invisibility fuzz effect.
+    - Optional remap table can be specified - `!FUZZ:ORNGMAP`. This map will be used instead of making things darker.
+    - Remap table indexing is supported too - `!FUZZ:LIGHTMAP:3`.
   - `!HOLEY0` every pixel is skipped.
   - `!HOLEY1` every pixel is skipped, alternative version.
-  - String.
+  - `+` or `-` preffixed. Expects lump name. (`+TRNS6633` or `-TRNS6633`)
+    - Special, table based effect.
+    - This style requireds 64kiB table for all possible matches for drawn color and original screen color.
+    - Used for blending effects like Heretic did.
+    - Can be used for much more advanced effects with very specialized table and sprite.
+    - Two variants - `+` and `-` differ in a color mapping. You can imagine it as rotating table.
+      - This way if you have table for 66% translucency, it can be "rotated" for 33% translucency.
+    - If you add `!` before lump name, pixelated effect of `fuzz` will be added under rendered texture. (`+!TRNS6633`)
+      - This can make very special glass-like effects.
+  - String. Write only.
 - `action`
   - For now only used with `__special` flag.
   - Function or nil.

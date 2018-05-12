@@ -776,7 +776,7 @@ void R_DrawPSprite (pspdef_t* psp)
 
     vis->patch = lump;
 
-    if (viewplayer->mo->render.renderstyle == RENDER_SHADOW)
+    if (viewplayer->mo->render.renderstyle == RENDER_FUZZ)
     {
 	// shadow draw
 	dc_colormap = NULL;

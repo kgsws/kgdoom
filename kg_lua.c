@@ -211,6 +211,7 @@ static int func_set_lua_registry(lua_State *L, void *dst, void *o);
 static int func_get_lua_registry(lua_State *L, void *dst, void *o);
 
 static int func_set_readonly(lua_State *L, void *dst, void *o);
+static int func_get_writeonly(lua_State *L, void *dst, void *o);
 static int func_set_mobjangle(lua_State *L, void *dst, void *o);
 static int func_get_mobjangle(lua_State *L, void *dst, void *o);
 static int func_set_mobjtype(lua_State *L, void *dst, void *o);
@@ -291,7 +292,7 @@ static int func_get_lumpname(lua_State *L, void *dst, void *o);
 static int func_set_lumpname_optional(lua_State *L, void *dst, void *o);
 
 static int func_set_renderstyle(lua_State *L, void *dst, void *o);
-static int func_get_renderstyle(lua_State *L, void *dst, void *o);
+//static int func_get_renderstyle(lua_State *L, void *dst, void *o);
 
 static int func_set_sideset(lua_State *L, void *dst, void *o);
 static int func_get_sideset(lua_State *L, void *dst, void *o);
@@ -378,6 +379,11 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"wallBounce", MF_WALLBOUNCE},
 	{"mobjBounce", MF_MOBJBOUNCE},
 	{"noTarget", MF_NOTARGET},
+	// custom Lua flags
+	{"custom0", MF_CUSTOM0},
+	{"custom1", MF_CUSTOM1},
+	{"custom2", MF_CUSTOM2},
+	{"custom3", MF_CUSTOM3},
 	// flag combinations
 	{"Monster", MF_ISMONSTER | MF_COUNTKILL | MF_SOLID | MF_SHOOTABLE},
 	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF | MF_NOZCHANGE},
@@ -434,7 +440,7 @@ static const lua_table_model_t lua_mobjtype[] =
 	{"maxcount", offsetof(mobjinfo_t, maxcount), LUA_TNUMBER},
 	{"material", offsetof(mobjinfo_t, material), LUA_TNUMBER},
 	{"translation", offsetof(mobjinfo_t, translation), LUA_TSTRING, func_set_colormap, func_get_colormap},
-	{"render", offsetof(mobjinfo_t, render), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
+	{"render", offsetof(mobjinfo_t, render), LUA_TSTRING, func_set_renderstyle, func_get_writeonly},
 	{"action", offsetof(mobjinfo_t, lua_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
 	{"arg", offsetof(mobjinfo_t, lua_arg), LUA_TNIL, func_set_lua_registry, func_get_lua_registry},
 	{"action_crash", offsetof(mobjinfo_t, crash_action), LUA_TFUNCTION, func_set_lua_regfunc, func_get_lua_registry},
@@ -501,7 +507,7 @@ static const lua_table_model_t lua_mobj[] =
 	{"material", offsetof(mobj_t, material), LUA_TNUMBER},
 	{"speed", offsetof(mobj_t, speed), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"mass", offsetof(mobj_t, mass), LUA_TNUMBER},
-	{"render", offsetof(mobj_t, render), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
+	{"render", offsetof(mobj_t, render), LUA_TSTRING, func_set_renderstyle, func_get_writeonly},
 	{"block", offsetof(mobj_t, blocking), LUA_TNUMBER},
 	{"pass", offsetof(mobj_t, canpass), LUA_TNUMBER},
 	{"attacktype", offsetof(mobj_t, damagercv), LUA_TNUMBER},
@@ -626,7 +632,7 @@ static const lua_table_model_t lua_linedef[] =
 	{"arg4", offsetof(line_t, arg)+4, LUA_TNUMBER, func_set_byte, func_get_byte},
 	{"tag", offsetof(line_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
 	{"angle", offsetof(line_t, angle), LUA_TNUMBER, func_set_readonly, func_get_mobjangle},
-	{"render", offsetof(line_t, render), LUA_TSTRING, func_set_renderstyle, func_get_renderstyle},
+	{"render", offsetof(line_t, render), LUA_TSTRING, func_set_renderstyle, func_get_writeonly},
 	{"horizon", 0, LUA_TBOOLEAN, func_set_line_horizon, func_get_line_horizon},
 	{"block", offsetof(line_t, blocking), LUA_TNUMBER},
 	// sectors
@@ -1156,6 +1162,12 @@ static int func_set_damagescale(lua_State *L, void *dst, void *o)
 static int func_set_readonly(lua_State *L, void *dst, void *o)
 {
 	return luaL_error(L, "tried to modify read-only value");
+}
+
+// write-only value
+static int func_get_writeonly(lua_State *L, void *dst, void *o)
+{
+	return luaL_error(L, "tried read write-only value");
 }
 
 // special decimal handling for angles
@@ -2167,17 +2179,30 @@ static int func_set_renderstyle(lua_State *L, void *dst, void *o)
 	{
 		int lump;
 		char name[8];
+		const char *sname = tmp + 1;
 
-		strncpy(name, tmp+1, 8);
+		if(*sname == '!')
+			sname++;
+
+		strncpy(name, sname, 8);
 		lump = W_GetNumForName(name);
 		if(W_LumpLength(lump) < 0x10000)
 			return luaL_error(L, "invalid render table '%s'", tmp);
 
 		// 64k table
-		if(tmp[0] == '-')
-			render->renderstyle = RENDER_TABLEI;
-		else
-			render->renderstyle = RENDER_TABLE;
+		if(tmp[1] == '!')
+		{
+			if(tmp[0] == '-')
+				render->renderstyle = RENDER_FUZZ_TABLEI;
+			else
+				render->renderstyle = RENDER_FUZZ_TABLE;
+		} else
+		{
+			if(tmp[0] == '-')
+				render->renderstyle = RENDER_TABLEI;
+			else
+				render->renderstyle = RENDER_TABLE;
+		}
 		render->rendertable = W_CacheLumpNum(lump);
 
 		return 0;
@@ -2190,10 +2215,39 @@ static int func_set_renderstyle(lua_State *L, void *dst, void *o)
 		return 0;
 	}
 
-	if(!strcmp(tmp, "!SHADOW"))
+	if(!strncmp(tmp, "!FUZZ", 5))
 	{
-		render->renderstyle = RENDER_SHADOW;
-		render->rendertable = NULL;
+		render->renderstyle = RENDER_FUZZ;
+		render->rendertable = colormaps + 256 * 8;
+		if(tmp[5] == ':')
+		{
+			int lump, i;
+			char name[8];
+			int idx = 0;
+			const char *src = tmp + 6;
+
+			for(i = 0; i < 9; i++)
+			{
+				if(*src == ':')
+				{
+					name[i] = 0;
+					src++;
+					sscanf(src, "%d", &idx);
+					break;
+				}
+				if(i == 8)
+					break;
+				name[i] = *src;
+				if(!*src)
+					break;
+				src++;
+			}
+
+			lump = W_GetNumForName(name);
+			if(W_LumpLength(lump) < idx * 256 + 256)
+				return luaL_error(L, "invalid render table '%s'", tmp);
+			render->rendertable = W_CacheLumpNum(lump) + 256 * idx;
+		}
 		return 0;
 	}
 
@@ -2213,7 +2267,7 @@ static int func_set_renderstyle(lua_State *L, void *dst, void *o)
 
 	return luaL_error(L, "invalid render style '%s'", tmp);
 }
-
+/*
 static int func_get_renderstyle(lua_State *L, void *dst, void *o)
 {
 	render_t *render = dst;
@@ -2223,8 +2277,8 @@ static int func_get_renderstyle(lua_State *L, void *dst, void *o)
 		case RENDER_NORMAL:
 			lua_pushstring(L, "!NORMAL");
 		break;
-		case RENDER_SHADOW:
-			lua_pushstring(L, "!SHADOW");
+		case RENDER_FUZZ:
+			lua_pushstring(L, "!FUZZ");
 		break;
 		case RENDER_HOLEY0:
 			lua_pushstring(L, "!HOLEY0");
@@ -2235,7 +2289,7 @@ static int func_get_renderstyle(lua_State *L, void *dst, void *o)
 	}
 
 	return 1;
-}
+}*/
 
 //
 // common functions

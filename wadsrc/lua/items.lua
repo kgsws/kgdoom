@@ -146,10 +146,12 @@ end
 
 function removeInvis(mobj)
 	mobj.render = "!NORMAL"
+	mobj.__custom0 = false
 end
 
 function pickupInvis(mobj, spec, arg)
-	mobj.render = "!SHADOW"
+	mobj.render = "!FUZZ"
+	mobj.__custom0 = true
 	mobj.player.Message("Partial Invisibility")
 	mobj.TickerSet(pw_invisibility, 60*35, "PINSA0", removeInvis)
 	return pickup.power

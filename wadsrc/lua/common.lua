@@ -5,7 +5,7 @@ function shadowAim(mobj, angle)
 	local target
 	target = mobj.target
 	if target ~= nil then
-		if target.render == "!SHADOW" then
+		if target.__custom0 == true then
 			return angle + (doomRandom() - doomRandom()) * 4
 		end
 	end

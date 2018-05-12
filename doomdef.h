@@ -181,11 +181,13 @@ typedef uint16_t weapontype_t;
 enum
 {
 	RENDER_NORMAL, // must be first
-	RENDER_SHADOW,
+	RENDER_FUZZ,
 	RENDER_HOLEY0,
 	RENDER_HOLEY1,
 	RENDER_TABLE,
 	RENDER_TABLEI,
+	RENDER_FUZZ_TABLE,
+	RENDER_FUZZ_TABLEI,
 };
 
 typedef struct

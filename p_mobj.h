@@ -211,6 +211,12 @@ typedef enum
     // [kg] can't be targetted by internal AI
     MF_NOTARGET		= 0x1000000000,
 
+    // [kg] few custom flags for Lua
+    MF_CUSTOM0		= 0x1000000000000000,
+    MF_CUSTOM1		= 0x2000000000000000,
+    MF_CUSTOM2		= 0x4000000000000000,
+    MF_CUSTOM3		= 0x8000000000000000,
+
 } mobjflag_t;
 
 
