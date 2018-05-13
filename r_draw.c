@@ -396,6 +396,40 @@ void R_DrawColumnTabled1Masked(void)
     } while (count--); 
 }
 
+// [kg] used for mid walls only
+void R_DrawColumnFog(void)
+{ 
+    int			count; 
+    byte*		dest; 
+
+    count = dc_yh - dc_yl; 
+
+    // Zero length, column does not exceed a pixel.
+    if (count < 0) 
+	return; 
+				 
+#ifdef RANGECHECK 
+    if ((unsigned)dc_x >= SCREENWIDTH
+	|| dc_yl < 0
+	|| dc_yh >= SCREENHEIGHT) 
+	I_Error ("R_DrawColumn: %i to %i at %i", dc_yl, dc_yh, dc_x); 
+#endif 
+
+    // Framebuffer destination address.
+    // Use ylookup LUT to avoid multiply with ScreenWidth.
+    // Use columnofs LUT for subwindows? 
+    dest = ylookup[dc_yl] + columnofs[dc_x];  
+
+    // Inner loop that does the actual texture mapping,
+    //  e.g. a DDA-lile scaling.
+    // This is as fast as it gets.
+    do 
+    {
+	*dest = dc_colormap[*dest];
+	dest += SCREENWIDTH; 
+    } while (count--); 
+}
+
 // [kg] column with holes (skip every pixel)
 // sprites only
 void R_DrawColumnHoley (void)
@@ -1832,6 +1866,9 @@ void R_SetupRenderFuncWall(int style, void *table, void *translation)
 		case RENDER_TABLEI:
 			dc_table = table;
 			colfunc = R_DrawColumnTabled1Masked;
+		break;
+		case RENDER_FOG_ONLY:
+			colfunc = R_DrawColumnFog;
 		break;
 		default:
 			colfunc = R_DrawColumnMasked;

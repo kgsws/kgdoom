@@ -368,6 +368,9 @@ void R_AddLine (seg_t*	line)
 	// [kg] 3D floor check
 	&& !backsector->exfloor && !frontsector->exfloor
 	&& !backsector->exceiling && !frontsector->exceiling
+	// [kg] color check
+	&& backsector->colormap.data != frontsector->colormap.data
+	&& backsector->fogmap.data != frontsector->fogmap.data
     )
     {
 	return;

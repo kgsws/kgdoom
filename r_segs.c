@@ -183,6 +183,65 @@ skip:
     }
 }
 
+// [kg] single fog run
+void R_DrawFogSegRange(int x1, int x2, int texnum, int topc, int tops, int botc, int bots)
+{
+    unsigned	index;
+    column_t*	col;
+    int		topscreen;
+    int 	bottomscreen;
+
+    for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
+    {
+	// [kg] add 3D clip
+	if(height_top != ONCEILINGZ)
+	{
+	    clip_top = (topc+HEIGHTUNIT-1)>>HEIGHTBITS;
+	    topc += tops;
+	    if(clip_top < 0)
+		clip_top = 0;
+	} else
+	    clip_top = -1;
+	if(height_bot != ONFLOORZ)
+	{
+	    clip_bot = ((botc+HEIGHTUNIT-1)>>HEIGHTBITS)-1;
+	    botc += bots;
+	    if(clip_bot < 0)
+		goto skip;
+	} else
+	    clip_bot = -1;
+	// calculate lighting
+	if(height_count ^ (maskedtexturecol[dc_x] & 0x8000))
+	{
+	    if (!fixedcolormap)
+	    {
+		index = spryscale>>LIGHTSCALESHIFT;
+
+		if (index >=  MAXLIGHTSCALE )
+		    index = MAXLIGHTSCALE-1;
+
+		dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
+	    } else
+		dc_colormap = fixedcolormap;
+
+	    // draw column
+	    dc_yh = mfloorclip[dc_x]-1;
+	    dc_yl = mceilingclip[dc_x]+1;
+
+		if(clip_bot >= 0 && dc_yh >= clip_bot)
+		    dc_yh = clip_bot;
+
+		if(clip_top >= 0 && dc_yl <= clip_top)
+		    dc_yl = clip_top;
+
+		if (dc_yl <= dc_yh)
+		    colfunc ();	
+	}
+skip:
+	spryscale += rw_scalestep;
+    }
+}
+
 //
 // R_RenderMaskedSegRange
 //
@@ -197,6 +256,7 @@ R_RenderMaskedSegRange
     int botc, topc;
     int bots, tops;
     extraplane_t *pl;
+    uint8_t *fog_data;
 
     // Calculate light table.
     // Use different light tables
@@ -209,6 +269,7 @@ R_RenderMaskedSegRange
     // [kg] get correct light
     lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
     dc_lightcolor = frontsector->colormap.data;
+    fog_data = frontsector->fogmap.data;
     if(height_top != ONCEILINGZ)
     {
 	pl = frontsector->exfloor;
@@ -218,6 +279,7 @@ R_RenderMaskedSegRange
 	    {
 		lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
 		dc_lightcolor = pl->source->colormap.data;
+		fog_data = pl->source->fogmap.data;
 		break;
 	    }
 	    pl = pl->next;
@@ -239,7 +301,7 @@ R_RenderMaskedSegRange
     else
 	walllights = scalelight[lightnum];
 
-    dc_colormap_wall = frontsector->fogmap.data ? frontsector->fogmap.data : colormaps;
+    dc_colormap_wall = fog_data ? fog_data : colormaps;
 
     maskedtexturecol = ds->maskedtexturecol;
 
@@ -271,6 +333,16 @@ R_RenderMaskedSegRange
     {
 	topc += tops * (x1 - ds->x1);
 	botc += bots * (x1 - ds->x1);
+    }
+
+    // draw fog boundary
+    if(!fixedcolormap && backsector && fog_data != backsector->fogmap.data)
+    {
+	spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
+	// [kg] pick renderer
+	R_SetupRenderFuncWall(RENDER_FOG_ONLY, NULL, NULL);
+	// draw the columns
+	R_DrawFogSegRange(x1, x2, 0, topc, tops, botc, bots);
     }
 
     // draw all sides
@@ -354,8 +426,6 @@ R_RenderMaskedSegRange
     for (dc_x = x1 ; dc_x <= x2 ; dc_x++)
 	maskedtexturecol[dc_x] = (maskedtexturecol[dc_x] & 0x7FFF) | height_count;
 }
-
-
 
 
 //
@@ -963,19 +1033,22 @@ R_StoreWallRange
 	rw_bottomtexturemid += sidedef->rowoffset;
 	
 	// allocate space for masked texture tables
-	if (sidedef->midtexture || (!fakeclip && backsector && backsector->exfloor))
+	if(!fakeclip)
 	{
-	    // masked midtexture
-	    maskedtexture = true;
-	    if(!sidedef->midtexture)
-	    {
-		if(backsector->floorheight >= frontsector->floorheight)
-		    ds_p->silhouette |= 4;
-		if(backsector->ceilingheight <= frontsector->ceilingheight)
-		    ds_p->silhouette |= 8;
-	    }
-	    ds_p->maskedtexturecol = maskedtexturecol = lastopening - rw_x;
-	    lastopening += rw_stopx - rw_x;
+		if (sidedef->midtexture || (backsector && (backsector->exfloor || backsector->fogmap.data != frontsector->fogmap.data)))
+		{
+			// masked midtexture
+			maskedtexture = true;
+			if(!sidedef->midtexture)
+			{
+				if(backsector->floorheight >= frontsector->floorheight)
+					ds_p->silhouette |= 4;
+				if(backsector->ceilingheight <= frontsector->ceilingheight)
+					ds_p->silhouette |= 8;
+			}
+			ds_p->maskedtexturecol = maskedtexturecol = lastopening - rw_x;
+			lastopening += rw_stopx - rw_x;
+		}
 	}
     }
     
