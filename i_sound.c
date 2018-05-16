@@ -401,6 +401,7 @@ I_UpdateSoundParams
 void I_ShutdownSound(void)
 {
 #ifndef LINUX
+	svcCloseHandle(event);
 	audio_ipc_output_stop(&output);
 	audio_ipc_output_close(&output);
 	audio_ipc_finalize();

@@ -27,6 +27,8 @@ typedef struct
 	char name[8];
 } lumpinfo_t;
 
+extern int numwads;
+
 void	W_LoadWad(const char *name);
 
 int	W_CheckNumForName (char* name);

@@ -442,6 +442,9 @@ void D_DoomMain (void)
 #ifndef SERVER
     printf ("I_InitGraphics: Init video output.\n");
     I_InitGraphics();
+
+    printf ("S_Init: Setting up sound.\n");
+    S_Init (snd_SfxVolume /* *8 */, snd_MusicVolume /* *8*/ );
 #endif
 
     printf ("I_InitNetwork: Init kgsws' multiplayer protocol.\n");
@@ -451,6 +454,8 @@ void D_DoomMain (void)
 
 #ifdef VIDEO_STDOUT
 	T_InitWads();
+	if(!numwads)
+		I_Error("No WADs selected!");
 #else
 	// pick an IWAD
 	gamemode = shareware;
@@ -714,9 +719,6 @@ void D_DoomMain (void)
 
     printf ("I_Init: Setting up machine state.\n");
     I_Init ();
-
-    printf ("S_Init: Setting up sound.\n");
-    S_Init (snd_SfxVolume /* *8 */, snd_MusicVolume /* *8*/ );
 
 #ifdef SERVER
     G_InitNew (startskill, startepisode, startmap);

@@ -27,10 +27,25 @@
 
 #include "t_text.h"
 
+#ifndef LINUX
+//#define NET_STDOUT
+#endif
+
 // for exit
 jmp_buf exitenv;
 
 extern int	key_use;
+
+#ifdef NET_STDOUT
+static FILE net_stdout;
+static int net_socket;
+static struct sockaddr_in server_addr =
+{
+	.sin_family = AF_INET,
+	.sin_port = 0xAF0B,
+	.sin_addr = {0x2F01A8C0}
+};
+#endif
 
 static struct sockaddr_in client_addr =
 {
@@ -41,6 +56,15 @@ int client_socket;
 int keep_alive;
 int last_packet_tic;
 
+#ifdef NET_STDOUT
+static int stdout_net(struct _reent *reent, void *v, const char *ptr, int len)
+{
+	if(len > 0)
+		bsd_send(net_socket, ptr, len, 0);
+	return len;
+}
+#endif
+
 void main_finish()
 {
 	if(netgame)
@@ -48,8 +72,12 @@ void main_finish()
 	I_ShutdownSound();
 	I_ShutdownGraphics();
 #ifndef LINUX
+#ifdef NET_STDOUT
+	bsd_close(net_socket);
+#endif
 	display_finalize();
 	vi_finalize();
+	am_finalize();
 	gpu_finalize();
 	hid_finalize();
 	bsd_finalize();
@@ -108,6 +136,8 @@ int main(int argc, char **argv)
 {
 	int ret;
 
+	printf("-= kgDoom =-\n");
+
 	myargc = argc;
 	myargv = argv;
 
@@ -136,16 +166,35 @@ int main(int argc, char **argv)
 	}
 #endif
 
+#ifdef NET_STDOUT
+	{
+		net_socket = bsd_socket(2, 1, 6); // AF_INET, SOCK_STREAM, PROTO_TCP
+		if(net_socket >= 0)
+		{
+			if(bsd_connect(net_socket, (struct sockaddr*) &server_addr, sizeof(server_addr)) < 0)
+				bsd_close(net_socket);
+			else
+			{
+				T_SetStdout(stdout_net);
+				bsd_send(net_socket, "Connected ...\n", 14, 0);
+				printf("Net stdout activated ...\n");
+			}
+		}
+	}
+#endif
+
 	srand(time(NULL));
 
 	ret = setjmp(exitenv);
 	if(ret)
 	{
 		main_finish();
+		svcExitProcess();
 		return ret - 1;
 	}
 
 	D_DoomMain();
+	svcExitProcess();
 	return 0;
 }
 

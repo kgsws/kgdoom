@@ -18,3 +18,5 @@ void T_Colors(int front, int back);
 void T_InitWads();
 void T_PutChar(uint8_t c);
 
+void T_SetStdout(void *func);
+

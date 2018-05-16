@@ -46,11 +46,11 @@ FixedDiv2
 ( fixed_t	a,
   fixed_t	b )
 {
-#if 0
-    long long c;
-    c = ((long long)a<<16) / ((long long)b);
+#if 1
+    int64_t c;
+    c = ((int64_t)a * (1<<16)) / ((int64_t)b);
     return (fixed_t) c;
-#endif
+#else
 
     double c;
 
@@ -59,5 +59,6 @@ FixedDiv2
     if (c >= 2147483648.0 || c < -2147483648.0)
 	I_Error("FixedDiv: divide by zero");
     return (fixed_t) c;
+#endif
 }
 

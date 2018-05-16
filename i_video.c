@@ -240,6 +240,9 @@ void I_ShutdownGraphics(void)
 {
 #ifdef LINUX
 	SDL_Quit();
+#else
+	svcCloseHandle(vsync);
+	display_close_layer(&vidsurf);
 #endif
 }
 
@@ -484,7 +487,7 @@ void I_FinishUpdate (void)
 	uint32_t *dst;
 
 	// vsync
-	svcWaitSynchronization(&handle_idx, &vsync, 1, 33333333);
+	svcWaitSynchronization(&handle_idx, &vsync, 1, -1);
 	svcResetSignal(vsync);
 	// get buffer
 	r = surface_dequeue_buffer(&vidsurf, &dst);
@@ -561,6 +564,9 @@ void I_InitGraphics(void)
 	r = gpu_initialize();
 	if(r)
 		I_Error("I_InitGraphics: gpu_initialize failed 0x%08X");
+	r = am_init();
+	if(r)
+		I_Error("I_InitGraphics: am_init failed 0x%08X");
 	r = vi_init();
 	if(r)
 		I_Error("I_InitGraphics: vi_init failed 0x%08X");

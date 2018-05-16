@@ -157,7 +157,7 @@ void T_Init()
 		return;
 	}
 #else
-	// this exact sequence will redirect stdout to socket
+	// this exact sequence will redirect stdout
 	static FILE custom_stdout;
 	custom_stdout._write = T_CustomWrite;
 	custom_stdout._flags = __SWR | __SNBF;
@@ -455,6 +455,17 @@ void T_InitWads()
 		sprintf(pwad_path, BASE_PATH"pwads/%s", pwad_list[wad_pick].name);
 		W_LoadWad(pwad_path);
 	}
+}
+#endif
+
+#ifndef LINUX
+void T_SetStdout(void *func)
+{
+	static FILE custom_stdout;
+	custom_stdout._write = func;
+	custom_stdout._flags = __SWR | __SNBF;
+	custom_stdout._bf._base = (void*)1;
+	stdout = &custom_stdout;
 }
 #endif
 
