@@ -189,12 +189,16 @@ int main(int argc, char **argv)
 	if(ret)
 	{
 		main_finish();
+#ifndef LINUX
 		svcExitProcess();
+#endif
 		return ret - 1;
 	}
 
 	D_DoomMain();
+#ifndef LINUX
 	svcExitProcess();
+#endif
 	return 0;
 }
 

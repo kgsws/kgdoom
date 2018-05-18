@@ -562,10 +562,10 @@ void R_DrawFuzzColumn(void)
     fixed_t		fracstep;
     uint8_t		val;
 
-    count = dc_yh - dc_yl; 
+    count = (dc_yh - dc_yl) + 1;
 
     // Zero length, column does not exceed a pixel.
-    if (count < 0) 
+    if (count <= 0) 
 	return;
 				 
 #ifdef RANGECHECK 
@@ -589,13 +589,12 @@ void R_DrawFuzzColumn(void)
 
     if(dc_column != dc_x)
     {
-	do
+	while(count--)
 	{
 		*dest = dc_fz_buffer[frac >> FRACBITS];
 		dest += SCREENWIDTH; 
 		frac += fracstep;
-
-	} while (count--);
+	}
 	dc_fz_buffer += dc_src_height;
 	return;
     }
@@ -646,10 +645,10 @@ void R_DrawFuzzColumnTabled0(void)
     fixed_t		fracstep;
     uint8_t		val;
 
-    count = dc_yh - dc_yl; 
+    count = (dc_yh - dc_yl) + 1;
 
     // Zero length, column does not exceed a pixel.
-    if (count < 0) 
+    if (count <= 0) 
 	return;
 				 
 #ifdef RANGECHECK 
@@ -673,13 +672,12 @@ void R_DrawFuzzColumnTabled0(void)
 
     if(dc_column != dc_x)
     {
-	do
+	while(count--)
 	{
 		*dest = dc_fz_buffer[frac >> FRACBITS];
 		dest += SCREENWIDTH; 
 		frac += fracstep;
-
-	} while (count--);
+	}
 	dc_fz_buffer += dc_src_height;
 	return;
     }
@@ -729,10 +727,10 @@ void R_DrawFuzzColumnTabled1(void)
     fixed_t		fracstep;
     uint8_t		val;
 
-    count = dc_yh - dc_yl; 
+    count = (dc_yh - dc_yl) + 1;
 
     // Zero length, column does not exceed a pixel.
-    if (count < 0) 
+    if (count <= 0) 
 	return;
 				 
 #ifdef RANGECHECK 
@@ -756,13 +754,12 @@ void R_DrawFuzzColumnTabled1(void)
 
     if(dc_column != dc_x)
     {
-	do
+	while(count--)
 	{
 		*dest = dc_fz_buffer[frac >> FRACBITS];
 		dest += SCREENWIDTH; 
 		frac += fracstep;
-
-	} while (count--);
+	}
 	dc_fz_buffer += dc_src_height;
 	return;
     }
