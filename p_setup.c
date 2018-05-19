@@ -258,6 +258,7 @@ void P_LoadSectors (int lump)
 	ss->damagetype = 0;
 	ss->damagetick = 0;
 	ss->flags = 0;
+	ss->liquid = -1;
 	// [kg] no 3D
 	ss->exfloor = NULL;
 	ss->exceiling = NULL;

@@ -582,6 +582,7 @@ static const lua_table_model_t lua_sector[] =
 	{"ceilingheight", offsetof(sector_t, ceilingheight), LUA_TNUMBER, func_set_sectorheight, func_get_fixedt},
 	{"spawnFloorheight", offsetof(sector_t, Sfloorheight), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"spawnCeilingheight", offsetof(sector_t, Sceilingheight), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
+	{"liquid", offsetof(sector_t, liquid), LUA_TNUMBER, func_set_fixedt, func_get_fixedt},
 	{"floorpic", offsetof(sector_t, floorpic), LUA_TSTRING, func_set_flattexture, func_get_flattexture},
 	{"ceilingpic", offsetof(sector_t, ceilingpic), LUA_TSTRING, func_set_flattexture, func_get_flattexture},
 	{"lightlevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},

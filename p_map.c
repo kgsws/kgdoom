@@ -53,6 +53,7 @@ boolean		floatok;
 fixed_t		tmfloorz;
 fixed_t		tmceilingz;
 fixed_t		tmdropoffz;
+fixed_t		tmliquid;
 
 // keep track of the line that lowers the ceiling,
 // so missiles don't explode against sky hack walls
@@ -491,6 +492,8 @@ P_CheckPosition
     subsector_t*	newsubsec;
     extraplane_t	*pl;
 
+    fixed_t height = thing->z + thing->height / 2;
+
     tmthing = thing;
     tmflags = thing->flags;
 	
@@ -513,12 +516,20 @@ P_CheckPosition
     tmfloorz = tmdropoffz = newsubsec->sector->floorheight;
     tmceilingz = newsubsec->sector->ceilingheight;
 
+    tmliquid = newsubsec->sector->liquid;
+
     // [kg] 3D floors check
     pl = newsubsec->sector->exfloor;
     while(pl)
     {
 	if(*pl->height > tmthing->z)
-	    break;
+	{
+		if(*pl->height > height)
+		{
+			tmliquid = pl->source->liquid;
+			break;
+		}
+	} else
 	if(*pl->height > tmfloorz && ~tmthing->canpass & *pl->blocking)
 	    tmfloorz = *pl->height;
 	pl = pl->next;
@@ -575,6 +586,8 @@ void P_GetPosition(mobj_t *thing)
     sector_t*		sector;
     extraplane_t	*pl;
 
+    fixed_t height = thing->z + thing->height / 2;
+
     tmthing = thing;
     tmflags = thing->flags;
 
@@ -599,12 +612,20 @@ void P_GetPosition(mobj_t *thing)
     thing->floorz = tmfloorz;
     thing->ceilingz = tmceilingz;
 
+    tmthing->liquid = sector->liquid;
+
     // [kg] 3D floors check
     pl = sector->exfloor;
     while(pl)
     {
 	if(*pl->height > tmthing->z)
-	    break;
+	{
+		if(*pl->height > height)
+		{
+			tmthing->liquid = pl->source->liquid;
+			break;
+		}
+	} else
 	if(*pl->height > tmfloorz)
 	    tmfloorz = *pl->height;
 	pl = pl->next;
@@ -689,6 +710,8 @@ P_TryMove
     thing->ceilingz = tmceilingz;	
     thing->x = x;
     thing->y = y;
+
+    thing->liquid = tmliquid;
 
     P_SetThingPosition (thing);
     

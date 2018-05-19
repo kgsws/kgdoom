@@ -94,6 +94,9 @@ typedef	struct
     fixed_t	Sfloorheight;
     fixed_t	Sceilingheight;
 
+    // [kg] water ...
+    fixed_t	liquid;
+
     // 0 = untraversed, 1,2 = sndlines -1
     int		soundtraversed;
 

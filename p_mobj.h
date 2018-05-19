@@ -283,6 +283,9 @@ typedef struct mobj_s
     int			damage;
     int			damagetype;
 
+    // [kg] current liquid state
+    fixed_t		liquid;
+
     // [kg] moved here from player
     int			armorpoints;
     mobjinfo_t*		armortype;

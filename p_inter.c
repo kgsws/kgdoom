@@ -262,7 +262,13 @@ P_DamageMobj
 	if ( damage < 1000000 && player->cheats & CF_GODMODE )
 	    return;
 
-	player->damagecount += damage;	// add damage after armor / invuln
+	if(origdmg == INSTANTKILL)
+	    player->damagecount += 19; // [kg] just very small tint	
+	else
+	if(origdmg == INSTANTGIB)
+	    player->damagecount += 39; // [kg] not a full red screen
+	else
+	    player->damagecount += damage;	// add damage after armor / invuln
 
 	if (player->damagecount > 100)
 	    player->damagecount = 100;	// teleport stomp does 10k points...

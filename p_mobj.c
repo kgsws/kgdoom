@@ -148,6 +148,7 @@ void P_XYMovement (mobj_t* mo)
     fixed_t	xmove;
     fixed_t	ymove;
     fixed_t floorz;
+    fixed_t friction, liquid;
 
     int stepdir = 0;
 
@@ -307,14 +308,28 @@ void P_XYMovement (mobj_t* mo)
 	    floorz = thzcbot->z + thzcbot->height;
     }
 
-    // [kg] preset ground info
-    mo->onground = false;
+    liquid = mo->liquid;
 
-    if (mo->z > floorz)
-	return;		// no friction when airborne
+    if(liquid < 0)
+	// [kg] floor friction
+	friction = FRICTION;
+    else
+    {
+	// [kg] in liquid friction
+	friction = FixedMul(FRICTION, liquid);
+	if(friction > FRACUNIT)
+		friction = FRACUNIT;
+    }
 
-    // [kg] set actual status
-    mo->onground = true;
+    if(mo->z > floorz)
+    {
+	// [kg] reset ground info
+	mo->onground = false;
+	if(liquid < 0)
+	    return;		// no friction when airborne and not in liquid
+    } else
+	// [kg] set actual status
+	mo->onground = true;
 
     if (mo->flags & MF_CORPSE)
     {
@@ -350,8 +365,15 @@ void P_XYMovement (mobj_t* mo)
     }
     else
     {
-	mo->momx = FixedMul (mo->momx, FRICTION);
-	mo->momy = FixedMul (mo->momy, FRICTION);
+	mo->momx = FixedMul (mo->momx, friction);
+	mo->momy = FixedMul (mo->momy, friction);
+	if(!mo->onground && liquid >= 0)
+	{
+		// [kg] liquid friction
+		fixed_t momz = mo->momz + liquid; // offset "zero"
+		momz = FixedMul(momz, friction);
+		mo->momz = momz - liquid;
+	}
     }
 }
 
@@ -481,10 +503,24 @@ void P_ZMovement (mobj_t* mo)
     }
     else if (! (mo->flags & MF_NOGRAVITY) )
     {
-	if (mo->momz == 0)
-	    mo->momz = -mo->gravity*2;
-	else
-	    mo->momz -= mo->gravity;
+	fixed_t gravity = mo->gravity;
+	fixed_t liquid = mo->liquid;
+
+	if(liquid >= 0)
+	{
+		gravity = FixedDiv(gravity, liquid * 16); // [kg] water constant
+		if(mo->momz == 0)
+		    mo->momz = -gravity * 2;
+		else
+		if(mo->momz > -liquid)
+		    mo->momz -= gravity;
+	} else
+	{
+		if (mo->momz == 0)
+		    mo->momz = -gravity * 2;
+		else
+		    mo->momz -= gravity;
+	}
     }
 	
     if (mo->z + mo->height > ceilingz)
@@ -784,8 +820,40 @@ P_SpawnMobj
 
     if(is_setup || mobj->flags & MF_NOZSPAWNCHECK)
     {
-	mobj->floorz = mobj->subsector->sector->floorheight;
-	mobj->ceilingz = mobj->subsector->sector->ceilingheight;
+	sector_t *sec = mobj->subsector->sector;
+	extraplane_t *pl = sec->exfloor;
+	fixed_t height = mobj->z + mobj->height / 2;
+
+	// default floor / ceiling
+	mobj->floorz = sec->floorheight;
+	mobj->ceilingz = sec->ceilingheight;
+	mobj->liquid = sec->liquid;
+
+	// get liquid state and 3D floors
+	while(pl)
+	{
+		if(*pl->height < mobj->z)
+		{
+			if(*pl->height > mobj->floorz)
+				mobj->floorz = *pl->height;
+		}
+		if(*pl->height > height)
+			sec = pl->source;
+		pl = pl->next;
+	}
+
+	// get 3D ceilings
+	pl = sec->exceiling;
+	while(pl)
+	{
+		if(*pl->height < mobj->z)
+		{
+			if(*pl->height < mobj->ceilingz)
+				mobj->ceilingz = *pl->height;
+		}
+		pl = pl->next;
+	}
+
     } else
 	// [kg] force 3D detection
 	P_GetPosition(mobj);
@@ -1234,7 +1302,6 @@ void P_CheckMissileSpawn (mobj_t* th)
 //    if (!P_TryMove (th, th->x, th->y))
 //	P_ExplodeMissile (th);
 }
-
 
 //
 // P_SpawnMissile

@@ -54,7 +54,7 @@ void P_CalcHeight (player_t* player)
 	int	angle;
 	fixed_t	bob;
 
-	if(player->cheats & CF_SPECTATOR || !player->mo->info->bobz)
+	if(player->cheats & CF_SPECTATOR || !player->mo->info->bobz || !player->mo->onground)
 	{
 		bob = 0;
 	} else
@@ -75,7 +75,7 @@ void P_CalcHeight (player_t* player)
 		// [kg] scale
 		player->bob = FixedMul(player->bob, player->mo->info->bobz / 16);
 
-		if ((player->cheats & CF_NOMOMENTUM) || !player->mo->onground)
+		if ((player->cheats & CF_NOMOMENTUM) /*|| !player->mo->onground*/)
 		{
 			player->viewz = player->mo->z + player->mo->info->viewz;
 
@@ -160,16 +160,34 @@ void P_MovePlayer (player_t* player)
 
     // Do not let the player control movement
     //  if not onground.
+    // [kg] or in liquid
+    if(!player->mo->onground && player->mo->liquid < 0)
+	// [kg] this also disables walk animation
+	return;
 
     // [kg] speed scaling
     forwardmove = FixedMul(cmd->forwardmove * 2048, player->mo->speed);
     sidemove = FixedMul(cmd->sidemove * 2048, player->mo->speed);
 
-    if (cmd->forwardmove && player->mo->onground)
+    if (cmd->forwardmove)
 	P_Thrust (player, player->mo->angle, forwardmove);
-    
-    if (cmd->sidemove && player->mo->onground)
+
+    if (cmd->sidemove)
 	P_Thrust (player, player->mo->angle-ANG90, sidemove);
+
+    if(player->mo->liquid >= 0)
+    {
+	fixed_t momz = FixedMul(player->mo->pitch, forwardmove * 3);
+	if(momz < 0)
+	{
+		if(!player->mo->onground && player->mo->momz > momz)
+			player->mo->momz += momz;
+	} else
+	{
+		if(player->mo->momz < momz)
+			player->mo->momz += momz;
+	}
+    }
 
 #ifndef SERVER
     if(local_player_predict)
@@ -177,12 +195,11 @@ void P_MovePlayer (player_t* player)
 
     if(!netgame || player == localpl)
 #endif
-{}
-/*    if ( (cmd->forwardmove || cmd->sidemove)
-	 && player->mo->state == &states[S_PLAY] )
+    if( (cmd->forwardmove || cmd->sidemove)
+	 && player->mo->animation == ANIM_SPAWN )
     {
-	P_SetMobjState (player->mo, S_PLAY_RUN1);
-    }*/ // TODO: handle player animations
+	P_SetMobjAnimation(player->mo, ANIM_SEE, 0);
+    }
 }	
 
 
