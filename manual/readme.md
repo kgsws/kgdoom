@@ -730,12 +730,12 @@ Sectors are part of the map. Most parameters can be modified on the fly.
   - Fixed point.
 - `ceilingheight`
   - Fixed point.
-- `spanwFloorheight`
+- `spawnFloorheight`
   - Original umodified floor height value.
     - You can use this to find original map value.
     - You can modify this for any other special uses.
   - Fixed point.
-- `spanwCeilingheight`
+- `spawnCeilingheight`
   - Original umodified floor height value.
     - You can use this to find original map value.
     - You can modify this for any other special uses.
@@ -758,6 +758,11 @@ Sectors are part of the map. Most parameters can be modified on the fly.
   - If set to true, this sector will be considered secret.
   - Intended to be set in level setup callback.
   - Boolean.
+- `liquid`
+  - Any non-negative value makes this sector swimmable.
+    - Actual value somewhat resembles viscosity. Smaller number means higher viscosity, 0 is allowed.
+  - Any negative value means normal sector.
+  - Fixed point.
 - `color`
   - See `translation` in mobjtype.
   - Sector colormap. This allows for custom colored lights.

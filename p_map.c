@@ -49,6 +49,8 @@ static fixed_t tmthingnewz;
 // If "floatok" true, move would be ok
 // if within "tmfloorz - tmceilingz".
 boolean		floatok;
+// [kg] checks from try move
+boolean trymove;
 
 fixed_t		tmfloorz;
 fixed_t		tmceilingz;
@@ -330,7 +332,7 @@ boolean PIT_CheckThing (mobj_t* thing)
     fixed_t		blockdist;
     boolean		solid;
     int			damage;
-		
+
     if (!(thing->flags & (MF_SOLID|MF_SPECIAL|MF_SHOOTABLE) ))
 	return true;
     
@@ -443,6 +445,91 @@ boolean PIT_CheckThing (mobj_t* thing)
 	    P_TouchSpecialThing (thing, tmthing);
 	}
 	return !solid;
+    }
+
+    // [kg] pushable things
+    if(trymove && thing->mass && thing->flags & MF_SOLID && thing->flags & MF_PUSHABLE)
+    {
+	fixed_t ratio;
+
+	// get velocity transfer ratio
+	if(!tmthing->mass)
+	    ratio = 32 * FRACUNIT;
+	else
+	    ratio = FixedMul((tmthing->mass * FRACUNIT) / thing->mass, FRICTION);
+	if(ratio > 32 * FRACUNIT)
+	    ratio = 32 * FRACUNIT;
+
+	thing->momx += FixedMul(tmthing->momx, ratio);
+	thing->momy += FixedMul(tmthing->momy, ratio);
+
+	solid = true;
+
+	if(!(thing->flags & MF_SLIDE))
+	{
+		// if object can move, remove momentnum from pusher
+		mobj_t *old_tmthing = tmthing;
+		line_t *old_ceilingline = ceilingline;
+		line_t *old_floorline = floorline;
+		fixed_t old_tmfloorz = tmfloorz;
+		fixed_t old_tmceilingz = tmceilingz;
+		fixed_t old_tmliquid = tmliquid;
+		mobj_t *old_hitmobj = hitmobj;
+
+		solid = false;
+		trymove = false;
+		thing->flags |= MF_TELEPORT;
+		if(P_CheckPosition(thing, thing->x + thing->momx, thing->y + thing->momy))
+		{
+		    if ( !(thing->flags & MF_NOCLIP) )
+		    {
+			if (tmceilingz - tmfloorz < thing->height)
+			    goto nocross;	// doesn't fit
+
+			floatok = true;
+
+			if ( !(thing->flags&MF_TELEPORT) 
+			     &&tmceilingz - thing->z < thing->height)
+			    goto nocross;	// mobj must lower itself to fit
+
+			if ( !(thing->flags&MF_TELEPORT)
+			     && tmfloorz - thing->z > thing->info->stepheight )
+			    goto nocross;	// too big a step up
+
+			if ( !(thing->flags&(MF_DROPOFF|MF_FLOAT))
+			     && tmfloorz - tmdropoffz > thing->info->stepheight )
+			    goto nocross;	// don't stand over a dropoff
+		    }
+		    solid = true;
+		}
+nocross:
+		thing->flags &= ~MF_TELEPORT;
+
+		// restore values
+		tmthing = old_tmthing;
+		tmflags = tmthing->flags;
+		tmx = tmthing->x;
+		tmy = tmthing->y;
+		tmbbox[BOXTOP] = tmy + tmthing->radius;
+		tmbbox[BOXBOTTOM] = tmy - tmthing->radius;
+		tmbbox[BOXRIGHT] = tmx + tmthing->radius;
+		tmbbox[BOXLEFT] = tmx - tmthing->radius;
+		ceilingline = old_ceilingline;
+		floorline = old_floorline;
+		tmfloorz = old_tmfloorz;
+		tmceilingz = old_tmceilingz;
+		tmliquid = old_tmliquid;
+		hitmobj = old_hitmobj;
+
+		trymove = true;
+	}
+	if(solid)
+	{
+		// momentnum was transfered
+		tmthing->momx = 0;
+		tmthing->momy = 0;
+	}
+
     }
 	
     return !(thing->flags & MF_SOLID);
@@ -676,10 +763,12 @@ P_TryMove
     int		oldside;
     line_t*	ld;
 
+    trymove = true;
     floatok = false;
     if (!P_CheckPosition (thing, x, y))
 	goto nocross;		// solid wall or thing
-    
+    trymove = false;
+
     if ( !(thing->flags & MF_NOCLIP) )
     {
 	if (tmceilingz - tmfloorz < thing->height)
@@ -745,6 +834,8 @@ P_TryMove
     return true;
 
 nocross:
+
+    trymove = false;
 #ifndef SERVER
     if(!netgame)
 #endif

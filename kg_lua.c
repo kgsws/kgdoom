@@ -379,6 +379,7 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"wallBounce", MF_WALLBOUNCE},
 	{"mobjBounce", MF_MOBJBOUNCE},
 	{"noTarget", MF_NOTARGET},
+	{"pushable", MF_PUSHABLE},
 	// custom Lua flags
 	{"custom0", MF_CUSTOM0},
 	{"custom1", MF_CUSTOM1},
