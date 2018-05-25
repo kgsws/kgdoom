@@ -490,6 +490,8 @@ typedef struct
 
   // [kg] mark 3D ones
   int is3d;
+  // [kg] mark fog boundary
+  int hasFog;
   // [kg] light color
   void *colormap;
   // [kg] fog color

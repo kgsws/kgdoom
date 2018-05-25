@@ -71,9 +71,7 @@ extern int dc_holestep;
 void 	R_DrawSpan (void);
 void R_DrawSpanShadow (void);
 
-// Low resolution mode, 160x200?
-void 	R_DrawSpanLow (void);
-
+void R_DrawSpanFog();
 
 void
 R_InitBuffer

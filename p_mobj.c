@@ -308,7 +308,7 @@ void P_XYMovement (mobj_t* mo)
 	    floorz = thzcbot->z + thzcbot->height;
     }
 
-    liquid = mo->liquid;
+    liquid = mo->liquidip;
 
     if(liquid < 0)
 	// [kg] floor friction
@@ -325,8 +325,9 @@ void P_XYMovement (mobj_t* mo)
     {
 	// [kg] reset ground info
 	mo->onground = false;
-	if(liquid < 0)
-	    return;		// no friction when airborne and not in liquid
+	if(liquid < 0 && (!player || !(mo->flags & MF_FLOAT) || mo->gravity))
+	    // no friction when airborne and not in liquid
+	    return;	// [kg] yes friction for flying players
     } else
 	// [kg] set actual status
 	mo->onground = true;
@@ -367,13 +368,6 @@ void P_XYMovement (mobj_t* mo)
     {
 	mo->momx = FixedMul (mo->momx, friction);
 	mo->momy = FixedMul (mo->momy, friction);
-	if(!mo->onground && liquid >= 0)
-	{
-		// [kg] liquid friction
-		fixed_t momz = mo->momz + liquid; // offset "zero"
-		momz = FixedMul(momz, friction);
-		mo->momz = momz - liquid;
-	}
     }
 }
 
@@ -453,7 +447,7 @@ void P_ZMovement (mobj_t* mo)
 	    // [kg] call 'floor hit' callback
 	    L_CrashThing(mo);
 	    // [kg] added bounce effect
-	    if(!mo->bounce || (!(mo->flags & MF_NOGRAVITY) && mo->momz > -FRACUNIT*3)) // TODO: gravity scaled treshold
+	    if(!mo->bounce || (mo->gravity && mo->momz > -FixedMul(FRACUNIT*3, abs(mo->gravity)))) // gravity scaled treshold
 		mo->momz = 0;
 	}
 	mo->z = floorz;
@@ -501,14 +495,15 @@ void P_ZMovement (mobj_t* mo)
 		S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
 	}
     }
-    else if (! (mo->flags & MF_NOGRAVITY) )
+    else if(mo->gravity)
     {
+	// [kg] water check
 	fixed_t gravity = mo->gravity;
-	fixed_t liquid = mo->liquid;
+	fixed_t liquid = mo->liquidip;
 
 	if(liquid >= 0)
 	{
-		gravity = FixedDiv(gravity, liquid * 16); // [kg] water constant
+		gravity = FixedDiv(gravity, liquid * 16); // water constant
 		if(mo->momz == 0)
 		    mo->momz = -gravity * 2;
 		else
@@ -528,7 +523,7 @@ void P_ZMovement (mobj_t* mo)
 	// hit the ceiling
 
 	// [kg] added bounce effect
-	if(!mo->bounce || (!(mo->flags & MF_NOGRAVITY) && mo->momz < FRACUNIT*3)) // TODO: gravity scaled treshold
+	if(!mo->bounce || (mo->gravity && mo->momz < FixedMul(FRACUNIT*3, abs(mo->gravity)))) // gravity scaled treshold
 	    mo->momz = 0;
 
 	mo->z = ceilingz - mo->height;
@@ -573,6 +568,26 @@ void P_ZMovement (mobj_t* mo)
 		S_StartSound(mo, mo->info->bouncesound, SOUND_BODY);
 	}
     }
+
+	if(!mo->onground && mo->momz)
+	{
+		if(mo->player && mo->flags & MF_FLOAT && !mo->gravity)
+		{
+			mo->momz = FixedMul(mo->momz, FRICTION);
+			if(mo->momz > -STOPSPEED && mo->momz < STOPSPEED)
+				mo->momz = 0;
+		} else
+		if(mo->liquidip >= 0)
+		{
+			// [kg] liquid friction
+			fixed_t friction = FixedMul(FRICTION, mo->liquidip);
+			if(friction > FRACUNIT)
+				friction = FRACUNIT;
+			fixed_t momz = mo->momz + mo->liquidip; // offset "zero"
+			momz = FixedMul(momz, friction);
+			mo->momz = momz - mo->liquidip;
+		}
+	}
 }
 
 
@@ -828,6 +843,7 @@ P_SpawnMobj
 	mobj->floorz = sec->floorheight;
 	mobj->ceilingz = sec->ceilingheight;
 	mobj->liquid = sec->liquid;
+	mobj->liquidip = sec->liquid;
 
 	// get liquid state and 3D floors
 	while(pl)
@@ -837,8 +853,10 @@ P_SpawnMobj
 			if(*pl->height > mobj->floorz)
 				mobj->floorz = *pl->height;
 		}
+		if(*pl->height > mobj->z)
+			mobj->liquidip = pl->source->liquid;
 		if(*pl->height > height)
-			sec = pl->source;
+			mobj->liquid = pl->source->liquid;
 		pl = pl->next;
 	}
 

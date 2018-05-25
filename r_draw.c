@@ -1407,6 +1407,34 @@ void R_DrawSpan (void)
     } while (count--); 
 }
 
+void R_DrawSpanFog (void)
+{ 
+    byte*		dest;
+    int			count;
+	 
+#ifdef RANGECHECK 
+    if (ds_x2 < ds_x1
+	|| ds_x1<0
+	|| ds_x2>=SCREENWIDTH  
+	|| (unsigned)ds_y>SCREENHEIGHT)
+    {
+	I_Error( "R_DrawSpan: %i to %i at %i",
+		 ds_x1,ds_x2,ds_y);
+    }
+//	dscount++; 
+#endif 
+
+    dest = ylookup[ds_y] + columnofs[ds_x1];
+
+    // We do not check for zero spans here?
+    count = ds_x2 - ds_x1; 
+
+    do 
+    {
+	*dest++ = dc_colormap[*dest];
+    } while (count--); 
+}
+
 void R_DrawSpanMasked(void)
 { 
     uint32_t		xfrac;
@@ -1905,6 +1933,9 @@ void R_SetupRenderFuncSpan(int style, void *table, void *translation, boolean ma
 		case RENDER_FUZZ_TABLEI:
 			dc_table = table;
 			spanfunc = R_DrawSpanTabled1Fuzz;
+		break;
+		case RENDER_FOG_ONLY:
+			spanfunc = R_DrawSpanFog;
 		break;
 		default:
 			// TODO dc_translation

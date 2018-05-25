@@ -3,7 +3,7 @@
 
 a.NoGravity =
 function(mobj)
-	mobj.__noGravity = true
+	mobj.gravity = 0
 end
 
 a.SkullAttack =
@@ -37,10 +37,10 @@ mtype = {
 	damage = 3,
 	pass = 1,
 	bounce = 1,
+	gravity = 0,
 	damageScale = {0},
 	__Monster = true,
 	__float = true,
-	__noGravity = true,
 	_spawn = {
 		{"*SKULA", 10, a.Look},
 		{"*SKULB", 10, a.Look},

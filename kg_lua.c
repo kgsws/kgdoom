@@ -353,7 +353,6 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"noBlockmap", MF_NOBLOCKMAP},
 	{"ambush", MF_AMBUSH},
 	{"spawnCeiling", MF_SPAWNCEILING},
-	{"noGravity", MF_NOGRAVITY},
 	{"dropOff", MF_DROPOFF},
 	{"pickup", MF_PICKUP},
 	{"noClip", MF_NOCLIP},
@@ -387,7 +386,7 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"custom3", MF_CUSTOM3},
 	// flag combinations
 	{"Monster", MF_ISMONSTER | MF_COUNTKILL | MF_SOLID | MF_SHOOTABLE},
-	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_NOGRAVITY | MF_DROPOFF | MF_NOZCHANGE},
+	{"Projectile", MF_MISSILE | MF_NOBLOCKMAP | MF_DROPOFF | MF_NOZCHANGE},
 };
 
 // all exported state actions

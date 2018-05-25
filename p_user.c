@@ -161,7 +161,7 @@ void P_MovePlayer (player_t* player)
     // Do not let the player control movement
     //  if not onground.
     // [kg] or in liquid
-    if(!player->mo->onground && player->mo->liquid < 0)
+    if(!player->mo->onground && player->mo->liquid < 0 && !(player->mo->flags & MF_FLOAT))
 	// [kg] this also disables walk animation
 	return;
 
@@ -175,7 +175,7 @@ void P_MovePlayer (player_t* player)
     if (cmd->sidemove)
 	P_Thrust (player, player->mo->angle-ANG90, sidemove);
 
-    if(player->mo->liquid >= 0)
+    if(player->mo->liquid >= 0 || (player->mo->flags & MF_FLOAT && !player->mo->gravity))
     {
 	fixed_t momz = FixedMul(player->mo->pitch, forwardmove * 3);
 	if(momz < 0)

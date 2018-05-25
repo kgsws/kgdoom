@@ -11,7 +11,7 @@ function(mobj)
 	local source
 	source = mobj.source
 	mobj.__missile = true
-	mobj.__noGravity = false
+	mobj.gravity = 1
 	mobj.momz = -0.5
 	mobj.Thrust(0.25 + doomRandom() / 512, (doomRandom() - 128)*2)
 	if source.info == MT_HEAD then
@@ -26,8 +26,8 @@ mtype = {
 	radius = 4,
 	height = 12,
 	pass = 3,
+	gravity = 0,
 	__noBlockmap = true,
-	__noGravity = true,
 	__dropOff = true,
 	__troughMobj = true,
 	__noZSpawnCheck = true,
@@ -50,8 +50,8 @@ mtype = {
 	radius = 4,
 	height = 12,
 	pass = 3,
+	gravity = 0,
 	__noBlockmap = true,
-	__noGravity = true,
 	__dropOff = true,
 	__troughMobj = true,
 	__noZSpawnCheck = true,

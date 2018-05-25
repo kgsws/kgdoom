@@ -35,6 +35,7 @@ mtype = {
 	height = 8,
 	damage = -10,
 	pass = 3,
+	gravity = 0,
 	__Projectile = true,
 	_spawn = {
 		{"*FATBA", 2},

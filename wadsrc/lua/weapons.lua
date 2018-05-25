@@ -318,6 +318,7 @@ mtype = {
 	height = 8,
 	damage = -20,
 	pass = 3,
+	gravity = 0,
 	__Projectile = true,
 	_spawn = {
 		{"*MISLA", -1}
@@ -339,6 +340,7 @@ mtype = {
 	height = 8,
 	damage = -5,
 	pass = 3,
+	gravity = 0,
 	__Projectile = true,
 	_spawn = {
 		{"*PLSSA", 6},
@@ -363,6 +365,7 @@ mtype = {
 	height = 8,
 	damage = -100,
 	pass = 3,
+	gravity = 0,
 	__Projectile = true,
 	_spawn = {
 		{"*BFS1A", 4},
@@ -384,8 +387,8 @@ MT_BFG = createMobjType(mtype)
 mtype = {
 	radius = 20,
 	height = 16,
+	gravity = 0,
 	__noBlockmap = true,
-	__noGravity = true,
 	_spawn = {
 		{"*BFE2A", 8},
 		{"*BFE2B", 8},

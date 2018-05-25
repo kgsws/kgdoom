@@ -156,9 +156,9 @@ end
 linefunc[253] = eggSwitch
 
 mtype = {
+	gravity = 0,
 	__noClip = true,
 	__noBlockmap = true,
-	__noGravity = true,
 	_spawn = {
 		{"*TFOGI", 3, eggParticle},
 		{"*TFOGJ", 3, eggParticle},
@@ -185,6 +185,7 @@ MT_EGGEFFECT = createMobjType(mtype)
 
 mtype = {
 	speed = 3,
+	gravity = 0,
 	__Projectile = true,
 	__noClip = true,
 	_spawn = {
@@ -196,6 +197,7 @@ MT_EGGPARTICLE = createMobjType(mtype)
 mtype = {
 	translation = "LIGHTMAP",
 	speed = 3,
+	gravity = 0,
 	__Projectile = true,
 	__noClip = true,
 	_spawn = {
@@ -205,9 +207,9 @@ mtype = {
 MT_EGGPARTBIG = createMobjType(mtype)
 
 mtype = {
+	gravity = 0,
 	__noClip = true,
 	__noBlockmap = true,
-	__noGravity = true,
 	_spawn = {
 		{"*TFOGF", 3},
 		{"*TFOGE", 3},

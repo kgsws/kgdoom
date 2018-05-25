@@ -30,8 +30,16 @@ typedef struct hudmsg_s
 	int id, x, y, tics, scale, align;
 	void *font;
 	void *colormap;
-	char text[];
+	int line_count;
+	uint8_t data[]; // placeholder for stuff below
 } hudmsg_t;
+
+typedef struct
+{
+	uint16_t len;
+	uint16_t width;
+	char text[];
+} hudmsgline_t;
 
 extern int hudmsg_align;
 extern int hudmsg_scale;

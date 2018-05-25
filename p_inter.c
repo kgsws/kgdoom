@@ -42,8 +42,10 @@ P_KillMobj
 	
     target->flags &= ~(MF_SHOOTABLE|MF_FLOAT|MF_SKULLFLY);
 
-//    if (target->type != MT_SKULL) // TODO: handle somehow
-	target->flags &= ~MF_NOGRAVITY;
+//    if (target->type != MT_SKULL)
+//	target->flags &= ~MF_NOGRAVITY;
+    // TODO: handle somehow
+    target->gravity = FRACUNIT;
 
     target->flags |= MF_CORPSE|MF_DROPOFF;
     target->height >>= 2;

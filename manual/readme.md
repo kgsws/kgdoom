@@ -239,8 +239,6 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
   - Monsters with this flag won't react to `a.NoiseAlert` but wait for direct line of sight (even from behind) to wake up.
 - `__spawnCeiling`
   - Used by some Doom decorations. Items with this flag will be spanwed on celing, but only at map loading.
-- `__noGravity`
-  - This mobj won't fall down due to gravity.
 - `__dropOff`
   - This mobj can fall of tall edges.
 - `__pickup`
@@ -250,7 +248,10 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
 - `__slide`
   - This mobj will slide along walls / other mobjs.
 - `__float`
-  - Used for internal `a.Chase` as a hit that this monster is flying.
+  - If used on player mobj, player will gain full aircontrol.
+    - Also gains a power of flight if player mobj has `gravity` set to 0.
+  - Used for internal `a.Chase` as a hint that this monster is flying.
+    - This will allow monster to change height.
 - `__missile`
   - Used for projectiles. This mobj has special collision check logic. Any collision would cause its death. And eventual damage to collided mobj.
 - `__dropped`
@@ -297,6 +298,9 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
 - `__noTarget`
   - This mobj can't be targetted by internal enemy AI.
   - This mobj won't be set as new `target` when used as source of damage.
+- `_pushable`
+  - This mobj can be pushed by other mobj when bumped.
+  - Pushing mobj will transfer it's momentnum to this one, taking masses of both mobjs into account.
 - `__wallBounce`
   - Used on projectiles. Projectile will bounce off walls.
 - `__mobjBounce`
@@ -304,7 +308,8 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
 - `__Monster`
   - Flag combination of `__isMonster`, `__countKill`, `__solid` and `__shootable`
 - `__Projectile`
-  - Flag combination of `__missile`, `__noBlockmap`, `__noGravity`, `__dropOff` and `__noZChange`
+  - Flag combination of `__missile`, `__noBlockmap`, `__dropOff` and `__noZChange`
+    - Do not forget. You likely want to set `gravity` to 0.
 - `__custom0` up to `__custom3` (4 flags total)
   - Custom flags for anything in Lua.
   - Used for example in Doom scripts for "bad aim" on inivisible targets.

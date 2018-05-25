@@ -259,22 +259,35 @@ void HU_Drawer(void)
 {
 	boolean changed = false;
 	hudmsg_t *msg = hudmsg_top;
+	hudmsgline_t *msl;
 	// hud messages
 	while(msg)
 	{
-		int x = msg->x;
+		int i, h, x;
+		int y = msg->y;
+		msl = (hudmsgline_t*)msg->data;
 		changed = true;
 		HT_SetFont(msg->font, msg->scale, msg->colormap);
-		switch(msg->align)
+		h = HT_FontHeight() * msg->scale;
+		for(i = 0; i < msg->line_count; i++)
 		{
-			case 1:
-				x -= HT_TextWidth(msg->text) / 2;
-			break;
-			case 2:
-				x -= HT_TextWidth(msg->text);
-			break;
+			switch(msg->align)
+			{
+				case 1:
+					x = msg->x - msl->width / 2;
+				break;
+				case 2:
+					x = msg->x - msl->width;
+				break;
+				default:
+					x = msg->x;
+				break;
+			}
+			if(msl->len > 1)
+				HT_PutText(x, y, msl->text);
+			y += h;
+			msl = (hudmsgline_t*)((uint8_t*)msl + sizeof(hudmsgline_t) + msl->len);
 		}
-		HT_PutText(x, msg->y, msg->text);
 		msg = msg->next;
 	}
 	// "pickup" message
@@ -363,14 +376,24 @@ boolean HU_Responder(event_t *ev)
 
 void HU_MessagePlain(int id, int x, int y, int tics, const char *text)
 {
+	int line_count = 1;
 	int len = strlen(text);
 	hudmsg_t *msg = hudmsg_top;
 	hudmsg_t **mld = &hudmsg_top;
 	hudmsg_t *new = NULL;
+	const char *src = text;
+	char *ptr;
+
+	while(*src)
+	{
+		if(*src == '\n' && src[1])
+			line_count++;
+		src++;
+	}
 
 	if(len)
 	{
-		new = malloc(sizeof(hudmsg_t) + len + 1);
+		new = malloc(sizeof(hudmsg_t) + line_count * sizeof(uint16_t)*2 + len + 1);
 		if(!new)
 			I_Error("HU_MessagePlain: Memory allocation error.");
 	}
@@ -402,8 +425,41 @@ void HU_MessagePlain(int id, int x, int y, int tics, const char *text)
 	new->align = hudmsg_align;
 	new->font = hudmsg_font;
 	new->colormap = hudmsg_color;
-	strcpy(new->text, text);
+	new->line_count = line_count;
 	new->next = msg;
 	*mld = new;
+
+	HT_SetFont(new->font, new->scale, new->colormap);
+
+	ptr = (char*)new->data;
+	src = text;
+
+	while(1)
+	{
+		if(*src == '\n' || !*src)
+		{
+			uint16_t *wptr;
+			uint16_t len = src - text;
+			// line lenght
+			*((uint16_t*)ptr) = len+1;
+			ptr += sizeof(uint16_t);
+			// line width ptr
+			wptr = (uint16_t*)ptr;
+			ptr += sizeof(uint16_t);
+			// line text
+			memcpy(ptr, text, len);
+			ptr += len;
+			*ptr = 0;
+			// line width value
+			*wptr = HT_TextWidth((char*)wptr + 2);
+			//
+			ptr++;
+			if(!*src)
+				break;
+			text = src + 1;
+		}
+		src++;
+	}
+
 }
 

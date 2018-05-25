@@ -83,17 +83,16 @@ doomLineRe[125] = false
 -- MT_TELEPORTMAN; teleport destination
 mtype = {
 	ednum = 14,
+	gravity = 0,
 	__noBlockmap = true,
-	__noGravity = true
 }
 MT_TELEPORTMAN = createMobjType(mtype)
 
 -- MT_TFOG
 mtype = {
 	seeSound = "dstelept",
-	ednum = 14,
+	gravity = 0,
 	__noBlockmap = true,
-	__noGravity = true,
 	_spawn = {
 		{"*TFOGA", 6, a.SoundSee},
 		{"*TFOGB", 6},

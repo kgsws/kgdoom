@@ -93,7 +93,7 @@ end
 -- MT_EXPLOSION (custom type)
 mtype = {
 	deathSound = "dsbarexp",
-	__noGravity = true,
+	gravity = 0,
 	__noBlockmap = true,
 	_spawn = {
 		{"*MISLB", 10, a.SoundDeath},
@@ -157,6 +157,7 @@ createMobjType(mtype)
 mtype = {
 	seeSound = "dsbospit",
 	speed = 10,
+	gravity = 0,
 	__Projectile = true,
 	__noClip = true,
 	__fullVolume = true,
@@ -184,8 +185,8 @@ MT_BOSSTARGET = createMobjType(mtype)
 -- MT_SPAWNFIRE
 mtype = {
 	seeSound = "dsflame",
+	gravity = 0,
 	__noBlockmap = true,
-	__noGravity = true,
 	_spawn = {
 		{"*FIREA", 4, a.SoundSee},
 		{"*FIREB", 4},
@@ -294,7 +295,7 @@ function finaleTarget(mobj)
 	mobj.__invulnerable = true
 	mobj.__noRadiusDamage = true
 	mobj.__shootable = true
-	mobj.__noGravity = false
+	mobj.gravity = 0
 	return false, mobj
 end
 

@@ -257,6 +257,7 @@ R_RenderMaskedSegRange
     int bots, tops;
     extraplane_t *pl;
     uint8_t *fog_data;
+    uint8_t *fog_back;
 
     // Calculate light table.
     // Use different light tables
@@ -270,8 +271,21 @@ R_RenderMaskedSegRange
     lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
     dc_lightcolor = frontsector->colormap.data;
     fog_data = frontsector->fogmap.data;
+    fog_back = backsector->fogmap.data;
     if(height_top != ONCEILINGZ)
     {
+	// fog reference
+	pl = backsector->exfloor;
+	while(pl)
+	{
+	    if(height_top <= *pl->height)
+	    {
+		fog_back = pl->source->fogmap.data;
+		break;
+	    }
+	    pl = pl->next;
+	}
+	// this sector
 	pl = frontsector->exfloor;
 	while(pl)
 	{
@@ -336,7 +350,7 @@ R_RenderMaskedSegRange
     }
 
     // draw fog boundary
-    if(!fixedcolormap && backsector && fog_data != backsector->fogmap.data)
+    if(!fixedcolormap && backsector->floorheight < height_top && backsector->ceilingheight > height_bot && fog_data && fog_data != fog_back)
     {
 	spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
 	// [kg] pick renderer
@@ -630,6 +644,9 @@ void R_RenderSegLoopStripe()
     fixed_t		texturecolumn;
     int			top;
     int			bottom;
+
+    if(!stripetexture)
+	return;
 
     int	old_rwx = rw_x;
     int	old_rwscale = rw_scale;
@@ -1035,7 +1052,21 @@ R_StoreWallRange
 	// allocate space for masked texture tables
 	if(!fakeclip)
 	{
-		if (sidedef->midtexture || (backsector && (backsector->exfloor || backsector->fogmap.data != frontsector->fogmap.data)))
+		extraplane_t *pl;
+		boolean frontfog = false;
+
+		pl = frontsector->exfloor;
+		while(pl)
+		{
+			if(pl->source->fogmap.data)
+			{
+				frontfog = true;
+				break;
+			}
+			pl = pl->next;
+		}
+
+		if (sidedef->midtexture || (backsector && (backsector->exfloor || frontfog || (frontsector->fogmap.data && backsector->fogmap.data != frontsector->fogmap.data))))
 		{
 			// masked midtexture
 			maskedtexture = true;

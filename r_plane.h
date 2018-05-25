@@ -50,7 +50,8 @@ R_FindPlane
   int		lightlevel,
   void		*colormap,
   void		*fogmap,
-  render_t	*render);
+  render_t	*render,
+  boolean	has_fog);
 
 visplane_t*
 R_CheckPlane

@@ -40,6 +40,7 @@ mtype = {
 	height = 8,
 	damage = -5,
 	pass = 3,
+	gravity = 0,
 	__Projectile = true,
 	_spawn = {
 		{"*APLSA", 5},

@@ -36,6 +36,7 @@ mtype = {
 	height = 8,
 	damage = -3,
 	pass = 3,
+	gravity = 0,
 	__Projectile = true,
 	_spawn = {
 		{"*BAL1A", 4},

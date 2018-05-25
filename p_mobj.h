@@ -123,10 +123,10 @@ typedef enum
     // On level spawning (initial position),
     //  hang from ceiling instead of stand on floor.
     MF_SPAWNCEILING	= 256,
-    // Don't apply gravity (every tic),
-    //  that is, object will float, keeping current height
-    //  or changing it actively.
-    MF_NOGRAVITY	= 512,
+
+    // [kg] can be pushed when bumped
+    // transfer momentnum by mass
+    MF_PUSHABLE		= 512,
 
     // Movement flags.
     // This allows jumps from high places.
@@ -211,10 +211,6 @@ typedef enum
     // [kg] can't be targetted by internal AI
     MF_NOTARGET		= 0x1000000000,
 
-    // [kg] can be pushed when bumped
-    // transfer momentnum by mass
-    MF_PUSHABLE		= 0x2000000000,
-
     // [kg] few custom flags for Lua
     MF_CUSTOM0		= 0x1000000000000000,
     MF_CUSTOM1		= 0x2000000000000000,
@@ -289,6 +285,7 @@ typedef struct mobj_s
 
     // [kg] current liquid state
     fixed_t		liquid;
+    fixed_t		liquidip;
 
     // [kg] moved here from player
     int			armorpoints;

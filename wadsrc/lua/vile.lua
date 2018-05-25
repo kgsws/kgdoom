@@ -96,8 +96,8 @@ mtype = {
 	activeSound = "dsflame",
 	radius = 8,
 	height = 16,
+	gravity = 0,
 	__noBlockmap = true,
-	__noGravity = true,
 	_spawn = {
 		{"*FIREA", 1},
 		{"*FIREA", 2, a.FireStart},

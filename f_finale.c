@@ -43,20 +43,6 @@ char*	c4text = C4TEXT;
 char*	c5text = C5TEXT;
 char*	c6text = C6TEXT;
 
-char*	p1text = P1TEXT;
-char*	p2text = P2TEXT;
-char*	p3text = P3TEXT;
-char*	p4text = P4TEXT;
-char*	p5text = P5TEXT;
-char*	p6text = P6TEXT;
-
-char*	t1text = T1TEXT;
-char*	t2text = T2TEXT;
-char*	t3text = T3TEXT;
-char*	t4text = T4TEXT;
-char*	t5text = T5TEXT;
-char*	t6text = T6TEXT;
-
 char*	finaletext;
 char*	finaleflat;
 
@@ -232,7 +218,7 @@ void F_Ticker (void)
 #include "hu_stuff.h"
 extern	patch_t *hu_font[HU_FONTSIZE];
 
-
+// [kg] TODO: replace with HUD message
 void F_TextWrite (void)
 {
     byte*	src;
@@ -241,6 +227,7 @@ void F_TextWrite (void)
     int		x,y,w;
     int		count;
     char*	ch;
+    char*	text;
     int		c;
     int		cx;
     int		cy;
@@ -269,8 +256,23 @@ void F_TextWrite (void)
     cx = 10;
     cy = 10;
     ch = finaletext;
-	
-    HT_PutText(cx, cy, ch);
+    text = finaletext;
+
+    while(1)
+    {
+	if(!*ch)
+	{
+	    if(text != ch)
+		HT_PutText(cx, cy, text);
+	    cy += HT_FontHeight() * 3;
+	    cx = 10;
+	    ch++;
+	    if(!*ch)
+		break;
+	    text = ch;
+	}
+	ch++;
+    }
 }
 
 //

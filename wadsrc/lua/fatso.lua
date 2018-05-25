@@ -56,6 +56,7 @@ mtype = {
 	height = 8,
 	damage = -8,
 	pass = 3,
+	gravity = 0,
 	__Projectile = true,
 	_spawn = {
 		{"*MANFA", 4},

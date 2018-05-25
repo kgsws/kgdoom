@@ -56,6 +56,7 @@ fixed_t		tmfloorz;
 fixed_t		tmceilingz;
 fixed_t		tmdropoffz;
 fixed_t		tmliquid;
+fixed_t		tmliquidip;
 
 // keep track of the line that lowers the ceiling,
 // so missiles don't explode against sky hack walls
@@ -474,6 +475,7 @@ boolean PIT_CheckThing (mobj_t* thing)
 		fixed_t old_tmfloorz = tmfloorz;
 		fixed_t old_tmceilingz = tmceilingz;
 		fixed_t old_tmliquid = tmliquid;
+		fixed_t old_tmliquidip = tmliquidip;
 		mobj_t *old_hitmobj = hitmobj;
 
 		solid = false;
@@ -519,6 +521,7 @@ nocross:
 		tmfloorz = old_tmfloorz;
 		tmceilingz = old_tmceilingz;
 		tmliquid = old_tmliquid;
+		tmliquidip = old_tmliquidip;
 		hitmobj = old_hitmobj;
 
 		trymove = true;
@@ -604,6 +607,7 @@ P_CheckPosition
     tmceilingz = newsubsec->sector->ceilingheight;
 
     tmliquid = newsubsec->sector->liquid;
+    tmliquidip = newsubsec->sector->liquid;
 
     // [kg] 3D floors check
     pl = newsubsec->sector->exfloor;
@@ -611,6 +615,7 @@ P_CheckPosition
     {
 	if(*pl->height > tmthing->z)
 	{
+		tmliquidip = pl->source->liquid;
 		if(*pl->height > height)
 		{
 			tmliquid = pl->source->liquid;
@@ -700,6 +705,7 @@ void P_GetPosition(mobj_t *thing)
     thing->ceilingz = tmceilingz;
 
     tmthing->liquid = sector->liquid;
+    tmthing->liquidip = sector->liquid;
 
     // [kg] 3D floors check
     pl = sector->exfloor;
@@ -707,6 +713,7 @@ void P_GetPosition(mobj_t *thing)
     {
 	if(*pl->height > tmthing->z)
 	{
+		tmthing->liquidip = pl->source->liquid;
 		if(*pl->height > height)
 		{
 			tmthing->liquid = pl->source->liquid;
@@ -801,6 +808,7 @@ P_TryMove
     thing->y = y;
 
     thing->liquid = tmliquid;
+    thing->liquidip = tmliquidip;
 
     P_SetThingPosition (thing);
     
@@ -2105,6 +2113,8 @@ void P_CheckPositionZ(mobj_t *thing)
 	int yh;
 	int bx;
 	int by;
+	extraplane_t *pl;
+	fixed_t height = thing->z + thing->height / 2;
 
 	if(thing->flags & MF_NOCLIP)
 		return;
@@ -2118,6 +2128,24 @@ void P_CheckPositionZ(mobj_t *thing)
 	tmthing = thing;
 	tmx = thing->x;
 	tmy = thing->y;
+
+	// [kg] liquid check
+	thing->liquid = thing->subsector->sector->liquid;
+	thing->liquidip = thing->subsector->sector->liquid;
+	pl = thing->subsector->sector->exfloor;
+	while(pl)
+	{
+		if(*pl->height > thing->z)
+		{
+			thing->liquidip = pl->source->liquid;
+			if(*pl->height > height)
+			{
+				thing->liquid = pl->source->liquid;
+				break;
+			}
+		}
+		pl = pl->next;
+	}
 
 	tmbbox[BOXTOP] = tmy + tmthing->radius;
 	tmbbox[BOXBOTTOM] = tmy - tmthing->radius;

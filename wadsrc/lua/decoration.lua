@@ -342,9 +342,9 @@ mtype = {
 	ednum = 49,
 	radius = 16,
 	height = 68,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR1A", 10},
 		{"GOR1B", 15},
@@ -360,9 +360,9 @@ mtype = {
 	ednum = 50,
 	radius = 16,
 	height = 84,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR2A", -1}
 	}
@@ -374,9 +374,9 @@ mtype = {
 	ednum = 51,
 	radius = 16,
 	height = 84,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR3A", -1}
 	}
@@ -388,9 +388,9 @@ mtype = {
 	ednum = 52,
 	radius = 16,
 	height = 68,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR4A", -1}
 	}
@@ -402,9 +402,9 @@ mtype = {
 	ednum = 53,
 	radius = 16,
 	height = 52,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR5A", -1}
 	}
@@ -416,8 +416,8 @@ mtype = {
 	ednum = 59,
 	radius = 16,
 	height = 84,
+	gravity = 0,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR2A", -1}
 	}
@@ -429,8 +429,8 @@ mtype = {
 	ednum = 60,
 	radius = 16,
 	height = 68,
+	gravity = 0,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR4A", -1}
 	}
@@ -442,8 +442,8 @@ mtype = {
 	ednum = 61,
 	radius = 16,
 	height = 84,
+	gravity = 0,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR3A", -1}
 	}
@@ -455,8 +455,8 @@ mtype = {
 	ednum = 62,
 	radius = 16,
 	height = 68,
+	gravity = 0,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR5A", -1}
 	}
@@ -468,8 +468,8 @@ mtype = {
 	ednum = 63,
 	radius = 16,
 	height = 68,
+	gravity = 0,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"GOR1A", 10},
 		{"GOR1B", 15},
@@ -677,9 +677,9 @@ mtype = {
 	ednum = 73,
 	radius = 16,
 	height = 88,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"HDB1A", -1}
 	}
@@ -691,9 +691,9 @@ mtype = {
 	ednum = 74,
 	radius = 16,
 	height = 88,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"HDB2A", -1}
 	}
@@ -705,9 +705,9 @@ mtype = {
 	ednum = 75,
 	radius = 16,
 	height = 64,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"HDB3A", -1}
 	}
@@ -719,9 +719,9 @@ mtype = {
 	ednum = 76,
 	radius = 16,
 	height = 64,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"HDB4A", -1}
 	}
@@ -733,9 +733,9 @@ mtype = {
 	ednum = 77,
 	radius = 16,
 	height = 64,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"HDB5A", -1}
 	}
@@ -747,9 +747,9 @@ mtype = {
 	ednum = 78,
 	radius = 16,
 	height = 64,
+	gravity = 0,
 	__solid = true,
 	__spawnCeiling = true,
-	__noGravity = true,
 	_spawn = {
 		{"HDB6A", -1}
 	}

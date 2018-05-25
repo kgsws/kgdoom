@@ -35,6 +35,6 @@ const state_t info_def_states[NUM_DEF_STATES] =
 
 const mobjinfo_t info_def_mobjinfo[NUM_DEF_MOBJTYPES] =
 {
-	{.spawnstate = S_UNKNOWN, .flags = MF_NOBLOCKMAP | MF_NOGRAVITY} // MT_UNKNOWN
+	{.spawnstate = S_UNKNOWN, .flags = MF_NOBLOCKMAP} // MT_UNKNOWN
 };
 

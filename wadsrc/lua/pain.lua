@@ -56,10 +56,10 @@ mtype = {
 	painChance = 128,
 	shootz = 32,
 	pass = 1,
+	gravity = 0,
 	damageScale = {0},
 	__Monster = true,
 	__float = true,
-	__noGravity = true,
 	_spawn = {
 		{"PAINA", 10, a.Look},
 		"loop"

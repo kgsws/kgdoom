@@ -69,6 +69,7 @@ fixed_t			cachedystep[SCREENHEIGHT];
 
 void *dc_fogmap;
 
+boolean draw_fog_first;
 
 void R_ClearPlane(visplane_t *pl)
 {
@@ -158,6 +159,8 @@ R_MapPlane
     ds_x2 = x2;
 
     // high or low detail
+    if(draw_fog_first)
+	R_DrawSpanFog();
     spanfunc ();	
 }
 
@@ -192,8 +195,7 @@ void R_ClearPlanes (void)
     baseyscale = -FixedDiv (finesine[angle],centerxfrac);
 }
 
-
-
+extern render_t render_normal;
 
 //
 // R_FindPlane
@@ -205,7 +207,8 @@ R_FindPlane
   int		lightlevel,
   void		*colormap,
   void		*fogmap,
-  render_t	*render)
+  render_t	*render,
+  boolean	has_fog)
 {
     visplane_t*	check;
     int is3d = !!fakeplane;
@@ -215,6 +218,9 @@ R_FindPlane
 	height = 0;			// all skys map together
 	lightlevel = 0;
 	colormap = colormaps;
+	fogmap = NULL;
+	render = &render_normal;
+	has_fog = false;
     }
 
     for (check=visplanes; check<lastvisplane; check++)
@@ -231,6 +237,8 @@ R_FindPlane
 	    // [kg] render style
 	    && render->renderstyle == check->render.renderstyle
 	    && render->rendertable == check->render.rendertable
+	    // [kg] fog boundary
+	    && has_fog == check->hasFog
 	)
 	{
 	    break;
@@ -255,6 +263,7 @@ R_FindPlane
     check->minx = SCREENWIDTH;
     check->maxx = -1;
     check->is3d = is3d;
+    check->hasFog = has_fog;
 
 //    memset (check->top,0xff,sizeof(check->top));
     R_ClearPlane(check);
@@ -320,6 +329,7 @@ R_CheckPlane
     lastvisplane->colormap = pl->colormap;
     lastvisplane->fogmap = pl->fogmap;
     lastvisplane->is3d = pl->is3d;
+    lastvisplane->hasFog = pl->hasFog;
     lastvisplane->render.renderstyle = pl->render.renderstyle;
     lastvisplane->render.rendertable = pl->render.rendertable;
 
@@ -406,7 +416,7 @@ void R_DrawPlanes(fixed_t height)
 	if (pl->minx > pl->maxx)
 	    continue;
 
-	if(!pl->picnum)
+	if(!pl->picnum && !pl->hasFog)
 	    continue;
 
 	if(pl->is3d && pl->height != height)
@@ -469,7 +479,16 @@ void R_DrawPlanes(fixed_t height)
 	else
 		dc_fogmap = colormaps;
 
-	R_SetupRenderFuncSpan(pl->render.renderstyle, pl->render.rendertable, NULL, pl->is3d);
+	draw_fog_first = pl->hasFog;
+
+	if(!pl->picnum)
+	{
+		if(!draw_fog_first)
+			return;
+		draw_fog_first = false;
+		R_SetupRenderFuncSpan(RENDER_FOG_ONLY, NULL, NULL, pl->is3d);
+	} else
+		R_SetupRenderFuncSpan(pl->render.renderstyle, pl->render.rendertable, NULL, pl->is3d);
 
 	pl->top[pl->maxx+1] = 0x7fff;
 	pl->top[pl->minx-1] = 0x7fff;
