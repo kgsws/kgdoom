@@ -29,7 +29,7 @@ int			validcount = 1;
 
 
 lighttable_t*		fixedcolormap;
-extern lighttable_t**	walllights;
+extern uint8_t*	walllights;
 
 int			centerx;
 int			centery;
@@ -54,7 +54,7 @@ angle_t			viewangle;
 fixed_t			viewcos;
 fixed_t			viewsin;
 
-player_t*		viewplayer;
+mobj_t*			viewmobj;
 
 // 0 = high, 1 = low
 int			detailshift;	
@@ -86,9 +86,9 @@ angle_t			xtoviewangle[SCREENWIDTH+1];
 fixed_t*		finecosine = &finesine[FINEANGLES/4];
 
 
-lighttable_t*		scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
-lighttable_t*		scalelightfixed[MAXLIGHTSCALE];
-lighttable_t*		zlight[LIGHTLEVELS][MAXLIGHTZ];
+uint8_t		scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
+uint8_t		scalelightfixed[MAXLIGHTSCALE];
+uint8_t		zlight[LIGHTLEVELS][MAXLIGHTZ];
 
 // bumped light from gun blasts
 int			extralight;			
@@ -527,6 +527,12 @@ void R_InitLightTables (void)
     int		level;
     int		startmap; 	
     int		scale;
+    int		lightscaleshift;
+
+    if(isHexen)
+	lightscaleshift = LIGHTSCALESHIFT;
+    else
+	lightscaleshift = LIGHTSCALESHIFT - 2;
     
     // Calculate the light levels to use
     //  for each level / distance combination.
@@ -536,7 +542,7 @@ void R_InitLightTables (void)
 	for (j=0 ; j<MAXLIGHTZ ; j++)
 	{
 	    scale = FixedDiv ((SCREENWIDTH/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
-	    scale >>= LIGHTSCALESHIFT;
+	    scale >>= lightscaleshift;
 	    level = startmap - scale/DISTMAP;
 	    
 	    if (level < 0)
@@ -545,7 +551,7 @@ void R_InitLightTables (void)
 	    if (level >= NUMCOLORMAPS)
 		level = NUMCOLORMAPS-1;
 
-	    zlight[i][j] = NULL + level * 256;
+	    zlight[i][j] = level;
 	}
     }
 }
@@ -581,7 +587,13 @@ void R_ExecuteSetViewSize (void)
     int		i;
     int		j;
     int		level;
-    int		startmap; 	
+    int		startmap;
+    int		light_compat;
+
+    if(isHexen)
+	light_compat = 1;
+    else
+	light_compat = 4;
 
     setsizeneeded = false;
 
@@ -634,15 +646,15 @@ void R_ExecuteSetViewSize (void)
 	startmap = ((LIGHTLEVELS-1-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
 	for (j=0 ; j<MAXLIGHTSCALE ; j++)
 	{
-	    level = startmap - j*SCREENWIDTH/(viewwidth<<detailshift)/DISTMAP;
-	    
+	    level = startmap - (j*light_compat)*SCREENWIDTH/(viewwidth<<detailshift)/DISTMAP;
+
 	    if (level < 0)
 		level = 0;
 
 	    if (level >= NUMCOLORMAPS)
 		level = NUMCOLORMAPS-1;
 
-	    scalelight[i][j] = NULL + level*256;
+	    scalelight[i][j] = level;
 	}
     }
 }
@@ -715,15 +727,18 @@ void R_SetupFrame (player_t* player)
     fixed_t	dy;
 
     if(sv_freeaim)
-	pitch = player->mo->pitch / 100;
+	pitch = player->camera->pitch / 100;
     else
 	pitch = 0;
 
-    viewplayer = player;
-    viewx = player->mo->x;
-    viewy = player->mo->y;
-    viewangle = player->mo->angle + viewangleoffset;
-    extralight = player->extralight;
+    viewmobj = player->camera;
+    viewx = player->camera->x;
+    viewy = player->camera->y;
+    viewangle = player->camera->angle + viewangleoffset;
+    if(player->camera == player->mo)
+	extralight = player->extralight;
+    else
+	extralight = 0;
 
     viewz = player->viewz;
     
@@ -754,7 +769,7 @@ void R_SetupFrame (player_t* player)
 	walllights = scalelightfixed;
 
 	for (i=0 ; i<MAXLIGHTSCALE ; i++)
-	    scalelightfixed[i] = fixedcolormap;
+	    scalelightfixed[i] = 0;
     }
     else
 	fixedcolormap = NULL;

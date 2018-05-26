@@ -557,6 +557,7 @@ static const lua_table_model_t lua_mobj[] =
 static const lua_table_model_t lua_player[] =
 {
 	{"mo", offsetof(player_t, mo), LUA_TLIGHTUSERDATA, func_set_playermobj, func_get_ptr},
+	{"camera", offsetof(player_t, camera), LUA_TLIGHTUSERDATA, func_set_mobj, func_get_ptr},
 	{"refire", offsetof(player_t, refire), LUA_TNUMBER},
 	{"colormap", offsetof(player_t, viewmap), LUA_TSTRING, func_set_colormap, func_get_colormap},
 	{"extralight", offsetof(player_t, extralight), LUA_TNUMBER},

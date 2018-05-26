@@ -54,7 +54,7 @@ int			spanstop[SCREENHEIGHT];
 //
 // texture mapping
 //
-lighttable_t**		planezlight;
+uint8_t*		planezlight;
 fixed_t			planeheight;
 
 fixed_t			yslope[SCREENHEIGHT];
@@ -151,7 +151,7 @@ R_MapPlane
 	if (index >= MAXLIGHTZ )
 	    index = MAXLIGHTZ-1;
 
-	dc_colormap = dc_fogmap + (uint32_t)planezlight[index];
+	dc_colormap = dc_fogmap + planezlight[index]*256;
     }
 
     ds_y = y;

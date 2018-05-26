@@ -71,7 +71,7 @@ fixed_t	stripetopstep;
 fixed_t stripetexturemid;
 int stripetexture;
 
-lighttable_t**	walllights;
+uint8_t*	walllights;
 
 short*		maskedtexturecol;
 
@@ -145,7 +145,7 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
 		if (index >=  MAXLIGHTSCALE )
 		    index = MAXLIGHTSCALE-1;
 
-		dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
+		dc_colormap = dc_colormap_wall + walllights[index] * 256;
 	    } else
 		dc_colormap = fixedcolormap;
 
@@ -220,7 +220,7 @@ void R_DrawFogSegRange(int x1, int x2, int texnum, int topc, int tops, int botc,
 		if (index >=  MAXLIGHTSCALE )
 		    index = MAXLIGHTSCALE-1;
 
-		dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
+		dc_colormap = dc_colormap_wall + walllights[index] * 256;
 	    } else
 		dc_colormap = fixedcolormap;
 
@@ -539,7 +539,7 @@ void R_RenderSegLoop (int horizon)
 	    if(fixedcolormap)
 		dc_colormap = fixedcolormap;
 	    else
-		dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
+		dc_colormap = dc_colormap_wall + walllights[index] * 256;
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}
@@ -681,7 +681,7 @@ void R_RenderSegLoopStripe()
 	    if (index >=  MAXLIGHTSCALE )
 		index = MAXLIGHTSCALE-1;
 
-	    dc_colormap = dc_colormap_wall + (uint32_t)walllights[index];
+	    dc_colormap = dc_colormap_wall + walllights[index] * 256;
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}

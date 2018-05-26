@@ -44,17 +44,17 @@ extern int		loopcount;
 
 // Lighting constants.
 // Now why not 32 levels here?
-#define LIGHTLEVELS	        16
-#define LIGHTSEGSHIFT	         4
+#define LIGHTLEVELS	        32
+#define LIGHTSEGSHIFT	         3
 
-#define MAXLIGHTSCALE		48
-#define LIGHTSCALESHIFT		12
-#define MAXLIGHTZ	       128
-#define LIGHTZSHIFT		20
+#define MAXLIGHTSCALE		128
+#define LIGHTSCALESHIFT		14
+#define MAXLIGHTZ		8192
+#define LIGHTZSHIFT		13
 
-extern lighttable_t*	scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
-extern lighttable_t*	scalelightfixed[MAXLIGHTSCALE];
-extern lighttable_t*	zlight[LIGHTLEVELS][MAXLIGHTZ];
+extern uint8_t	scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
+extern uint8_t	scalelightfixed[MAXLIGHTSCALE];
+extern uint8_t	zlight[LIGHTLEVELS][MAXLIGHTZ];
 
 extern int		extralight;
 extern lighttable_t*	fixedcolormap;

@@ -927,6 +927,10 @@ P_SetupLevel
 			printf("%s; DOOM MAP FORMAT\n", level_name);
 		}
 	}
+
+    // [kg] now that map type is know, calculate light tables
+    R_InitLightTables();
+    R_ExecuteSetViewSize();
 	
     // note: most of this ordering is important	
     P_LoadVertexes (lumpnum+ML_VERTEXES);

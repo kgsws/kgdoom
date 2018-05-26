@@ -290,7 +290,7 @@ void D_DoomLoop (void)
 	// process one or more tics
 	TryRunTics();
 	// move positional sounds
-	S_UpdateSounds (players[displayplayer].mo);
+	S_UpdateSounds (players[displayplayer].camera);
 #ifndef LINUX
 	// update sound for switch
 	I_UpdateSound();

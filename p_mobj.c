@@ -1056,6 +1056,7 @@ void P_SpawnPlayer (mapthing_hexen_t* mthing, int netplayer)
 	return;
 
     p->mo = mobj;
+    p->camera = mobj;
     p->playerstate = PST_LIVE;	
     p->refire = 0;
     p->message = NULL;

@@ -14,7 +14,7 @@ When you start kgdoom, you will see WAD menu where you can pick IWAD, and option
 This manual documents kgDoom Lua game API. I assume you already know how to make doom maps / mods and know Lua scripting.
 Hexen map formap is recommended. Doom map format is present only for compatibility reasons.
 
-### Terms and notes
+### Terms and usefull notes
 These are terms used in Lua API.
 
 - mobj
@@ -64,6 +64,14 @@ These are terms used in Lua API.
     - Only one message with specific ID can exist. Defining new message with existing ID will replace old one.
   - Message options, such as scale and alignment, are stored internaly and modified by specific functions before creating HUD message.
     - Any new HUD message will use currently set message options.
+- Light level
+  - Original Doom did not have real concept of light level. Light level value was changing dark depth fog density.
+  - In Hexen map format, fog depth calculation was modified to allow really deep fog values. This makes original "light" values much darker.
+  - Actual sector light can be modified by custom sector light table. TODO: make it actual map value.
+- Fog
+  - Every sector can have custom fog. Fog is custom COLORMAP like table for 32 shades.
+  - Fog boundary lines have custom fog table aplied to them as well. This adds fog when looking outside sector with fog.
+  - Original Doom dark depth fog is not considered a real fog and fog boundary is not created.
 
 ### Lua scripts
 Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have multiple GAMELUA lumps in multiple wads.
@@ -675,6 +683,10 @@ Functions called from mobj. All functions are read only and can't be redefined.
 - `mo`
   - Body of this player.
   - Can be modified to give player new body. This allows to morph player into something else.
+    - Do not forget to change `camera` too.
+  - Mobj.
+- `camera`
+  - Eyes of this player. Most likely same as `mo`, but can be used for camera views.
   - Mobj.
 - `refire`
   - Counter of `a.Refire` calls for player weapon.

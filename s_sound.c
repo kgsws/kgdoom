@@ -237,17 +237,17 @@ S_StartSoundAtVolume
 
   // Check to see if it is audible,
   //  and if not, modify the params
-  if (origin && origin != players[displayplayer].mo)
+  if (origin && origin != players[displayplayer].camera)
   {
-    rc = S_AdjustSoundParams(players[displayplayer].mo,
+    rc = S_AdjustSoundParams(players[displayplayer].camera,
 			     origin,
 			     origin_slot,
 			     &volume,
 			     &sep,
 			     &pitch);
 	
-    if ( origin->x == players[displayplayer].mo->x
-	 && origin->y == players[displayplayer].mo->y)
+    if ( origin->x == players[displayplayer].camera->x
+	 && origin->y == players[displayplayer].camera->y)
     {	
       sep 	= NORM_SEP;
     }

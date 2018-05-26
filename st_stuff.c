@@ -690,7 +690,7 @@ void ST_Drawer (boolean fullscreen, boolean refresh)
 	//
 	// new status bar
 
-	if(!plyr->mo)
+	if(!plyr->mo || plyr->mo != plyr->camera)
 		return;
 
 	if(plyr->hide_stbar)

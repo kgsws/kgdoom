@@ -54,9 +54,10 @@ void P_CalcHeight (player_t* player)
 	int	angle;
 	fixed_t	bob;
 
-	if(player->cheats & CF_SPECTATOR || !player->mo->info->bobz || !player->mo->onground)
+	if(player->camera != player->mo || player->cheats & CF_SPECTATOR || !player->mo->info->bobz || !player->mo->onground)
 	{
 		bob = 0;
+		player->bob = 0;
 	} else
 	{
 		// Regular movement bobbing
@@ -115,13 +116,17 @@ void P_CalcHeight (player_t* player)
 				player->deltaviewheight = 1;
 		}
 	}
-	player->viewz = player->mo->z + player->viewheight + bob;
+
+	if(player->camera != player->mo)
+		player->viewz = player->camera->z + player->camera->info->viewz;
+	else
+		player->viewz = player->mo->z + player->viewheight + bob;
 
 	if (player->viewz > player->mo->ceilingz-4*FRACUNIT)
 		player->viewz = player->mo->ceilingz-4*FRACUNIT;
 
-	if (player->viewz <= player->mo->floorz)
-		player->viewz = player->mo->floorz + 1;
+	if (player->viewz < player->mo->floorz + (FRACUNIT / 2))
+		player->viewz = player->mo->floorz + (FRACUNIT / 2);
 }
 
 

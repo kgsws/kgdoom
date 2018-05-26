@@ -76,6 +76,7 @@ typedef struct player_s
     degenthinker_t	think;
 
     mobj_t*		mo;
+    mobj_t*		camera;
     playerstate_t	playerstate;
     ticcmd_t		cmd;
 

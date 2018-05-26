@@ -47,7 +47,7 @@ typedef struct
 fixed_t		pspritescale;
 fixed_t		pspriteiscale;
 
-lighttable_t**	spritelights;
+uint8_t*	spritelights;
 
 // constant arrays
 //  used for psprite clipping and initializing clipping
@@ -452,15 +452,14 @@ R_DrawVisSprite
 			spritelights = scalelight[LIGHTLEVELS-1];
 		else
 			spritelights = scalelight[lightnum];
-		dc_colormap += (uint32_t)spritelights[index];
+		dc_colormap += spritelights[index] * 256;
 	}
 
 	R_SetupRenderFunc(vis->mo->render.renderstyle, vis->mo->render.rendertable, vis->translation);
 
     } else
     {
-	mobj_t *mo = viewplayer->mo;
-	R_SetupRenderFunc(mo->render.renderstyle, mo->render.rendertable, NULL); // TODO: mo->translation.data; enable weapon recoloring?
+	R_SetupRenderFunc(viewmobj->render.renderstyle, viewmobj->render.rendertable, NULL); // TODO: mo->translation.data; enable weapon recoloring?
     }
 
     dc_iscale = abs(vis->xiscale);
@@ -776,7 +775,7 @@ void R_DrawPSprite (pspdef_t* psp)
 
     vis->patch = lump;
 
-    if (viewplayer->mo->render.renderstyle == RENDER_FUZZ)
+    if (viewmobj->render.renderstyle == RENDER_FUZZ)
     {
 	// shadow draw
 	dc_colormap = NULL;
@@ -796,8 +795,8 @@ void R_DrawPSprite (pspdef_t* psp)
     else
     {
 	// local light
-	dc_colormap = viewplayer->mo->subsector->sector->fogmap.data ? viewplayer->mo->subsector->sector->fogmap.data : colormaps;
-	dc_colormap += (uint32_t)spritelights[MAXLIGHTSCALE-1];
+	dc_colormap = viewmobj->subsector->sector->fogmap.data ? viewmobj->subsector->sector->fogmap.data : colormaps;
+	dc_colormap += spritelights[MAXLIGHTSCALE-1] * 256;
     }
 
     R_DrawVisSprite (vis, vis->x1, vis->x2);
@@ -815,32 +814,32 @@ void R_DrawPlayerSprites (void)
     pspdef_t*	psp;
     extraplane_t *pl;
 
-    if(!viewplayer)
-	return;
-
-    if(viewplayer->cheats & CF_SPECTATOR)
+    if(!viewmobj)
 	return;
 
     if(netgame && netgame < 2)
 	return;
 
-    if(!viewplayer)
+    if(!viewmobj)
 	return;
 
-    if(!viewplayer->mo)
+    if(!viewmobj->player)
 	return;
 
-    if(!viewplayer->mo->subsector)
+    if(viewmobj->player->cheats & CF_SPECTATOR)
 	return;
 
-    if(!viewplayer->mo->subsector->sector)
+    if(!viewmobj->subsector)
+	return;
+
+    if(!viewmobj->subsector->sector)
 	return;
 
     // get light level
-    lightnum = (viewplayer->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT) + extralight;
-    dc_lightcolor = viewplayer->mo->subsector->sector->colormap.data;
+    lightnum = (viewmobj->subsector->sector->lightlevel >> LIGHTSEGSHIFT) + extralight;
+    dc_lightcolor = viewmobj->subsector->sector->colormap.data;
 
-	pl = viewplayer->mo->subsector->sector->exfloor;
+	pl = viewmobj->subsector->sector->exfloor;
 	while(pl)
 	{
 		if(viewz <= *pl->height)
@@ -864,7 +863,7 @@ void R_DrawPlayerSprites (void)
     mceilingclip = negonearray;
     
     // add all active psprites
-    for (i=0, psp=viewplayer->psprites;
+    for (i=0, psp=viewmobj->player->psprites;
 	 i<NUMPSPRITES;
 	 i++,psp++)
     {
