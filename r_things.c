@@ -48,6 +48,7 @@ fixed_t		pspritescale;
 fixed_t		pspriteiscale;
 
 uint8_t*	spritelights;
+int		spriteshade;
 
 // constant arrays
 //  used for psprite clipping and initializing clipping
@@ -420,7 +421,9 @@ R_DrawVisSprite
 		// diminished light
 		extraplane_t *pl;
 		int index = vis->scale >> (LIGHTSCALESHIFT);
-		int lightnum = (vis->mo->subsector->sector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+		int lightnum = ((vis->mo->subsector->sector->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
+
+		spriteshade = (vis->mo->subsector->sector->lightlevel >> 8) & 31;
 
 		dc_lightcolor = vis->mo->subsector->sector->colormap.data;
 		dc_colormap = vis->mo->subsector->sector->fogmap.data ? vis->mo->subsector->sector->fogmap.data : colormaps;
@@ -436,7 +439,8 @@ R_DrawVisSprite
 			{
 				if(height_top <= *pl->height)
 				{
-					lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
+					lightnum = ((*pl->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
+					spriteshade = (*pl->lightlevel >> 8) & 31;
 					dc_lightcolor = pl->source->colormap.data;
 					if(pl->source->fogmap.data)
 						dc_colormap = pl->source->fogmap.data;
@@ -452,7 +456,15 @@ R_DrawVisSprite
 			spritelights = scalelight[LIGHTLEVELS-1];
 		else
 			spritelights = scalelight[lightnum];
-		dc_colormap += spritelights[index] * 256;
+
+		{
+			int shadelevel = spritelights[index] + spriteshade;
+			if(shadelevel < 0)
+				shadelevel = 0;
+			if(shadelevel >= LIGHTLEVELS)
+				shadelevel = LIGHTLEVELS-1;
+			dc_colormap += shadelevel * 256;
+		}
 	}
 
 	R_SetupRenderFunc(vis->mo->render.renderstyle, vis->mo->render.rendertable, vis->translation);
@@ -795,8 +807,16 @@ void R_DrawPSprite (pspdef_t* psp)
     else
     {
 	// local light
+	int shadelevel;
+
 	dc_colormap = viewmobj->subsector->sector->fogmap.data ? viewmobj->subsector->sector->fogmap.data : colormaps;
-	dc_colormap += spritelights[MAXLIGHTSCALE-1] * 256;
+
+	shadelevel = spritelights[MAXLIGHTSCALE-1] + spriteshade;
+	if(shadelevel < 0)
+		shadelevel = 0;
+	if(shadelevel >= LIGHTLEVELS)
+		shadelevel = LIGHTLEVELS-1;
+	dc_colormap += shadelevel * 256;
     }
 
     R_DrawVisSprite (vis, vis->x1, vis->x2);
@@ -836,7 +856,8 @@ void R_DrawPlayerSprites (void)
 	return;
 
     // get light level
-    lightnum = (viewmobj->subsector->sector->lightlevel >> LIGHTSEGSHIFT) + extralight;
+    lightnum = ((viewmobj->subsector->sector->lightlevel & 0xFF) >> LIGHTSEGSHIFT) + extralight;
+    spriteshade = (viewmobj->subsector->sector->lightlevel >> 8) & 31;
     dc_lightcolor = viewmobj->subsector->sector->colormap.data;
 
 	pl = viewmobj->subsector->sector->exfloor;
@@ -844,7 +865,8 @@ void R_DrawPlayerSprites (void)
 	{
 		if(viewz <= *pl->height)
 		{
-			lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT) + extralight;
+			lightnum = ((*pl->lightlevel & 0xFF) >> LIGHTSEGSHIFT) + extralight;
+			spriteshade = (*pl->lightlevel >> 8) & 31;
 			dc_lightcolor = pl->source->colormap.data;
 			break;
 		}

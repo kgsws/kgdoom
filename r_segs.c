@@ -72,6 +72,7 @@ fixed_t stripetexturemid;
 int stripetexture;
 
 uint8_t*	walllights;
+int 		wallshade;
 
 short*		maskedtexturecol;
 
@@ -140,12 +141,19 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
 	{
 	    if (!fixedcolormap)
 	    {
+		int shadelevel;
+
 		index = spryscale>>LIGHTSCALESHIFT;
 
 		if (index >=  MAXLIGHTSCALE )
 		    index = MAXLIGHTSCALE-1;
 
-		dc_colormap = dc_colormap_wall + walllights[index] * 256;
+		shadelevel = walllights[index] + wallshade;
+		if(shadelevel < 0)
+			shadelevel = 0;
+		if(shadelevel >= LIGHTLEVELS)
+			shadelevel = LIGHTLEVELS - 1;
+		dc_colormap = dc_colormap_wall + shadelevel * 256;
 	    } else
 		dc_colormap = fixedcolormap;
 
@@ -215,12 +223,19 @@ void R_DrawFogSegRange(int x1, int x2, int texnum, int topc, int tops, int botc,
 	{
 	    if (!fixedcolormap)
 	    {
+		int shadelevel;
+
 		index = spryscale>>LIGHTSCALESHIFT;
 
 		if (index >=  MAXLIGHTSCALE )
 		    index = MAXLIGHTSCALE-1;
 
-		dc_colormap = dc_colormap_wall + walllights[index] * 256;
+		shadelevel = walllights[index] + wallshade;
+		if(shadelevel < 0)
+			shadelevel = 0;
+		if(shadelevel >= LIGHTLEVELS)
+			shadelevel = LIGHTLEVELS - 1;
+		dc_colormap = dc_colormap_wall + shadelevel * 256;
 	    } else
 		dc_colormap = fixedcolormap;
 
@@ -268,7 +283,8 @@ R_RenderMaskedSegRange
     backsector = curline->backsector;
 
     // [kg] get correct light
-    lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+    lightnum = ((frontsector->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
+    wallshade = (frontsector->lightlevel >> 8) & 31;
     dc_lightcolor = frontsector->colormap.data;
     fog_data = frontsector->fogmap.data;
     fog_back = backsector->fogmap.data;
@@ -291,7 +307,8 @@ R_RenderMaskedSegRange
 	{
 	    if(height_top <= *pl->height)
 	    {
-		lightnum = (*pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
+		lightnum = ((*pl->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
+		wallshade = (*pl->lightlevel >> 8) & 31;
 		dc_lightcolor = pl->source->colormap.data;
 		fog_data = pl->source->fogmap.data;
 		break;
@@ -539,7 +556,14 @@ void R_RenderSegLoop (int horizon)
 	    if(fixedcolormap)
 		dc_colormap = fixedcolormap;
 	    else
-		dc_colormap = dc_colormap_wall + walllights[index] * 256;
+	    {
+		int shadelevel = walllights[index] + wallshade;
+		if(shadelevel < 0)
+			shadelevel = 0;
+		if(shadelevel >= LIGHTLEVELS)
+			shadelevel = LIGHTLEVELS - 1;
+		dc_colormap = dc_colormap_wall + shadelevel * 256;
+	    }
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}
@@ -681,7 +705,12 @@ void R_RenderSegLoopStripe()
 	    if (index >=  MAXLIGHTSCALE )
 		index = MAXLIGHTSCALE-1;
 
-	    dc_colormap = dc_colormap_wall + walllights[index] * 256;
+	    int shadelevel = walllights[index] + wallshade;
+	    if(shadelevel < 0)
+		shadelevel = 0;
+	    if(shadelevel >= LIGHTLEVELS)
+		shadelevel = LIGHTLEVELS - 1;
+	    dc_colormap = dc_colormap_wall + shadelevel * 256;
 	    dc_x = rw_x;
 	    dc_iscale = 0xffffffffu / (unsigned)rw_scale;
 	}
@@ -1111,7 +1140,8 @@ R_StoreWallRange
 	// OPTIMIZE: get rid of LIGHTSEGSHIFT globally
 	if (!fixedcolormap)
 	{
-	    lightnum = (frontsector->lightlevel >> LIGHTSEGSHIFT)+extralight;
+	    lightnum = ((frontsector->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
+	    wallshade = (frontsector->lightlevel >> 8) & 31;
 	    dc_lightcolor = frontsector->colormap.data;
 
 	    if(r_fakecontrast)
@@ -1256,14 +1286,16 @@ R_StoreWallRange
 			{
 				// take values from correct plane
 				height = *pl->height;
-				lightlevel = *pl->lightlevel;
+				lightlevel = *pl->lightlevel & 0xFF;
+				wallshade = (*pl->lightlevel >> 8) & 31;
 				dc_lightcolor = pl->source->colormap.data;
 				dc_colormap_wall = pl->source->fogmap.data ? pl->source->fogmap.data : colormaps;
 			} else
 			{
 				// topmost level; take values from sector
 				height = frontsector->ceilingheight;
-				lightlevel = frontsector->lightlevel;
+				lightlevel = frontsector->lightlevel & 0xFF;
+				wallshade = (frontsector->lightlevel >> 8) & 31;
 				dc_lightcolor = frontsector->colormap.data;
 				dc_colormap_wall = frontsector->fogmap.data ? frontsector->fogmap.data : colormaps;
 			}

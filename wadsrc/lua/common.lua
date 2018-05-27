@@ -91,26 +91,26 @@ function mapLoadSector(sector)
 	end
 	-- light
 	if spec == 1 then
-		sector.GenericCaller(doomRandom(1, 64), lightRandomBlink, sector.FindMinimalLight())
+		sector.GenericCaller(doomRandom(1, 64), lightRandomBlink, sector.FindMinimalFog())
 	elseif spec == 2 or spec == 4 then
 		local level
-		level = sector.FindMinimalLight()
-		if level == sector.lightlevel then
+		level = sector.FindMinimalFog()
+		if level == sector.foglevel then
 			level = 0
 		end
 		sector.GenericCaller(doomRandom(1, 8), lightSlowBlink, level)
 	elseif spec == 3 then
 		local level
-		level = sector.FindMinimalLight()
-		if level == sector.lightlevel then
+		level = sector.FindMinimalFog()
+		if level == sector.foglevel then
 			level = 0
 		end
 		sector.GenericCaller(doomRandom(1, 8), lightFastBlink, level)
 	elseif spec == 8 then
 		local level0
 		local level1
-		level0 = sector.lightlevel
-		level1 = sector.FindMinimalLight()
+		level0 = sector.foglevel
+		level1 = sector.FindMinimalFog()
 		if level0 ~= level1 then
 			if level0 > level1 then
 				sector.special = level1
@@ -122,21 +122,21 @@ function mapLoadSector(sector)
 		end
 	elseif spec == 12 then
 		local level
-		level = sector.FindMinimalLight()
-		if level == sector.lightlevel then
+		level = sector.FindMinimalFog()
+		if level == sector.foglevel then
 			level = 0
 		end
 		sector.GenericCaller(1, lightFastBlink, level)
 	elseif spec == 13 then
 		local level
-		level = sector.FindMinimalLight()
-		if level == sector.lightlevel then
+		level = sector.FindMinimalFog()
+		if level == sector.foglevel then
 			level = 0
 		end
 		sector.GenericCaller(1, lightSlowBlink, level)
 	elseif spec == 17 then
-		sector.special = sector.lightlevel + 16
-		sector.GenericCaller(4, lightFlickerBlink, sector.FindMinimalLight())
+		sector.special = sector.foglevel + 16
+		sector.GenericCaller(4, lightFlickerBlink, sector.FindMinimalFog())
 	elseif spec == 244 then
 		-- easter egg map
 		if game.map == "KGSECRET" then

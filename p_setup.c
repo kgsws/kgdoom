@@ -27,6 +27,8 @@
 #include "kg_3dfloor.h"
 #include "kg_record.h"
 
+void	R_ExecuteSetViewSize();
+void	R_InitLightTables();
 void	P_SpawnMapThing (mapthing_hexen_t*	mthing);
 
 int level_lump;
@@ -251,6 +253,8 @@ void P_LoadSectors (int lump)
 	ss->floorpic = R_FlatNumForName(ms->floorpic);
 	ss->ceilingpic = R_FlatNumForName(ms->ceilingpic);
 	ss->lightlevel = SHORT(ms->lightlevel);
+	if(!isHexen)
+		ss->lightlevel &= 0xFF;
 	ss->special = SHORT(ms->special);
 	ss->tag = SHORT(ms->tag);
 	ss->thinglist = NULL;
@@ -921,9 +925,11 @@ P_SetupLevel
 		if(ptr && *((uint64_t*)ptr) == 0x524f495641484542)
 		{
 			isHexen = 1;
+			r_fakecontrast = 0;
 			printf("%s; HEXEN MAP FORMAT\n", level_name);
 		} else {
 			isHexen = 0;
+			r_fakecontrast = 1;
 			printf("%s; DOOM MAP FORMAT\n", level_name);
 		}
 	}

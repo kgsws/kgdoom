@@ -56,6 +56,7 @@ int			spanstop[SCREENHEIGHT];
 //
 uint8_t*		planezlight;
 fixed_t			planeheight;
+int			planexlight;
 
 fixed_t			yslope[SCREENHEIGHT];
 fixed_t			distscale[SCREENWIDTH];
@@ -146,12 +147,19 @@ R_MapPlane
 	dc_colormap = fixedcolormap;
     else
     {
+	int shadelevel;
+
 	index = distance >> LIGHTZSHIFT;
 	
 	if (index >= MAXLIGHTZ )
 	    index = MAXLIGHTZ-1;
 
-	dc_colormap = dc_fogmap + planezlight[index]*256;
+	shadelevel = planezlight[index] + planexlight;
+	if(shadelevel < 0)
+		shadelevel = 0;
+	if(shadelevel >= LIGHTLEVELS)
+		shadelevel = LIGHTLEVELS-1;
+	dc_colormap = dc_fogmap + shadelevel * 256;
     }
 
     ds_y = y;
@@ -463,7 +471,7 @@ void R_DrawPlanes(fixed_t height)
 	dc_src_width = textures[texture].height;
 
 	planeheight = abs(pl->height-viewz);
-	light = (pl->lightlevel >> LIGHTSEGSHIFT)+extralight;
+	light = ((pl->lightlevel & 0xFF) >> LIGHTSEGSHIFT) + extralight;
 
 	if (light >= LIGHTLEVELS)
 	    light = LIGHTLEVELS-1;
@@ -472,6 +480,7 @@ void R_DrawPlanes(fixed_t height)
 	    light = 0;
 
 	planezlight = zlight[light];
+	planexlight = (pl->lightlevel >> 8) & 31;
 
 	dc_lightcolor = pl->colormap;
 	if(pl->fogmap)

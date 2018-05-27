@@ -4,7 +4,7 @@
 -- Light to specific level
 
 function lightChangeValue(sector, level)
-	sector.lightlevel = level
+	sector.foglevel = level
 	return true
 end
 
@@ -63,12 +63,12 @@ doomLineRe[13] = false
 -- Light to sector level
 
 function lightChangeLow(sector)
-	sector.lightlevel = sector.FindMinimalLight()
+	sector.foglevel = sector.FindMinimalFog()
 	return true
 end
 
 function lightChangeHigh(sector)
-	sector.lightlevel = sector.FindMaximalLight()
+	sector.foglevel = sector.FindMaximalFog()
 	return true
 end
 
@@ -117,8 +117,8 @@ doomLineRe[104] = false
 function lightDoBlink(self, level)
 	local sector
 	sector = self.sector
-	self.arg = sector.lightlevel
-	sector.lightlevel = level
+	self.arg = sector.foglevel
+	sector.foglevel = level
 	if self.ticrate == 35 then
 		self.ticrate = 5
 	else
@@ -175,14 +175,14 @@ function lightRandomBlink(self, level)
 	local sector
 	local oldlevel
 	sector = self.sector
-	oldlevel = sector.lightlevel
+	oldlevel = sector.foglevel
 	self.arg = oldlevel
 	if oldlevel > level then
 		self.ticrate = doomRandom(1, 8)
 	else
 		self.ticrate = doomRandom(1, 64)
 	end
-	sector.lightlevel = level
+	sector.foglevel = level
 	return true
 end
 
@@ -190,14 +190,14 @@ function lightSlowBlink(self, level)
 	local sector
 	local oldlevel
 	sector = self.sector
-	oldlevel = sector.lightlevel
+	oldlevel = sector.foglevel
 	self.arg = oldlevel
 	if oldlevel > level then
 		self.ticrate = 35
 	else
 		self.ticrate = 5
 	end
-	sector.lightlevel = level
+	sector.foglevel = level
 	return true
 end
 
@@ -205,14 +205,14 @@ function lightFastBlink(self, level)
 	local sector
 	local oldlevel
 	sector = self.sector
-	oldlevel = sector.lightlevel
+	oldlevel = sector.foglevel
 	self.arg = oldlevel
 	if oldlevel > level then
 		self.ticrate = 15
 	else
 		self.ticrate = 5
 	end
-	sector.lightlevel = level
+	sector.foglevel = level
 	return true
 end
 
@@ -224,11 +224,11 @@ function lightFlickerBlink(self, lolevel)
 	sector = self.sector
 	hilevel = sector.special
 	amount = doomRandom(3) * 16
-	level = sector.lightlevel
+	level = sector.foglevel
 	if level - amount < lolevel then
-		sector.lightlevel = lolevel
+		sector.foglevel = lolevel
 	else
-		sector.lightlevel = hilevel - amount
+		sector.foglevel = hilevel - amount
 	end
 	return true
 end
@@ -239,7 +239,7 @@ function lightGlowBlink(self, level0)
 	local level
 	sector = self.sector
 	level1 = sector.special
-	level = sector.lightlevel
+	level = sector.foglevel
 	if level0 > level1 then
 		level = level - 8
 		if level <= level1 then
@@ -255,7 +255,7 @@ function lightGlowBlink(self, level0)
 			sector.special = level0
 		end
 	end
-	sector.lightlevel = level
+	sector.foglevel = level
 	return true
 end
 

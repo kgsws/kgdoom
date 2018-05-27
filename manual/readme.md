@@ -65,13 +65,22 @@ These are terms used in Lua API.
   - Message options, such as scale and alignment, are stored internaly and modified by specific functions before creating HUD message.
     - Any new HUD message will use currently set message options.
 - Light level
+  - Beware, `light level` map editor value is not split into 2 bytes.
   - Original Doom did not have real concept of light level. Light level value was changing dark depth fog density.
   - In Hexen map format, fog depth calculation was modified to allow really deep fog values. This makes original "light" values much darker.
-  - Actual sector light can be modified by custom sector light table. TODO: make it actual map value.
+  - Actual sector light can be modified by using sector shade.
+  - Low byte is now fog level (range 0 - 255, and in Doom).
+  - High byte is now shade level (range 0 - 31). Shade level offsets COLORMAP table index. With original COLORMAP it makes things darker.
+  - With no fog (fog level 255) you can make shaded-only sectors.
 - Fog
   - Every sector can have custom fog. Fog is custom COLORMAP like table for 32 shades.
   - Fog boundary lines have custom fog table aplied to them as well. This adds fog when looking outside sector with fog.
   - Original Doom dark depth fog is not considered a real fog and fog boundary is not created.
+- fake contrast
+  - Doom uses fake contrast on walls.
+  - Fake contrast gives different fog level to walls with different angle.
+  - By default, this is enabled for Doom format maps and disabled for Hexen format maps.
+    - This can be overriden by `fakeContrast` function.
 
 ### Lua scripts
 Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have multiple GAMELUA lumps in multiple wads.
@@ -178,8 +187,8 @@ To make save games possible, do not store anything related to gamestate in globa
   - Callback should be function defined as `somecb(line)` or `somecb(line, arg)`.
   - Return logic is same as in `blockThingsIterator`.
 - function `fakeContrast(enable)`
-  - Set `false` to enable fake contrast in level.
-  - Doom uses fake contrast on walls, so it is enabled by default.
+  - Override fake contrast settings.
+  - Set `true` to enable fake contrast in level.
 - function `setBackground(patchlump)`
   - This function will set screen background to this gfx from any WAD.
   - Use of this function is not recommended as specified image will only show trough holes in map (= bad map).
@@ -763,8 +772,15 @@ Sectors are part of the map. Most parameters can be modified on the fly.
 - `ceilingpic`
   - Ceiling texture.
   - String. Flat texture name.
-- `lightlevel`
+- `foglevel`
+  - This is original way Doom did sector lighting.
+  - Now it is actual fog depth.
   - Integer. Range 0 - 255.
+- `shade`
+  - Sector shade. This offsets sector fog table usage.
+    - In other words, higher values make sector darker.
+    - With fog level of 255 (no fog) and any level of sector shade you can make sector darker without depth fog.
+  - Integer. Range 0 - 31.
 - `special`
   - Editor assigned special effect number.
   - Integer. Range 0 - 65535.
