@@ -156,9 +156,9 @@ typedef struct
 
     // Texture indices.
     // We do not maintain names here. 
-    short	toptexture;
-    short	bottomtexture;
-    short	midtexture;
+    uint16_t	toptexture;
+    uint16_t	bottomtexture;
+    uint16_t	midtexture;
 
     // Sector the SideDef is facing.
     sector_t*	sector;

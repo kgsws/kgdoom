@@ -419,17 +419,15 @@ R_DrawVisSprite
 	} else
 	{
 		// diminished light
+		int spritescaleshift;
 		extraplane_t *pl;
-		int index = vis->scale >> (LIGHTSCALESHIFT);
 		int lightnum = ((vis->mo->subsector->sector->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
 
 		spriteshade = (vis->mo->subsector->sector->lightlevel >> 8) & 31;
+		spritescaleshift = vis->mo->subsector->sector->lightlevel & 0x8000 ? LIGHTSCALESHIFT_ALT : LIGHTSCALESHIFT;
 
 		dc_lightcolor = vis->mo->subsector->sector->colormap.data;
 		dc_colormap = vis->mo->subsector->sector->fogmap.data ? vis->mo->subsector->sector->fogmap.data : colormaps;
-
-		if(index >= MAXLIGHTSCALE) 
-			index = MAXLIGHTSCALE-1;
 
 		// [kg] get correct light
 		if(height_top != ONCEILINGZ)
@@ -441,6 +439,7 @@ R_DrawVisSprite
 				{
 					lightnum = ((*pl->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
 					spriteshade = (*pl->lightlevel >> 8) & 31;
+					spritescaleshift = *pl->lightlevel & 0x8000 ? LIGHTSCALESHIFT_ALT : LIGHTSCALESHIFT;
 					dc_lightcolor = pl->source->colormap.data;
 					if(pl->source->fogmap.data)
 						dc_colormap = pl->source->fogmap.data;
@@ -458,11 +457,18 @@ R_DrawVisSprite
 			spritelights = scalelight[lightnum];
 
 		{
+			int index = vis->scale >> spritescaleshift;
+
+			if(index >= MAXLIGHTSCALE)
+				index = MAXLIGHTSCALE-1;
+
 			int shadelevel = spritelights[index] + spriteshade;
+
 			if(shadelevel < 0)
 				shadelevel = 0;
 			if(shadelevel >= LIGHTLEVELS)
 				shadelevel = LIGHTLEVELS-1;
+
 			dc_colormap += shadelevel * 256;
 		}
 	}
@@ -856,7 +862,7 @@ void R_DrawPlayerSprites (void)
 	return;
 
     // get light level
-    lightnum = ((viewmobj->subsector->sector->lightlevel & 0xFF) >> LIGHTSEGSHIFT) + extralight;
+/*    lightnum = ((viewmobj->subsector->sector->lightlevel & 0xFF) >> LIGHTSEGSHIFT) + extralight;
     spriteshade = (viewmobj->subsector->sector->lightlevel >> 8) & 31;
     dc_lightcolor = viewmobj->subsector->sector->colormap.data;
 
@@ -879,7 +885,7 @@ void R_DrawPlayerSprites (void)
 	spritelights = scalelight[LIGHTLEVELS-1];
     else
 	spritelights = scalelight[lightnum];
-
+*/
     // clip to screen bounds
     mfloorclip = screenheightarray;
     mceilingclip = negonearray;

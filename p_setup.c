@@ -253,8 +253,8 @@ void P_LoadSectors (int lump)
 	ss->floorpic = R_FlatNumForName(ms->floorpic);
 	ss->ceilingpic = R_FlatNumForName(ms->ceilingpic);
 	ss->lightlevel = SHORT(ms->lightlevel);
-	if(!isHexen)
-		ss->lightlevel &= 0xFF;
+	if(!isHexen && ss->lightlevel > 255)
+		ss->lightlevel = 0xFF;
 	ss->special = SHORT(ms->special);
 	ss->tag = SHORT(ms->tag);
 	ss->thinglist = NULL;
@@ -934,10 +934,6 @@ P_SetupLevel
 		}
 	}
 
-    // [kg] now that map type is know, calculate light tables
-    R_InitLightTables();
-    R_ExecuteSetViewSize();
-	
     // note: most of this ordering is important	
     P_LoadVertexes (lumpnum+ML_VERTEXES);
     P_LoadSectors (lumpnum+ML_SECTORS);

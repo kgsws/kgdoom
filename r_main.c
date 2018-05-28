@@ -89,6 +89,7 @@ fixed_t*		finecosine = &finesine[FINEANGLES/4];
 uint8_t		scalelight[LIGHTLEVELS][MAXLIGHTSCALE];
 uint8_t		scalelightfixed[MAXLIGHTSCALE];
 uint8_t		zlight[LIGHTLEVELS][MAXLIGHTZ];
+uint8_t		zlight_alt[LIGHTLEVELS][MAXLIGHTZ];
 
 // bumped light from gun blasts
 int			extralight;			
@@ -524,16 +525,10 @@ void R_InitLightTables (void)
 {
     int		i;
     int		j;
-    int		level;
+    int		level, level_alt;
     int		startmap; 	
     int		scale;
-    int		lightscaleshift;
 
-    if(isHexen)
-	lightscaleshift = LIGHTSCALESHIFT;
-    else
-	lightscaleshift = LIGHTSCALESHIFT - 2;
-    
     // Calculate the light levels to use
     //  for each level / distance combination.
     for (i=0 ; i< LIGHTLEVELS ; i++)
@@ -542,16 +537,21 @@ void R_InitLightTables (void)
 	for (j=0 ; j<MAXLIGHTZ ; j++)
 	{
 	    scale = FixedDiv ((SCREENWIDTH/2*FRACUNIT), (j+1)<<LIGHTZSHIFT);
-	    scale >>= lightscaleshift;
-	    level = startmap - scale/DISTMAP;
+	    level = startmap - (scale >> LIGHTSCALESHIFT)/DISTMAP;
+	    level_alt = startmap - (scale >> LIGHTSCALESHIFT_ALT)/DISTMAP;
 	    
 	    if (level < 0)
 		level = 0;
-
 	    if (level >= NUMCOLORMAPS)
 		level = NUMCOLORMAPS-1;
 
+	    if (level_alt < 0)
+		level_alt = 0;
+	    if (level_alt >= NUMCOLORMAPS)
+		level_alt = NUMCOLORMAPS-1;
+
 	    zlight[i][j] = level;
+	    zlight_alt[i][j] = level_alt;
 	}
     }
 }
@@ -588,12 +588,6 @@ void R_ExecuteSetViewSize (void)
     int		j;
     int		level;
     int		startmap;
-    int		light_compat;
-
-    if(isHexen)
-	light_compat = 1;
-    else
-	light_compat = 4;
 
     setsizeneeded = false;
 
@@ -646,7 +640,7 @@ void R_ExecuteSetViewSize (void)
 	startmap = ((LIGHTLEVELS-1-i)*2)*NUMCOLORMAPS/LIGHTLEVELS;
 	for (j=0 ; j<MAXLIGHTSCALE ; j++)
 	{
-	    level = startmap - (j*light_compat)*SCREENWIDTH/(viewwidth<<detailshift)/DISTMAP;
+	    level = startmap - j*SCREENWIDTH/(viewwidth<<detailshift)/DISTMAP;
 
 	    if (level < 0)
 		level = 0;

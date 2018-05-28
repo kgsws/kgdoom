@@ -1431,7 +1431,8 @@ void R_DrawSpanFog (void)
 
     do 
     {
-	*dest++ = dc_colormap[*dest];
+	*dest = dc_colormap[*dest];
+	dest++;
     } while (count--); 
 }
 

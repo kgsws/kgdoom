@@ -24,7 +24,7 @@ planefunction_t		ceilingfunc;
 //
 
 // Here comes the obnoxious "visplane".
-#define MAXVISPLANES	512
+#define MAXVISPLANES	1024
 visplane_t		visplanes[MAXVISPLANES];
 visplane_t*		lastvisplane;
 visplane_t*		floorplane;
@@ -150,7 +150,7 @@ R_MapPlane
 	int shadelevel;
 
 	index = distance >> LIGHTZSHIFT;
-	
+
 	if (index >= MAXLIGHTZ )
 	    index = MAXLIGHTZ-1;
 
@@ -479,7 +479,10 @@ void R_DrawPlanes(fixed_t height)
 	if (light < 0)
 	    light = 0;
 
-	planezlight = zlight[light];
+	if(pl->lightlevel & 0x8000)
+	    planezlight = zlight_alt[light];
+	else
+	    planezlight = zlight[light];
 	planexlight = (pl->lightlevel >> 8) & 31;
 
 	dc_lightcolor = pl->colormap;

@@ -31,7 +31,7 @@ int		midtexture;
 
 angle_t		rw_normalangle;
 // angle to line origin
-int		rw_angle1;	
+angle_t		rw_angle1;	
 
 //
 // regular wall
@@ -73,6 +73,7 @@ int stripetexture;
 
 uint8_t*	walllights;
 int 		wallshade;
+int		wallscaleshift;
 
 short*		maskedtexturecol;
 
@@ -143,7 +144,7 @@ void R_DrawMaskedSegRange(int x1, int x2, int texnum, int topc, int tops, int bo
 	    {
 		int shadelevel;
 
-		index = spryscale>>LIGHTSCALESHIFT;
+		index = spryscale >> wallscaleshift;
 
 		if (index >=  MAXLIGHTSCALE )
 		    index = MAXLIGHTSCALE-1;
@@ -225,7 +226,7 @@ void R_DrawFogSegRange(int x1, int x2, int texnum, int topc, int tops, int botc,
 	    {
 		int shadelevel;
 
-		index = spryscale>>LIGHTSCALESHIFT;
+		index = spryscale >> wallscaleshift;
 
 		if (index >=  MAXLIGHTSCALE )
 		    index = MAXLIGHTSCALE-1;
@@ -285,6 +286,7 @@ R_RenderMaskedSegRange
     // [kg] get correct light
     lightnum = ((frontsector->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
     wallshade = (frontsector->lightlevel >> 8) & 31;
+    wallscaleshift = frontsector->lightlevel & 0x8000 ? LIGHTSCALESHIFT_ALT : LIGHTSCALESHIFT;
     dc_lightcolor = frontsector->colormap.data;
     fog_data = frontsector->fogmap.data;
     fog_back = backsector->fogmap.data;
@@ -309,6 +311,7 @@ R_RenderMaskedSegRange
 	    {
 		lightnum = ((*pl->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
 		wallshade = (*pl->lightlevel >> 8) & 31;
+		wallscaleshift = *pl->lightlevel & 0x8000 ? LIGHTSCALESHIFT_ALT : LIGHTSCALESHIFT;
 		dc_lightcolor = pl->source->colormap.data;
 		fog_data = pl->source->fogmap.data;
 		break;
@@ -548,7 +551,7 @@ void R_RenderSegLoop (int horizon)
 	    texturecolumn = rw_offset-FixedMul(finetangent[angle],rw_distance);
 	    texturecolumn >>= FRACBITS;
 	    // calculate lighting
-	    index = rw_scale>>LIGHTSCALESHIFT;
+	    index = rw_scale >> wallscaleshift;
 
 	    if (index >=  MAXLIGHTSCALE )
 		index = MAXLIGHTSCALE-1;
@@ -700,7 +703,7 @@ void R_RenderSegLoopStripe()
 	    texturecolumn = rw_offset-FixedMul(finetangent[angle],rw_distance);
 	    texturecolumn >>= FRACBITS;
 	    // calculate lighting
-	    index = rw_scale>>LIGHTSCALESHIFT;
+	    index = rw_scale >> wallscaleshift;
 
 	    if (index >=  MAXLIGHTSCALE )
 		index = MAXLIGHTSCALE-1;
@@ -1142,6 +1145,7 @@ R_StoreWallRange
 	{
 	    lightnum = ((frontsector->lightlevel & 0xFF) >> LIGHTSEGSHIFT)+extralight;
 	    wallshade = (frontsector->lightlevel >> 8) & 31;
+	    wallscaleshift = frontsector->lightlevel & 0x8000 ? LIGHTSCALESHIFT_ALT : LIGHTSCALESHIFT;
 	    dc_lightcolor = frontsector->colormap.data;
 
 	    if(r_fakecontrast)
@@ -1288,6 +1292,7 @@ R_StoreWallRange
 				height = *pl->height;
 				lightlevel = *pl->lightlevel & 0xFF;
 				wallshade = (*pl->lightlevel >> 8) & 31;
+				wallscaleshift = *pl->lightlevel & 0x8000 ? LIGHTSCALESHIFT_ALT : LIGHTSCALESHIFT;
 				dc_lightcolor = pl->source->colormap.data;
 				dc_colormap_wall = pl->source->fogmap.data ? pl->source->fogmap.data : colormaps;
 			} else
@@ -1296,6 +1301,7 @@ R_StoreWallRange
 				height = frontsector->ceilingheight;
 				lightlevel = frontsector->lightlevel & 0xFF;
 				wallshade = (frontsector->lightlevel >> 8) & 31;
+				wallscaleshift = frontsector->lightlevel & 0x8000 ? LIGHTSCALESHIFT_ALT : LIGHTSCALESHIFT;
 				dc_lightcolor = frontsector->colormap.data;
 				dc_colormap_wall = frontsector->fogmap.data ? frontsector->fogmap.data : colormaps;
 			}

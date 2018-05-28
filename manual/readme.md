@@ -67,11 +67,12 @@ These are terms used in Lua API.
 - Light level
   - Beware, `light level` map editor value is not split into 2 bytes.
   - Original Doom did not have real concept of light level. Light level value was changing dark depth fog density.
-  - In Hexen map format, fog depth calculation was modified to allow really deep fog values. This makes original "light" values much darker.
+  - In Hexen map format, fog depth calculation was modified to allow really deep fog values.
   - Actual sector light can be modified by using sector shade.
-  - Low byte is now fog level (range 0 - 255, and in Doom).
-  - High byte is now shade level (range 0 - 31). Shade level offsets COLORMAP table index. With original COLORMAP it makes things darker.
-  - With no fog (fog level 255) you can make shaded-only sectors.
+  - Low byte is still fog level (range 0 - 255).
+  - High byte is now shade level (range 0 - 31). And MSB bit (128) is now "deep fog" enable. When set to one, new fog calculation is used.
+    - Shade level offsets COLORMAP table index. With original COLORMAP it makes things darker.
+    - With no fog (fog level 255) you can make shaded-only sectors.
 - Fog
   - Every sector can have custom fog. Fog is custom COLORMAP like table for 32 shades.
   - Fog boundary lines have custom fog table aplied to them as well. This adds fog when looking outside sector with fog.
