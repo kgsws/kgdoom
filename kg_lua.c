@@ -264,6 +264,10 @@ static int func_setplayerweapon(lua_State *L, void *dst, void *o);
 static int func_playerrefire(lua_State *L, void *dst, void *o);
 static int func_playerwflash(lua_State *L, void *dst, void *o);
 
+static int func_set_shade(lua_State *L, void *dst, void *o);
+static int func_get_shade(lua_State *L, void *dst, void *o);
+static int func_set_deepfog(lua_State *L, void *dst, void *o);
+static int func_get_deepfog(lua_State *L, void *dst, void *o);
 static int func_set_secretsector(lua_State *L, void *dst, void *o);
 static int func_get_secretsector(lua_State *L, void *dst, void *o);
 static int func_get_lowefloorsector(lua_State *L, void *dst, void *o);
@@ -587,7 +591,8 @@ static const lua_table_model_t lua_sector[] =
 	{"floorpic", offsetof(sector_t, floorpic), LUA_TSTRING, func_set_flattexture, func_get_flattexture},
 	{"ceilingpic", offsetof(sector_t, ceilingpic), LUA_TSTRING, func_set_flattexture, func_get_flattexture},
 	{"foglevel", offsetof(sector_t, lightlevel), LUA_TNUMBER, func_set_byte, func_get_byte},
-	{"shade", offsetof(sector_t, lightlevel)+1, LUA_TNUMBER, func_set_byte, func_get_byte},
+	{"shade", offsetof(sector_t, lightlevel)+1, LUA_TNUMBER, func_set_shade, func_get_shade},
+	{"deepFog", offsetof(sector_t, lightlevel)+1, LUA_TBOOLEAN, func_set_deepfog, func_get_deepfog},
 	{"special", offsetof(sector_t, special), LUA_TNUMBER, func_set_short, func_get_short},
 	{"tag", offsetof(sector_t, tag), LUA_TNUMBER, func_set_short, func_get_short},
 	{"isSecret", offsetof(sector_t, floordata), LUA_TBOOLEAN, func_set_secretsector, func_get_secretsector},
@@ -1675,6 +1680,50 @@ static int func_playerwflash(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_playerFlashWeapon, 1);
+	return 1;
+}
+
+// set shade value
+static int func_set_shade(lua_State *L, void *dst, void *o)
+{
+	int val;
+	uint8_t *tmp = dst;
+
+	val = lua_tointeger(L, -1);
+
+	if(val > 31)
+		val = 31;
+	if(val < 0)
+		val = 0;
+
+	*tmp = (*tmp & 0xC0) | val;
+
+	return 0;
+}
+
+// get shade value
+static int func_get_shade(lua_State *L, void *dst, void *o)
+{
+	lua_pushnumber(L, *(uint8_t*)dst & 31);
+	return 1;
+}
+
+// set sector deep fog
+static int func_set_deepfog(lua_State *L, void *dst, void *o)
+{
+	uint8_t *tmp = dst;
+
+	if(lua_toboolean(L, -1))
+		*tmp |= 0x80;
+	else
+		*tmp &= ~0x80;
+	return 1;
+}
+
+// get sector deep fog
+static int func_get_deepfog(lua_State *L, void *dst, void *o)
+{
+	lua_pushboolean(L, !!(*(uint8_t*)dst & 0x80));
 	return 1;
 }
 

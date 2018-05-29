@@ -782,6 +782,9 @@ Sectors are part of the map. Most parameters can be modified on the fly.
     - In other words, higher values make sector darker.
     - With fog level of 255 (no fog) and any level of sector shade you can make sector darker without depth fog.
   - Integer. Range 0 - 31.
+- `deepFog`
+  - Set to `true` to eanble new, deeper fog rendering for this sector.
+  - Boolean.
 - `special`
   - Editor assigned special effect number.
   - Integer. Range 0 - 65535.

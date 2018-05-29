@@ -57,7 +57,7 @@ void P_CalcHeight (player_t* player)
 	if(player->camera != player->mo || player->cheats & CF_SPECTATOR || !player->mo->info->bobz || !player->mo->onground)
 	{
 		bob = 0;
-		player->bob = 0;
+		//player->bob = 0;
 	} else
 	{
 		// Regular movement bobbing
