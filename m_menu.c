@@ -829,7 +829,10 @@ void M_NewGame(int choice)
 	M_StartMessage(NEWGAME,NULL,false);
 	return;
     }
-	
+
+    if(game_startmap[0])
+	M_SetupNextMenu(&NewDef);
+    else
     if ( gamemode == commercial )
 	M_SetupNextMenu(&NewDef);
     else

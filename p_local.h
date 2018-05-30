@@ -40,6 +40,8 @@
 extern int level_lump;
 // and this one for Lua
 extern char level_name[9];
+// and this for WAD setup
+extern char game_startmap[9];
 // [kg] level loading
 extern boolean is_setup;
 

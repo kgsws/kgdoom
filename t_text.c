@@ -17,6 +17,10 @@
 
 #include "vga_font.h"
 
+#include "p_local.h"
+#include "z_zone.h"
+#include "t_ini.h"
+
 static int txt_x;
 static int txt_y;
 static int txt_color;
@@ -28,20 +32,38 @@ FILE *old_stdout;
 #ifdef VIDEO_STDOUT
 typedef struct
 {
-	const char *path;
-	const char *name;
-	int gamemode;
+	char path[32];
+	char name[32];
+	char author[32];
+	char iwad[32];
+	char startmap[8];
+	uint8_t gamemode;
+	uint8_t custom;
+	uint8_t allow_pwads;
+	uint8_t na;
 } iwad_item_t;
+
 typedef struct
 {
 	char name[32];
 } pwad_item_t;
-static iwad_item_t iwad_list[9];
+
+static iwad_item_t *iwad_list;
 static pwad_item_t pwad_list[16] = {"-= NO PWAD =-"};
 static int wad_count;
 static int wad_pick;
-static int iwad_pick;
 static int pwad_pick;
+static int pwad_count;
+
+const char *const game_mode_list[] =
+{
+	"shareware",
+	"registered",
+	"commercial",
+	"retail",
+	NULL
+};
+
 #endif
 
 uint8_t text_palette[768] =
@@ -263,11 +285,131 @@ static void check_iwad(const char *path, const char *name, int gm)
 {
 	if(!path || check_file(path))
 	{
-		iwad_list[wad_count].path = path;
-		iwad_list[wad_count].name = name;
+		strcpy(iwad_list[wad_count].path, path);
+		strcpy(iwad_list[wad_count].name, name);
+		iwad_list[wad_count].iwad[0] = 0;
 		iwad_list[wad_count].gamemode = gm;
+		iwad_list[wad_count].custom = 0;
+		iwad_list[wad_count].allow_pwads = 1;
 		wad_count++;
 	}
+}
+
+static int get_gamemode(const char *val)
+{
+	int i = 0;
+	const char *const *list = game_mode_list;
+
+	while(*list)
+	{
+		if(!strcmp(*list, val))
+			return i;
+		i++;
+		list++;
+	}
+	return shareware;
+}
+
+static void add_pwad(char *name)
+{
+	int i, ret;
+	FILE *f;
+	wadinfo_t info;
+	lumpinfo_t lump;
+	char pwad_path[256];
+
+	sprintf(pwad_path, BASE_PATH"pwads/%s", name);
+
+	// check this wad
+	f = fopen(pwad_path, "rb");
+	if(!f)
+		return;
+
+	fread(&info, 1, sizeof(wadinfo_t), f);
+
+	if(info.id != 0x44415749 && info.id != 0x44415750)
+	{
+		// invalid file
+		fclose(f);
+		return;
+	}
+
+	// locate game info
+	fseek(f, info.offs, SEEK_SET);
+	for(i = 0; i < info.numlumps; i++)
+	{
+		ret = fread(&lump, 1, sizeof(lumpinfo_t), f);
+		if(ret != sizeof(lumpinfo_t))
+		{
+			fclose(f);
+			return;
+		}
+		if(lump.size && *((uint64_t*)lump.name) == 0x4f464e494744474b)
+		{
+			// got GAMEINFO lump
+			fseek(f, lump.offset, SEEK_SET);
+			i = lump.size;
+			if(i > sizeof(pwad_path))
+				i = sizeof(pwad_path);
+			ret = fread(pwad_path, 1, i, f);
+			if(ret > 0)
+			{
+				Ini_Init(pwad_path, ret);
+				if(Ini_GetSection("kgdoom", 0))
+				{
+					// get game options
+					const char *val;
+					iwad_item_t iwad;
+
+					// defaults
+					iwad.custom = 1;
+					iwad.allow_pwads = 1;
+					iwad.gamemode = shareware;
+					iwad.iwad[0] = 0;
+					iwad.author[0] = 0;
+					iwad.startmap[0] = 0;
+					sprintf(iwad.name, "%.24s", name);
+					sprintf(iwad.path, "%.24s", name);
+
+					// game name
+					val = Ini_GetValue("name");
+					if(val)
+						sprintf(iwad.name, "%.31s", val);
+					// game author
+					val = Ini_GetValue("author");
+					if(val)
+						sprintf(iwad.author, "%.31s", val);
+					// game start map
+					val = Ini_GetValue("startmap");
+					if(val)
+						sprintf(iwad.startmap, "%.31s", val);
+					// game type
+					val = Ini_GetValue("game");
+					if(val)
+						iwad.gamemode = get_gamemode(val);
+					// optional IWAD
+					val = Ini_GetValue("iwad");
+					if(val)
+						sprintf(iwad.iwad, "%.31s", val);
+					// PWAD disable
+					val = Ini_GetValue("no_pwads");
+					if(val && *val == '1')
+						iwad.allow_pwads = 0;
+
+					// add to IWAD menu
+					Z_Enlarge(iwad_list, sizeof(iwad_item_t));
+					memcpy(&iwad_list[wad_count], &iwad, sizeof(iwad_item_t));
+					wad_count++;
+				}
+			}
+			break;
+		}
+	}
+
+	fclose(f);
+
+	strncpy(pwad_list[pwad_count].name, name, 24);
+	pwad_count++;
 }
 
 static void check_pwads(const char *dir)
@@ -275,26 +417,25 @@ static void check_pwads(const char *dir)
 	DIR *d;
 	struct dirent *de;
 
-	wad_count = 1;
+	pwad_count = 1;
 
 	d = opendir(dir);
 	if(d)
 	{
 		de = readdir(d);
-		while(de && wad_count < 16)
+		while(de && pwad_count < 16)
 		{
 			if(de->d_name[0] != '.')
 			{
-				strncpy(pwad_list[wad_count].name, de->d_name, 24);
-				wad_count++;
+				add_pwad(de->d_name);
 			}
 			de = readdir(d);
 		}
 		closedir(d);
 	}
 
-	if(wad_count == 1)
-		wad_count = 0;
+	if(pwad_count == 1)
+		pwad_count = 0;
 }
 
 static void process_input()
@@ -359,6 +500,7 @@ void I_GetEvent();
 
 void T_InitWads()
 {
+	iwad_item_t iwad;
 	int i, yy;
 
 	T_WriteXY(480, 0, " _         _____");
@@ -373,6 +515,7 @@ void T_InitWads()
 	I_FinishUpdate();
 
 	// pick IWAD
+	iwad_list = Z_Malloc(sizeof(iwad_item_t) * 8, PU_STATIC, NULL);
 
 	check_iwad(BASE_PATH"doom1.wad", "Shareware Doom", shareware);
 	check_iwad(BASE_PATH"doom.wad", "Registered Doom", registered);
@@ -382,7 +525,8 @@ void T_InitWads()
 	check_iwad(BASE_PATH"tnt.wad", "TNT: Evilution", commercial);
 	check_iwad(BASE_PATH"freedoom1.wad", "FreeDoom 1", retail);
 	check_iwad(BASE_PATH"freedoom2.wad", "FreeDoom 2", commercial);
-	check_iwad(NULL, "-= NO IWAD =-", commercial);
+
+	check_pwads(BASE_PATH"pwads");
 
 	for(i = 0, yy = 160; i < wad_count; i++, yy += 32)
 		T_WriteXY(544, yy, iwad_list[i].name);
@@ -397,14 +541,19 @@ void T_InitWads()
 		I_GetEvent();
 		process_input();
 	}
-	iwad_pick = wad_pick;
+
+	// copy & free
+	memcpy(&iwad, &iwad_list[wad_pick], sizeof(iwad_item_t));
+	Z_Free(iwad_list);
 
 	// pick PWAD(s)
+	if(iwad.allow_pwads)
+		wad_count = pwad_count;
+	else
+		wad_count = 0;
 
 	memset(screens[0] + 144 * SCREENWIDTH, 0, SCREENWIDTH * SCREENHEIGHT - 144 * SCREENWIDTH);
 	I_FinishUpdate();
-
-	check_pwads(BASE_PATH"pwads");
 
 	if(wad_count > 0)
 	{
@@ -438,14 +587,25 @@ void T_InitWads()
 #endif
 
 	// IWAD
-	gamemode = iwad_list[iwad_pick].gamemode;
-	if(iwad_list[iwad_pick].path)
+	gamemode = iwad.gamemode;
+	if(iwad.custom)
 	{
-		// one of original games picked
+		char pwad_path[256];
+
+		if(iwad.iwad[0])
+			// load actual IWAD first
+			W_LoadWad(iwad.iwad);
+		// now load game WAD
+		sprintf(pwad_path, BASE_PATH"pwads/%s", iwad.path);
+		W_LoadWad(pwad_path);
+		// apply game options
+		memcpy(game_startmap, iwad.startmap, 8);
+	} else
+	{
 		// load common wad first
 		W_LoadWad(BASE_PATH"kgdoom.wad");
 		// load main IWAD
-		W_LoadWad(iwad_list[iwad_pick].path);
+		W_LoadWad(iwad.path);
 	}
 
 	// PWAD

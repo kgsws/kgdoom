@@ -862,7 +862,7 @@ void R_DrawPlayerSprites (void)
 	return;
 
     // get light level
-/*    lightnum = ((viewmobj->subsector->sector->lightlevel & 0xFF) >> LIGHTSEGSHIFT) + extralight;
+    lightnum = ((viewmobj->subsector->sector->lightlevel & 0xFF) >> LIGHTSEGSHIFT) + extralight;
     spriteshade = (viewmobj->subsector->sector->lightlevel >> 8) & 31;
     dc_lightcolor = viewmobj->subsector->sector->colormap.data;
 
@@ -885,7 +885,7 @@ void R_DrawPlayerSprites (void)
 	spritelights = scalelight[LIGHTLEVELS-1];
     else
 	spritelights = scalelight[lightnum];
-*/
+
     // clip to screen bounds
     mfloorclip = screenheightarray;
     mceilingclip = negonearray;

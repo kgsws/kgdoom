@@ -221,6 +221,7 @@ static int func_set_mobj(lua_State *L, void *dst, void *o);
 static int func_get_ptr(lua_State *L, void *dst, void *o);
 static int func_get_sector(lua_State *L, void *dst, void *o);
 static int func_set_playermobj(lua_State *L, void *dst, void *o);
+static int func_get_playermoving(lua_State *L, void *dst, void *o);
 
 static int func_get_removemobj(lua_State *L, void *dst, void *o);
 static int func_get_facemobj(lua_State *L, void *dst, void *o);
@@ -569,6 +570,7 @@ static const lua_table_model_t lua_player[] =
 	{"map", offsetof(player_t, automap), LUA_TNUMBER},
 	{"hideStatusBar", offsetof(player_t, hide_stbar), LUA_TBOOLEAN},
 	{"forceWeapon", offsetof(player_t, force_weapon), LUA_TBOOLEAN},
+	{"isMoving", 0, LUA_TBOOLEAN, func_set_readonly, func_get_playermoving},
 	// functions
 	{"Message", 0, LUA_TFUNCTION, func_set_readonly, func_setplayermessage},
 	{"HudMessage", 0, LUA_TFUNCTION, func_set_readonly, func_playerhudmessage},
@@ -1270,6 +1272,16 @@ static int func_set_playermobj(lua_State *L, void *dst, void *o)
 
 	*(void**)dst = th;
 	return 0;
+}
+
+// get player movement status
+static int func_get_playermoving(lua_State *L, void *dst, void *o)
+{
+	player_t *pl = o;
+
+	lua_pushboolean(L, pl->cmd.forwardmove || pl->cmd.sidemove);
+
+	return 1;
 }
 
 // get special type (mobj, player, sector ...)

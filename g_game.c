@@ -1126,6 +1126,9 @@ G_DeferedInitNew
     if(!d_episode)
 	d_episode = 1;
     else
+    if(game_startmap[0])
+	memcpy(level_name, game_startmap, 8);
+    else
 	level_name[0] = 0;
 }
 

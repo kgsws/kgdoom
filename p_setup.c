@@ -33,6 +33,7 @@ void	P_SpawnMapThing (mapthing_hexen_t*	mthing);
 
 int level_lump;
 char level_name[9];
+char game_startmap[9];
 
 //
 // MAP related Lookup tables.
