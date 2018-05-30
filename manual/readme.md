@@ -726,6 +726,9 @@ Functions called from mobj. All functions are read only and can't be redefined.
 - `forceWeapon`
   - If set to `true`, weapon selection menu will be disabled.
   - Boolean.
+- `isMoving`
+  - Set to `true` if player is holding movement input. `false` otherwise.
+  - Boolean. Read only.
 Player functions.
 - `Message(text)`
   - Message for player in top left corner. Used for pickups.
