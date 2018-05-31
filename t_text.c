@@ -609,10 +609,10 @@ void T_InitWads()
 	}
 
 	// PWAD
-	if(wad_pick)
+	if(pwad_pick)
 	{
 		char pwad_path[256];
-		sprintf(pwad_path, BASE_PATH"pwads/%s", pwad_list[wad_pick].name);
+		sprintf(pwad_path, BASE_PATH"pwads/%s", pwad_list[pwad_pick].name);
 		W_LoadWad(pwad_path);
 	}
 }
