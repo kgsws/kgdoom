@@ -122,11 +122,11 @@ void P_CalcHeight (player_t* player)
 	else
 		player->viewz = player->mo->z + player->viewheight + bob;
 
-	if (player->viewz > player->mo->ceilingz-4*FRACUNIT)
-		player->viewz = player->mo->ceilingz-4*FRACUNIT;
+	if (player->viewz > player->camera->ceilingz-4*FRACUNIT)
+		player->viewz = player->camera->ceilingz-4*FRACUNIT;
 
-	if (player->viewz < player->mo->floorz + (FRACUNIT / 2))
-		player->viewz = player->mo->floorz + (FRACUNIT / 2);
+	if (player->viewz < player->camera->floorz + (FRACUNIT / 2))
+		player->viewz = player->camera->floorz + (FRACUNIT / 2);
 }
 
 

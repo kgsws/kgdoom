@@ -37,7 +37,20 @@ void T_GenericCeiling(generic_plane_t *gp)
 		else
 			speed = gp->speed;
 		sec->ceilingheight += speed;
-		P_ChangeSector(sec, gp->lua_crush, gp->lua_arg);
+		if(P_ChangeSector(sec, gp->lua_crush, gp->lua_arg))
+		{
+			// move blocked
+			if(gp->info.crushspeed)
+			{
+				// change speed and continue;
+				gp->speed = gp->info.crushspeed;
+			} else
+			{
+				// return back
+				sec->ceilingheight -= speed;
+				P_ChangeSector(sec, L_NoRef(), L_NoRef());
+			}
+		}
 	} else
 	if(gp->info.startz > gp->info.stopz)
 	{
@@ -135,7 +148,20 @@ void T_GenericFloor(generic_plane_t *gp)
 		else
 			speed = gp->speed;
 		sec->floorheight -= speed;
-		P_ChangeSector(sec, gp->lua_crush, gp->lua_arg);
+		if(P_ChangeSector(sec, gp->lua_crush, gp->lua_arg))
+		{
+			// move blocked
+			if(gp->info.crushspeed)
+			{
+				// change speed and continue;
+				gp->speed = gp->info.crushspeed;
+			} else
+			{
+				// return back
+				sec->floorheight += speed;
+				P_ChangeSector(sec, L_NoRef(), L_NoRef());
+			}
+		}
 	} else
 	if(gp->info.startz < gp->info.stopz)
 	{

@@ -267,6 +267,7 @@ void P_LoadSectors (int lump)
 	// [kg] no 3D
 	ss->exfloor = NULL;
 	ss->exceiling = NULL;
+	ss->extarg = NULL;
 	// [kg] default color
 	ss->colormap.lump = colormap_lump;
 	ss->colormap.idx = 0;

@@ -838,6 +838,7 @@ P_SpawnMobj
 	sector_t *sec = mobj->subsector->sector;
 	extraplane_t *pl = sec->exfloor;
 	fixed_t height = mobj->z + mobj->height / 2;
+	fixed_t heighT = mobj->z + mobj->height / 4;
 
 	// default floor / ceiling
 	mobj->floorz = sec->floorheight;
@@ -853,7 +854,7 @@ P_SpawnMobj
 			if(*pl->height > mobj->floorz)
 				mobj->floorz = *pl->height;
 		}
-		if(*pl->height > mobj->z)
+		if(*pl->height > heighT)
 			mobj->liquidip = pl->source->liquid;
 		if(*pl->height > height)
 			mobj->liquid = pl->source->liquid;

@@ -583,6 +583,7 @@ P_CheckPosition
     extraplane_t	*pl;
 
     fixed_t height = thing->z + thing->height / 2;
+    fixed_t heighT = thing->z + thing->height / 4;
 
     tmthing = thing;
     tmflags = thing->flags;
@@ -613,7 +614,7 @@ P_CheckPosition
     pl = newsubsec->sector->exfloor;
     while(pl)
     {
-	if(*pl->height > tmthing->z)
+	if(*pl->height > heighT)
 	{
 		tmliquidip = pl->source->liquid;
 		if(*pl->height > height)
@@ -887,6 +888,9 @@ boolean P_ThingHeightClip (mobj_t* thing)
 
     thing->floorz = tmfloorz;
     thing->ceilingz = tmceilingz;
+
+    thing->liquid = tmliquid;
+    thing->liquidip = tmliquidip;
 
     if(onfloor || thing->z <= thing->floorz)
     {
@@ -2007,9 +2011,9 @@ boolean PIT_ChangeSector (mobj_t*	thing)
     if (! (thing->flags & MF_SHOOTABLE) )
     {
 	// assume it is bloody gibs or something
-	return true;			
+	return true;
     }
-    
+
     nofit = true;
 
     // [kg] Lua callback
@@ -2053,8 +2057,23 @@ P_ChangeSector
     for (x=sector->blockbox[BOXLEFT] ; x<= sector->blockbox[BOXRIGHT] ; x++)
 	for (y=sector->blockbox[BOXBOTTOM];y<= sector->blockbox[BOXTOP] ; y++)
 	    P_BlockThingsIterator (x, y, PIT_ChangeSector);
-	
-	
+
+    // [kg] also do this for all sectors this has attached
+    if(sector->extarg)
+    {
+	int count = *sector->extarg;
+	uint16_t *snum = sector->extarg + 1;
+
+	while(count--)
+	{
+	    sector = &sectors[*snum];
+	    for (x=sector->blockbox[BOXLEFT] ; x<= sector->blockbox[BOXRIGHT] ; x++)
+		for (y=sector->blockbox[BOXBOTTOM];y<= sector->blockbox[BOXTOP] ; y++)
+		    P_BlockThingsIterator (x, y, PIT_ChangeSector);
+	    snum++;
+	}
+    }
+
     return nofit;
 }
 
@@ -2174,6 +2193,9 @@ void P_CheckPositionLines(mobj_t *thing)
 	int bx;
 	int by;
 	sector_t *sec = thing->subsector->sector;
+	fixed_t height = thing->z + thing->height / 2;
+	fixed_t heighT = thing->z + thing->height / 4;
+	extraplane_t *pl;
 
 	if(thing->flags & MF_NOCLIP)
 	{
@@ -2204,6 +2226,37 @@ void P_CheckPositionLines(mobj_t *thing)
 	// will adjust them.
 	tmfloorz = tmdropoffz = sec->floorheight;
 	tmceilingz = sec->ceilingheight;
+
+	tmliquid = sec->liquid;
+	tmliquidip = sec->liquid;
+
+	// [kg] 3D floors check
+	pl = sec->exfloor;
+	while(pl)
+	{
+		if(*pl->height > heighT)
+		{
+			tmliquidip = pl->source->liquid;
+			if(*pl->height > height)
+			{
+				tmliquid = pl->source->liquid;
+				break;
+			}
+		}
+		if(*pl->height <= tmthing->z + tmthing->info->stepheight && *pl->height > tmfloorz && ~tmthing->canpass & *pl->blocking)
+			tmfloorz = *pl->height;
+		pl = pl->next;
+	}
+	// [kg] 3D ceilings check
+	pl = sec->exceiling;
+	while(pl)
+	{
+		if(*pl->height <= tmthing->z)
+			break;
+		if(*pl->height < tmceilingz && ~tmthing->canpass & *pl->blocking)
+			tmceilingz = *pl->height;
+		pl = pl->next;
+	}
 
 	validcount++;
 	numspechit = 0;

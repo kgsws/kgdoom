@@ -861,7 +861,8 @@ Sector functions.
 - `GenericCaller(ticrate, func [, arg])`
   - Create generic caller for this sector. Uses `custom` slot.
   - Calls a callback `func` with optional argument `arg` every `ticrate` tics.
-  - Callback should be function defined as `somecb(sector)` or `somecb(sector, arg)`.
+  - Callback should be function defined as `somecb(gc)` or `somecb(gc, arg)`.
+    - `gc` is generic caller itself.
     - Callback can return `false` to be stopped and removed.
   - Two other variants exists. `GenericCallerFloor` and `GenericCallerCeiling`, each for its corresponding slot.
   - Returns generic caller.

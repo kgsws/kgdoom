@@ -137,6 +137,9 @@ typedef	struct
     struct extraplane_s *exfloor;
     struct extraplane_s *exceiling;
 
+    // [kg] 3D floor targets
+    uint16_t *extarg;
+
 } sector_t;
 
 

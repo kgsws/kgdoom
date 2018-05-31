@@ -123,9 +123,36 @@ void e3d_AddExtraFloor(sector_t *dst, sector_t *src, line_t *line)
 		}
 		pl = pl->next;
 	}
+
 	// add planes
 	e3d_AddFloorPlane(&dst->exfloor, src, line, &line->blocking);
 	e3d_AddCeilingPlane(&dst->exceiling, src, line, &line->blocking);
+
+	// add to source
+	if(src->extarg)
+	{
+		int size = *src->extarg + 1;
+
+		if(!(size & 31))
+		{
+			uint16_t *new;
+
+			size += 32;
+			new = Z_Malloc(sizeof(uint16_t) * size, PU_LEVEL, NULL);
+			memcpy(new, src->extarg, sizeof(uint16_t) * (size - 32));
+			Z_Free(src->extarg);
+			src->extarg = new;
+		}
+
+		*src->extarg = *src->extarg + 1;
+		src->extarg[*src->extarg] = dst - sectors;
+	} else
+	{
+		src->extarg = Z_Malloc(sizeof(uint16_t) * 32, PU_LEVEL, NULL);
+		src->extarg[0] = 1;
+		src->extarg[1] = dst - sectors;
+	}
+
 	// update thing heights
 fcheck:
 	for(x = dst->blockbox[BOXLEFT]; x <= dst->blockbox[BOXRIGHT]; x++)
