@@ -390,7 +390,7 @@ void P_PlayerThink (player_t* player)
     {
 	if (!player->usedown)
 	{
-	    if(!(player->cheats & CF_SPECTATOR))
+	    if(!(player->cheats & CF_SPECTATOR) && !(player->mo->flags & MF_CANTUSE))
 		P_UseLines (player);
 	    player->usedown = true;
 	}

@@ -19,6 +19,8 @@
 
 #include "g_game.h"
 
+#include "r_sky.h"
+
 #include "st_stuff.h"
 #include "hu_stuff.h"
 
@@ -139,6 +141,7 @@ static int LUA_globalLinesIterator(lua_State *L);
 static int LUA_sectorTagIterator(lua_State *L);
 static int LUA_thingTagIterator(lua_State *L);
 static int LUA_setFakeContrast(lua_State *L);
+static int LUA_setSky(lua_State *L);
 static int LUA_setBackground(lua_State *L);
 
 static int LUA_removeMobjFromMobj(lua_State *L);
@@ -193,6 +196,7 @@ static int LUA_reverseFromGeneric(lua_State *L);
 static int LUA_stopFromLine(lua_State *L);
 
 static int LUA_doSwitchTextureLine(lua_State *L);
+static int LUA_togSwitchTextureLine(lua_State *L);
 static int LUA_scrollFromLine(lua_State *L);
 
 static int LUA_animationFromMobj(lua_State *L);
@@ -310,6 +314,7 @@ static int func_get_linedefsectorF(lua_State *L, void *dst, void *o);
 static int func_get_linedefsectorB(lua_State *L, void *dst, void *o);
 static int func_getlinefunc_ptr(lua_State *L, void *dst, void *o);
 static int func_get_doswitchline(lua_State *L, void *dst, void *o);
+static int func_get_togswitchline(lua_State *L, void *dst, void *o);
 static int func_get_scrollerline(lua_State *L, void *dst, void *o);
 
 static int func_get_genericpltypef(lua_State *L, void *dst, void *o);
@@ -345,6 +350,7 @@ static const luafunc_t lua_functions[] =
 	{"sectorTagIterator", LUA_sectorTagIterator, LUA_EXPORT_LEVEL},
 	{"thingTagIterator", LUA_thingTagIterator, LUA_EXPORT_LEVEL},
 	{"fakeContrast", LUA_setFakeContrast, LUA_EXPORT_LEVEL},
+	{"setSky", LUA_setSky, LUA_EXPORT_LEVEL},
 	{"setBackground", LUA_setBackground, LUA_EXPORT_LEVEL},
 };
 
@@ -384,6 +390,9 @@ static const lua_mobjflag_t lua_mobjflags[] =
 	{"mobjBounce", MF_MOBJBOUNCE},
 	{"noTarget", MF_NOTARGET},
 	{"pushable", MF_PUSHABLE},
+	{"skyExplode", MF_SKYEXPLODE},
+	{"cantUseLines", MF_CANTUSE},
+	{"cantBumpLines", MF_CANTBUMP},
 	// custom Lua flags
 	{"custom0", MF_CUSTOM0},
 	{"custom1", MF_CUSTOM1},
@@ -656,6 +665,7 @@ static const lua_table_model_t lua_linedef[] =
 	{"funcBack", offsetof(line_t, specialdata) + sizeof(void*), LUA_TLIGHTUSERDATA, func_set_readonly, func_get_ptr},
 	// functions
 	{"DoButton", 0, LUA_TFUNCTION, func_set_readonly, func_get_doswitchline},
+	{"ToggleButton", 0, LUA_TFUNCTION, func_set_readonly, func_get_togswitchline},
 	{"SetScroller", 0, LUA_TFUNCTION, func_set_readonly, func_get_scrollerline},
 	{"SoundBody", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_body},
 	{"SoundWeapon", 0, LUA_TFUNCTION, func_set_readonly, func_get_mobjsound_weapon},
@@ -851,6 +861,11 @@ static int state_add(lua_State *L)
 	sf = lua_tostring(L, -1);
 	lua_pop(L, 1);
 	// fullbright?
+	if(sf[0] == '*')
+	{
+		st.frame = FF_FULLBRIGHT;
+		sf++;
+	} else
 	if(sf[0] == '*')
 	{
 		st.frame = FF_FULLBRIGHT;
@@ -1267,6 +1282,14 @@ static int func_set_playermobj(lua_State *L, void *dst, void *o)
 	// add player to new mobj
 	mo = (mobj_t*)th;
 	mo->player = pl;
+	// fix viewheight
+	pl->viewheight = mo->info->viewz;
+
+	// check playerstate
+	if(mo->health > 0)
+		pl->playerstate = PST_LIVE;
+	else
+		pl->playerstate = PST_DEAD;
 
 	// TODO: server; tell clients about this
 
@@ -2077,6 +2100,14 @@ static int func_get_doswitchline(lua_State *L, void *dst, void *o)
 {
 	lua_pushlightuserdata(L, o);
 	lua_pushcclosure(L, LUA_doSwitchTextureLine, 1);
+	return 1;
+}
+
+// return switch function
+static int func_get_togswitchline(lua_State *L, void *dst, void *o)
+{
+	lua_pushlightuserdata(L, o);
+	lua_pushcclosure(L, LUA_togSwitchTextureLine, 1);
 	return 1;
 }
 
@@ -3312,6 +3343,21 @@ static int LUA_setFakeContrast(lua_State *L)
 {
 	luaL_checktype(L, 1, LUA_TBOOLEAN);
 	r_fakecontrast = lua_toboolean(L, 1);
+	return 0;
+}
+
+static int LUA_setSky(lua_State *L)
+{
+	const char *tex;
+	char temp[8];
+	int num;
+
+	tex = lua_tostring(L, -1);
+	strncpy(temp, tex, sizeof(temp));
+	num = R_TextureNumForName(temp);
+	if(num > 0)
+		skytexture = num;
+
 	return 0;
 }
 
@@ -5082,6 +5128,37 @@ static int LUA_doSwitchTextureLine(lua_State *L)
 
 	line = lua_touserdata(L, lua_upvalueindex(1));
 	P_ChangeSwitchTexture(line, sound0, sound1, btntime);
+
+	return 0;
+}
+
+static int LUA_togSwitchTextureLine(lua_State *L)
+{
+	line_t *line;
+	int sound = 0;
+	int top = lua_gettop(L);
+
+	// optional press sound
+	if(top > 0)
+	{
+		const char *tex;
+
+		luaL_checktype(L, 1, LUA_TSTRING);
+		tex = lua_tostring(L, 1);
+
+		if(tex[0] == '-' && tex[1] == 0)
+		{
+			// support for 'no sound'
+		} else
+		{
+			char temp[8];
+			strncpy(temp, tex, sizeof(temp));
+			sound = W_GetNumForName(temp);
+		}
+	}
+
+	line = lua_touserdata(L, lua_upvalueindex(1));
+	P_ChangeSwitchTexture(line, sound, 0, -1);
 
 	return 0;
 }

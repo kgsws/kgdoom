@@ -301,6 +301,7 @@ boolean P_Move (mobj_t*	actor)
 			
 	actor->movedir = DI_NODIR;
 	good = false;
+	if(!(actor->flags & MF_CANTUSE))
 	while (numspechit--)
 	{
 	    ld = spechit[numspechit];

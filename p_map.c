@@ -848,8 +848,8 @@ nocross:
 #ifndef SERVER
     if(!netgame)
 #endif
-    // [kg] bump special for player
-    if(thing->player)
+    // [kg] bump special
+    if(!(thing->flags & MF_CANTBUMP))
     {
 	if(floorline && floorline->special)
 		P_ExtraLineSpecial(thing, floorline, P_PointOnLineSide(thing->x, thing->y, floorline), EXTRA_BUMP);
@@ -1339,6 +1339,11 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	if( canopass & li->blocking )
 	{
 	    frontsector = li->frontsector;
+	    if(li->sidenum[1] >= 0)
+	    {
+		if(P_PointOnLineSide(trace.x, trace.y, li))
+		    frontsector = li->backsector;
+	    }
 	    goto hitline_check3d;
 	}
 
@@ -1646,7 +1651,14 @@ boolean PTR_ShootTraverse (intercept_t* in)
 	puf = P_SpawnBlood (x,y,z, th, shootthing);
 
     if (la_damage)
-	P_DamageMobj (th, shootthing, shootthing, la_damage, puf->damagetype);
+    {
+	int dt = puf->damagetype - 1;
+
+	if(dt < 0)
+	    dt = NUMDAMAGETYPES;
+
+	P_DamageMobj (th, shootthing, shootthing, la_damage, dt);
+    }
 
     puf->damage = tmphl - th->health;
     puf->health = th->health;

@@ -433,11 +433,10 @@ R_RenderMaskedSegRange
     }
 
     // draw mid texture
-    if(curline->sidedef->midtexture)
+    texnum = texturetranslation[curline->sidedef->midtexture];
+    if(texnum)
     {
 	spryscale = ds->scale1 + (x1 - ds->x1)*rw_scalestep;
-	// texture
-	texnum = texturetranslation[curline->sidedef->midtexture];
 	// find positioning
 	if (curline->linedef->flags & LF_DONTPEGBOTTOM)
 	{
@@ -1098,11 +1097,13 @@ R_StoreWallRange
 			pl = pl->next;
 		}
 
-		if (sidedef->midtexture || (backsector && (backsector->exfloor || frontfog || (frontsector->fogmap.data && backsector->fogmap.data != frontsector->fogmap.data))))
+		frontfog = frontfog || (frontsector->fogmap.data && backsector->fogmap.data != frontsector->fogmap.data);
+
+		if (sidedef->midtexture || (backsector && (backsector->exfloor || frontfog)))
 		{
 			// masked midtexture
 			maskedtexture = true;
-			if(!sidedef->midtexture)
+			if(!sidedef->midtexture && !frontfog)
 			{
 				if(backsector->floorheight >= frontsector->floorheight)
 					ds_p->silhouette |= 4;

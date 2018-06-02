@@ -147,6 +147,9 @@ P_ChangeSwitchTexture
     int     useAgain = 0;
     mobj_t *sndorg = (mobj_t *)&line->soundorg;
 
+    if(btntime < 0)
+	useAgain = 0;
+
     if(isHexen)
     {
 	if(line->flags & ELF_ACT_REPEAT)

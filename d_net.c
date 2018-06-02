@@ -63,7 +63,7 @@ void D_InitNet()
 	int lump = W_CheckNumForName("INTERPIC");
 
 	if(lump < 0)
-		lump = W_CheckNumForName("WIMAP0");
+		lump = W_CheckNumForName("TITLEPIC");
 
 	background = (patch_t*)W_CacheLumpNum(lump);
 

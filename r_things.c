@@ -411,7 +411,7 @@ R_DrawVisSprite
 		dc_colormap = fixedcolormap;
 		dc_lightcolor = colormaps;
 	} else
-	if(vis->mo->frame & FF_FULLBRIGHT && !vis->mo->subsector->sector->fogmap.data)
+	if(vis->mo->frame & FF_FULLBRIGHT && (vis->mo->frame & FF_FOGBRIGHT || !vis->mo->subsector->sector->fogmap.data))
 	{
 		// full bright
 		dc_colormap = colormaps;

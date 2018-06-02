@@ -13,6 +13,7 @@ mtype = {
 	radius = 10,
 	height = 42,
 	health = 20,
+	damageScale = {0},
 	mass = 100,
 	__solid = true,
 	__shootable = true,

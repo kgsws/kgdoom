@@ -418,6 +418,8 @@ void P_UpdateSpecials (void)
 	for(i = 0; i < anim->count; i++)
 	{
 	    int basepic = anim->anim[i];
+	    if(!basepic)
+		continue;
 	    pic = anim->anim[( (leveltime/anim->ticrate + i)%anim->count )];
 	    if(
 		anim->target < 0 ||

@@ -18,7 +18,7 @@ end
 
 function playerCrash(mobj)
 	-- you can add fall damage or trampoline effect here
-	if mobj.momz < mobj.gravity * -8 then
+	if mobj.health > 0 and mobj.momz < mobj.gravity * -8 then
 		mobj.SoundBody("dsoof")
 		mobj.player.deltaviewheight = mobj.momz / 8
 	end

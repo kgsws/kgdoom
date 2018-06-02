@@ -17,36 +17,57 @@ Hexen map formap is recommended. Doom map format is present only for compatibili
 ### Terms and usefull notes
 These are terms used in Lua API.
 
-- mobj
+- Mobj
   - Map object. Anything sprite-based in map. Items, monsters, players ...
   - Default properties and animations are defined by mobjtype.
-- mobjtype
+- Mobjtype
   - This is a template for mobj. When spawning mobjs, you refer to this type.
   - This defines all animations and default properties.
-- player
+- Player
   - This is a special mobj section that is only present for players.
   - Players have few extra properties that other mobjs do not have.
-- sector
+- Sector
   - This allows access to map sectors.
-- line
+- Line
   - This allows access to map lines and sides.
-- genericPlane
+- Line special
+  - As in Doom and Hexen, you can give lines a special action.
+  - All actions are Lua based now and engine itsef does not have any actions defined.
+    - Beware. For Hexen map format, line specials 1 - 8 are reserved for future use and should not be used.
+  - Global table `linefunc` should be filled with functions assigned to these special actions.
+    - Valid indexes are 0 - 255, with exception of reserved range in Hexen map format.
+    - Special at index 0 is placeholder for non-assigned indexes. If defined, it is called for every other, non-zero, undefined index.
+    - Callback function should be defined as `somecb(mobj, line, side, act)`
+      - `mobj` is mobj that caused line activation.
+      - `line` is line that is being activated.
+      - `side` is side from which line was activated.
+      - `act` is type of activation. See `lnspec`.
+    - In Doom map format, every line is activated by any of valid `lnspec` actions, and you have to determine valid activation in callback.
+    - In Hexen format, line activation is defined by line map flags. All activations are valid for existing Hexen map format, with exception of `passtrough`.
+      - If `passtrough` activation is used, this line can be activated by any `lnspec` action, and you can determine activation type from `act` in callback.
+  - Global table `lnspec` can be used to get a type of special line activation.
+    - `lnspec.use` line was used (pressed) by something. Monsters use this when hitting special line.
+    - `lnspec.cross` line was crossed (walked over) by something.
+    - `lnspec.hit` line was hit (or crossed) by a hitscan projectile.
+    - `lnspec.bump` line was bumped by mobj (mobj was blocked by this line).
+    - Monsters cause two activations, `use` and `bump`.
+- GenericPlane
   - This is a generic plane (floor / ceiling) movement handler.
   - This is bound to a sector.
-- genericCaller
+- GenericCaller
   - This is a generic caller. It calls specified Lua callback periodically.
   - This is bound to a sector.
   - Used for example for light effects.
-- textureScroll
+- TextureScroll
   - This is used to add texture scroll effect to lines.
-- texture
+- Texture
   - Wall textures are internaly converted into 2D array instead of being kept in original column/post format.
   - This means that one of avalable palette color had to be chosen as transparent. This is color at index 0.
   - Loading routine will atempt to remap all used colors 0 to other palette color with exactly same RGB values.
     - Which is color 247 in original Doom palette.
     - If no matching color is found, index 0 won't get remapped and stay transparent for masked textures.
   - In Hexen map format you can use wall textures on flats and flat textures on walls.
-- material
+- Material
   - Every texture can have specific material ID for extra effects.
   - Material is identified by integer from 0 to 255. 0 is default material.
   - Material ID assigned in TEXTUREx lump. Byte (uint8_t) at offset 8 (right after name) in texture definition.
@@ -55,7 +76,7 @@ These are terms used in Lua API.
   - Only textures from TEXTUREx can have materials assigned. Flat textures are always material 0.
     - In Hexen map format, you can use wall textures on flats.
   - This material ID will be passed to spawned bullet puffs and exploding projeciles.
-- blocking middle textures
+- Blocking middle textures
   - In Hexen map format, blocking lines with middle textures are blocking only across its actual height.
   - You can even walk on middle textures.
 - HUD messages
@@ -77,11 +98,15 @@ These are terms used in Lua API.
   - Every sector can have custom fog. Fog is custom COLORMAP like table for 32 shades.
   - Fog boundary lines have custom fog table aplied to them as well. This adds fog when looking outside sector with fog.
   - Original Doom dark depth fog is not considered a real fog and fog boundary is not created.
-- fake contrast
+- Fake contrast
   - Doom uses fake contrast on walls.
   - Fake contrast gives different fog level to walls with different angle.
   - By default, this is enabled for Doom format maps and disabled for Hexen format maps.
     - This can be overriden by `fakeContrast` function.
+- Mobj animations
+  - See `mobj states`. I assume you have at least basic understanding on how mobjs in Doom are animated.
+  - Sprite base name preffixed by `*` makes all frames fullbright.
+  - Sprite base name preffixed by `$` makes all frames fullbright even trough the fog.
 
 ### Lua scripts
 Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have multiple GAMELUA lumps in multiple wads.
@@ -190,16 +215,19 @@ To make save games possible, do not store anything related to gamestate in globa
 - function `fakeContrast(enable)`
   - Override fake contrast settings.
   - Set `true` to enable fake contrast in level.
+- function `setSky(texturename)`
+  - Change current sky texture.
 - function `setBackground(patchlump)`
   - This function will set screen background to this gfx from any WAD.
   - Use of this function is not recommended as specified image will only show trough holes in map (= bad map).
   - It is only used for Doom2 finale emulation.
 
 #### mobj states
-There are few animations that every mobjtype can have. Only spawn state has meaning for all of them, as it is state it gets set to on level load.
+There are few animations that every mobjtype can have. Only spawn state has meaning for all of them, as it is state every mobj has set on level load.
 Other animations depend on flag combinations. Unused states can be used in any way you wish.
 Animations are always specified as `_animName`.
-Animations are creaded from one or more frames. Every frame can optionaly call any function with this `mobj` as argument.
+Animations are created from one or more frames. Every frame can optionaly call any function with this `mobj` as argument.
+For better explanation on animation sequences see included `kgexamples.wad`. (TODO: maybe place example here)
 - `_spawn`
   - Basic animation for all mobjs.
 - `_see`
@@ -323,6 +351,12 @@ Mobj flags are boolean values that affect mobj behavior. Flags are always specif
   - Used on projectiles. Projectile will bounce off walls.
 - `__mobjBounce`
   - Used on projectiles. Projectile will bounce off other mobjs and do no damage to them.
+- `skyExplode`
+  - Used on projectiles. Projectile will explode instead of being removed upon touching the sky.
+- `cantUseLines`
+  - This mobj can't activate lines using `use` action.
+- `cantBumpLines`
+  - This mobj can't activate lines using `bump` action.
 - `__Monster`
   - Flag combination of `__isMonster`, `__countKill`, `__solid` and `__shootable`
 - `__Projectile`
@@ -863,7 +897,7 @@ Sector functions.
   - Calls a callback `func` with optional argument `arg` every `ticrate` tics.
   - Callback should be function defined as `somecb(gc)` or `somecb(gc, arg)`.
     - `gc` is generic caller itself.
-    - Callback can return `false` to be stopped and removed.
+    - Callback can return `true` to continue ticking. Otherwise it is removed.
   - Two other variants exists. `GenericCallerFloor` and `GenericCallerCeiling`, each for its corresponding slot.
   - Returns generic caller.
 - `ThingIterator(func [, arg])`
@@ -899,13 +933,13 @@ Access to specific side is controled by `side`.
   - `true` for front side, `false` for back side.
   - Boolean.
 - `midtexture`
-  - Currently selected sides middle texture.
+  - Currently selected side's middle texture.
   - String. Wall texture.
 - `toptexture`
-  - Currently selected sides top texture.
+  - Currently selected side's top texture.
   - String. Wall texture.
 - `bottexture`
-  - Currently selected sides bottom texture.
+  - Currently selected side's bottom texture.
   - String. Wall texture.
 - `special`
   - Line special.
@@ -966,6 +1000,8 @@ Line functions.
   - `sound_press` use sound. String, sfx lump.
   - `sound_release` release sound. String, sfx lump.
   - `release_tics` time to "unpress" this button. Integer, default 35.
+- `ToggleButton([sound_press])`
+  - Similar to `DoButton`, but switch texture is only swapped for its counterpart even for repeatable specials.
 - `SoundBody(...)` `SoundWeapon(...)` `SoundPickup(...)`
   - See same functions for `mobj`.
 

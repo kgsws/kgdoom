@@ -122,6 +122,9 @@ void P_BringUpWeapon (player_t* player)
 {
     statenum_t	newstate;
 
+    if(player->mo->health <= 0)
+	return;
+
     if (player->pendingweapon == wp_nochange)
 	player->pendingweapon = player->readyweapon;
 

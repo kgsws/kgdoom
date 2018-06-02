@@ -441,7 +441,7 @@ void R_DrawPlanes(fixed_t height)
 
 	    colfunc = R_DrawColumn;
 
-	    dc_iscale = pspriteiscale>>detailshift;
+	    dc_iscale = pspriteiscale;
 
 	    dc_lightcolor = colormaps;
 	    if(!fixedcolormap)

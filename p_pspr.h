@@ -26,7 +26,8 @@
 // handles maximum brightness (torches, muzzle flare, light sources)
 //
 #define FF_FULLBRIGHT	0x8000	// flag in thing->frame
-#define FF_FRAMEMASK	0x7fff
+#define FF_FOGBRIGHT	0x4000  // [kg] fullbright trough fog
+#define FF_FRAMEMASK	0x0fff
 
 
 

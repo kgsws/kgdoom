@@ -81,6 +81,9 @@ P_ForceMobjState
 
 	// [kg] call LUA function
 	L_StateCall(st, mobj);
+	// [kg] mobj might have removed self
+	if(mobj->thinker.lua_type != TT_MOBJ)
+	    return false;
 	// [kg] state might have changed
 	state = mobj->state->nextstate;
     } while (!mobj->tics);
@@ -149,6 +152,7 @@ void P_XYMovement (mobj_t* mo)
     fixed_t	ymove;
     fixed_t floorz;
     fixed_t friction, liquid;
+    fixed_t momxo, momyo;
 
     int stepdir = 0;
 
@@ -178,7 +182,9 @@ void P_XYMovement (mobj_t* mo)
 	mo->momy = -MAXMOVE;
 		
     xmove = mo->momx;
+    momxo = mo->momx;
     ymove = mo->momy;
+    momyo = mo->momy;
 
     if(xmove < 0)
     {
@@ -215,6 +221,9 @@ void P_XYMovement (mobj_t* mo)
 	hitline = NULL;
 	if (!P_TryMove (mo, ptryx, ptryy))
 	{
+	    // [kg] modified momentum? (Lua can do that)
+	    if(mo->momx != momxo || mo->momy != momyo)
+		break;
 	    // blocked move
 	    if (mo->flags & MF_SLIDE)
 	    {	// try to slide along it
@@ -237,12 +246,22 @@ void P_XYMovement (mobj_t* mo)
 			// Hack to prevent missiles exploding
 			// against the sky.
 			// Does not handle sky floors.
+
+			// [kg] allow sky explosions
+			if(mo->flags & MF_SKYEXPLODE)
+			{
+				// mark sky explosion
+				if(!(mo->flags & MF_WALLBOUNCE))
+					mo->threshold = -1;
+			} else
+			{
 #ifdef SERVER
-			P_RemoveMobj (mo, false);
+				P_RemoveMobj (mo, false);
 #else
-			P_RemoveMobj (mo);
+				P_RemoveMobj (mo);
 #endif
-			return;
+				return;
+			}
 		    }
 		}
 		if(hitmobj && mo->flags & MF_MOBJBOUNCE)
@@ -254,11 +273,11 @@ void P_XYMovement (mobj_t* mo)
 			BounceMobjWall(mo);
 		} else
 		{
-			P_ExplodeMissile(mo);
 			if(hitmobj)
 				mo->material = hitmobj->material;
 			if(hitline)
 				mo->material = textures[hitpic].material;
+			P_ExplodeMissile(mo);
 		}
 #ifdef SERVER
 		// [kg] explode clientside projectile
@@ -456,15 +475,24 @@ void P_ZMovement (mobj_t* mo)
 	     && !(mo->flags & MF_NOCLIP) )
 	{
 	    if(mo->subsector->sector->floorpic == skyflatnum && floorz == mo->subsector->sector->floorheight)
+	    {
+		// [kg] allow sky explosions
+		if(mo->flags & MF_SKYEXPLODE)
+		{
+			// mark sky explosion
+			mo->threshold = -1;
+		} else
+		{
 #ifdef SERVER
-		P_RemoveMobj (mo, false);
+			P_RemoveMobj (mo, false);
 #else
-		P_RemoveMobj (mo);
+			P_RemoveMobj (mo);
 #endif
-	    else
+			return;
+		}
+	    }
 	    if(!mo->bounce || !mo->momz)
 	    {
-		P_ExplodeMissile(mo);
 		// [kg] material check
 		if(floorthing)
 		    mo->material = floorthing->material;
@@ -485,6 +513,8 @@ void P_ZMovement (mobj_t* mo)
 			pl = pl->next;
 		    }
 		}
+		// explode
+		P_ExplodeMissile(mo);
 		return;
 	    }
 	}
@@ -532,15 +562,24 @@ void P_ZMovement (mobj_t* mo)
 	     && !(mo->flags & MF_NOCLIP) )
 	{
 	    if(mo->subsector->sector->ceilingpic == skyflatnum && ceilingz == mo->subsector->sector->ceilingheight)
+	    {
+		// [kg] allow sky explosions
+		if(mo->flags & MF_SKYEXPLODE)
+		{
+			// mark sky explosion
+			mo->threshold = -1;
+		} else
+		{
 #ifdef SERVER
-		P_RemoveMobj (mo, false);
+			P_RemoveMobj (mo, false);
 #else
-		P_RemoveMobj (mo);
+			P_RemoveMobj (mo);
 #endif
-	    else
+			return;
+		}
+	    }
 	    if(!mo->bounce || !mo->momz)
 	    {
-		P_ExplodeMissile (mo);
 		// [kg] material check
 		if(mo->z >= mo->subsector->sector->ceilingheight)
 		    mo->material = textures[mo->subsector->sector->ceilingpic].material;
@@ -558,6 +597,8 @@ void P_ZMovement (mobj_t* mo)
 			pl = pl->next;
 		    }
 		}
+		// explode
+		P_ExplodeMissile (mo);
 		return;
 	    }
 	}
@@ -929,6 +970,9 @@ void P_RemoveMobj (mobj_t* mobj, boolean clientside)
 void P_RemoveMobj (mobj_t* mobj)
 {
 #endif
+	// [kg] player check
+	if(mobj->player)
+		I_Error("P_RemoveMobj: tried to remove player mobj");
 
 	// [kg] cancel type
 	mobj->thinker.lua_type = TT_INVALID;
@@ -1366,6 +1410,7 @@ P_SpawnMissile
 
     th->source = source;
     th->angle = ango;
+    th->pitch = slope;
     th->momz = FixedMul(th->speed, slope);
     th->momx = FixedMul(th->speed, finecosine[ango>>ANGLETOFINESHIFT]);
     th->momy = FixedMul(th->speed, finesine[ango>>ANGLETOFINESHIFT]);

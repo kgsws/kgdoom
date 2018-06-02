@@ -52,7 +52,6 @@ static iwad_item_t *iwad_list;
 static pwad_item_t pwad_list[16] = {"-= NO PWAD =-"};
 static int wad_count;
 static int wad_pick;
-static int pwad_pick;
 static int pwad_count;
 
 const char *const game_mode_list[] =
@@ -550,7 +549,10 @@ void T_InitWads()
 	if(iwad.allow_pwads)
 		wad_count = pwad_count;
 	else
+	{
 		wad_count = 0;
+		wad_pick = 0;
+	}
 
 	memset(screens[0] + 144 * SCREENWIDTH, 0, SCREENWIDTH * SCREENHEIGHT - 144 * SCREENWIDTH);
 	I_FinishUpdate();
@@ -593,8 +595,11 @@ void T_InitWads()
 		char pwad_path[256];
 
 		if(iwad.iwad[0])
+		{
 			// load actual IWAD first
-			W_LoadWad(iwad.iwad);
+			sprintf(pwad_path, BASE_PATH"%s", iwad.iwad);
+			W_LoadWad(pwad_path);
+		}
 		// now load game WAD
 		sprintf(pwad_path, BASE_PATH"pwads/%s", iwad.path);
 		W_LoadWad(pwad_path);
