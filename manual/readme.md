@@ -107,6 +107,25 @@ These are terms used in Lua API.
   - See `mobj states`. I assume you have at least basic understanding on how mobjs in Doom are animated.
   - Sprite base name preffixed by `*` makes all frames fullbright.
   - Sprite base name preffixed by `$` makes all frames fullbright even trough the fog.
+- `KGDGINFO`
+  - This is a special lump used to define custom game.
+  - It is parsed by very simple INI parser, for proper format see `pwads/kgexamples.wad`.
+  - Section `kgdoom`.
+    - `name` custom game name, visible in game selection menu. Max 24 characters.
+    - `author` game author name. Currently not visible.
+    - `game` one of original gamemodes.
+      - This does not affect any WAD loading, but in-game behaviour (like number of episodes, map ordering).
+      - `shareware` game. One episode playable, two more shown but not playable.
+      - `registered` game. Three episodes.
+      - `commercial` game. Doom2, no episodes.
+      - `retail` game. Four episodes.
+    - `iwad`
+      - Actual IWAD to load before this game's PWAD.
+    - `startmap`
+      - Override starting map name. Using this will remove episode selection menu.
+    - `no_pwads`
+      - Disable adding any PWADs. Skips PWAD selection menu.
+  - Most of these are optional and are filled with some default values.
 
 ### Lua scripts
 Lua scirpts are stored in WADs. There is only one recognized lump name: GAMELUA. You can have multiple GAMELUA lumps in multiple wads.
