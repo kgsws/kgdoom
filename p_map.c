@@ -582,8 +582,8 @@ P_CheckPosition
     subsector_t*	newsubsec;
     extraplane_t	*pl;
 
-    fixed_t height = thing->z + thing->height / 2;
-    fixed_t heighT = thing->z + thing->height / 4;
+    fixed_t height = thing->z + thing->height / 4;
+    fixed_t heighT = thing->z + thing->height / 6;
 
     tmthing = thing;
     tmflags = thing->flags;
@@ -679,7 +679,8 @@ void P_GetPosition(mobj_t *thing)
     sector_t*		sector;
     extraplane_t	*pl;
 
-    fixed_t height = thing->z + thing->height / 2;
+    fixed_t height = thing->z + thing->height / 4;
+    fixed_t heighT = thing->z + thing->height / 6;
 
     tmthing = thing;
     tmflags = thing->flags;
@@ -712,7 +713,7 @@ void P_GetPosition(mobj_t *thing)
     pl = sector->exfloor;
     while(pl)
     {
-	if(*pl->height > tmthing->z)
+	if(*pl->height > heighT)
 	{
 		tmthing->liquidip = pl->source->liquid;
 		if(*pl->height > height)
@@ -2145,7 +2146,8 @@ void P_CheckPositionZ(mobj_t *thing)
 	int bx;
 	int by;
 	extraplane_t *pl;
-	fixed_t height = thing->z + thing->height / 2;
+	fixed_t height = thing->z + thing->height / 4;
+	fixed_t heighT = thing->z + thing->height / 6;
 
 	if(thing->flags & MF_NOCLIP)
 		return;
@@ -2166,7 +2168,7 @@ void P_CheckPositionZ(mobj_t *thing)
 	pl = thing->subsector->sector->exfloor;
 	while(pl)
 	{
-		if(*pl->height > thing->z)
+		if(*pl->height > heighT)
 		{
 			thing->liquidip = pl->source->liquid;
 			if(*pl->height > height)
@@ -2205,8 +2207,8 @@ void P_CheckPositionLines(mobj_t *thing)
 	int bx;
 	int by;
 	sector_t *sec = thing->subsector->sector;
-	fixed_t height = thing->z + thing->height / 2;
-	fixed_t heighT = thing->z + thing->height / 4;
+	fixed_t height = thing->z + thing->height / 4;
+	fixed_t heighT = thing->z + thing->height / 6;
 	extraplane_t *pl;
 
 	if(thing->flags & MF_NOCLIP)

@@ -878,8 +878,8 @@ P_SpawnMobj
     {
 	sector_t *sec = mobj->subsector->sector;
 	extraplane_t *pl = sec->exfloor;
-	fixed_t height = mobj->z + mobj->height / 2;
-	fixed_t heighT = mobj->z + mobj->height / 4;
+	fixed_t height = mobj->z + mobj->height / 4;
+	fixed_t heighT = mobj->z + mobj->height / 6;
 
 	// default floor / ceiling
 	mobj->floorz = sec->floorheight;
