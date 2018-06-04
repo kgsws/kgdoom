@@ -544,6 +544,7 @@ void T_InitWads()
 	// copy & free
 	memcpy(&iwad, &iwad_list[wad_pick], sizeof(iwad_item_t));
 	Z_Free(iwad_list);
+	wad_pick = 0;
 
 	// pick PWAD(s)
 	if(iwad.allow_pwads)
@@ -551,7 +552,6 @@ void T_InitWads()
 	else
 	{
 		wad_count = 0;
-		wad_pick = 0;
 	}
 
 	memset(screens[0] + 144 * SCREENWIDTH, 0, SCREENWIDTH * SCREENHEIGHT - 144 * SCREENWIDTH);
@@ -559,7 +559,6 @@ void T_InitWads()
 
 	if(wad_count > 0)
 	{
-		wad_pick = 0;
 		txt_color = 7;
 
 		for(i = 0, yy = 160; i < wad_count; i++, yy += 32)
