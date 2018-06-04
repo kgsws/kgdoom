@@ -48,5 +48,7 @@ int W_LumpCheckSprite(int lump, const char *name);
 
 void W_ForEachName(const char *name, boolean (*func)(int));
 
+int W_GetWadSize(const char *name);
+
 #endif
 

@@ -29,8 +29,6 @@ int		numwads;
 // LUMP BASED ROUTINES.
 //
 
-#define LOADSIZE	393216
-
 void W_LoadWad(const char *name)
 {
 	// TODO: WAD checks (size, lumps, ID)
@@ -38,34 +36,20 @@ void W_LoadWad(const char *name)
 	if(numwads == MAXWADS)
 		I_Error("W_Init: too many wads");
 
+	int wadsize = W_GetWadSize(name);
+
 	FILE *f = fopen(name, "rb");
 
 	if(!f)
 		I_Error("W_Init: can't open WAD '%s'", name);
 
-	wadbuf[numwads] = Z_Malloc(LOADSIZE, PU_STATIC, NULL);
-
-	{
-		uint8_t *dst = wadbuf[numwads];
-		printf("%s:\n", name);
+	wadbuf[numwads] = Z_Malloc(wadsize, PU_STATIC, NULL);
+	uint8_t *dst = wadbuf[numwads];
+	printf("%s:\n", name);
 #ifdef LINUX
-		fflush(stdout);
+	fflush(stdout);
 #endif
-		while(1)
-		{
-			int got;
-			got = fread(dst, 1, LOADSIZE, f);
-			dst += got;
-#ifdef VIDEO_STDOUT
-			T_PutChar('.');
-			I_FinishUpdate();
-#endif
-			if(got < LOADSIZE)
-				break;
-			Z_Enlarge(wadbuf[numwads], LOADSIZE);
-		}
-		T_PutChar('\n');
-	}
+	fread(dst, 1, wadsize, f);
 
 	fclose(f);
 
@@ -302,5 +286,22 @@ void W_ForEachName(const char *name, boolean (*func)(int))
 		}
 	}
 
+}
+
+// Returns the filesize of the *.wad file
+int W_GetWadSize(const char *name)
+{
+	// Open file
+	FILE *f = fopen(name, "rb");
+
+	// Get file length
+	fseek(f, 0L, SEEK_END);
+	int len = ftell(f);
+	rewind(f);
+
+	// Close file
+	fclose(f);
+
+	return len;
 }
 
