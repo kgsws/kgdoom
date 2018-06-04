@@ -906,7 +906,7 @@ P_SpawnMobj
 	pl = sec->exceiling;
 	while(pl)
 	{
-		if(*pl->height < mobj->z)
+		if(*pl->height > mobj->z)
 		{
 			if(*pl->height < mobj->ceilingz)
 				mobj->ceilingz = *pl->height;
@@ -924,7 +924,13 @@ P_SpawnMobj
 	mobj->z = mobj->ceilingz - mobj->info->height;
 
     if(mobj->z <= mobj->floorz)
+    {
 	mobj->onground = true;
+	mobj->z = mobj->floorz;
+    }
+
+    if(mobj->z > mobj->ceilingz - mobj->height)
+	mobj->z = mobj->ceilingz - mobj->height;
 
     mobj->thinker.function.acp1 = (actionf_p1)P_MobjThinker;
 	

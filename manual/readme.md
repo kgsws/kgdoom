@@ -861,8 +861,9 @@ Sectors are part of the map. Most parameters can be modified on the fly.
   - Sector colormap. This allows for custom colored lights.
   - String.
 - `colormap`
-  - Similar to colormap, but it requires entire shading range.
+  - Similar to `color`, but it requires entire shading range.
   - Used to create sector fog effects.
+  - It is added on top of `color` effect.
   - String.
 - `funcFloor`
   - See `generic callers`.

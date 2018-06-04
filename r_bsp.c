@@ -663,7 +663,25 @@ void R_Subsector (int num)
 
 	if(frontsector->ceilingheight > viewz || frontsector->ceilingpic == skyflatnum)
 	{
-		ceilingplane = R_FindPlane (frontsector->ceilingheight, frontsector->ceilingpic, frontsector->lightlevel, frontsector->colormap.data, frontsector->fogmap.data, &render_normal, false);
+		// [kg] go trough 3D floors to find correct light level
+		fixed_t lightlevel = frontsector->lightlevel;
+		void *colormap = frontsector->colormap.data;
+		void *fogmap = frontsector->fogmap.data;
+
+		pl = frontsector->exfloor;
+		while(pl)
+		{
+			if(*pl->height >= frontsector->ceilingheight)
+			{
+				lightlevel = *pl->lightlevel;
+				colormap = pl->source->colormap.data;
+				fogmap = pl->source->fogmap.data;
+				break;
+			}
+			pl = pl->next;
+		}
+
+		ceilingplane = R_FindPlane (frontsector->ceilingheight, frontsector->ceilingpic, lightlevel, colormap, fogmap, &render_normal, false);
 	} else
 		ceilingplane = NULL;
 
