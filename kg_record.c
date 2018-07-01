@@ -126,7 +126,10 @@ void rec_reset()
 		// full player state
 		rec_add_uint32(p->health);
 		rec_add_uint32(p->armorpoints);
-		rec_add_uint16(p->armortype - mobjinfo);
+		if(p->armortype)
+			rec_add_uint16(p->armortype - mobjinfo);
+		else
+			rec_add_uint16(0);
 		rec_add_uint16(i);
 		rec_add_uint16(p->readyweapon);
 		rec_add_uint16(p->pendingweapon);
@@ -295,7 +298,10 @@ void rec_load(const char *path_meh, int type)
 		rec_get_uint32(&tmp);
 		if((tmp & 0xFFFF) >= numobjtypes)
 			I_Error("invalid armor type");
-		p->armortype = &mobjinfo[tmp & 0xFFFF];
+		if(tmp & 0xFFFF)
+			p->armortype = &mobjinfo[tmp & 0xFFFF];
+		else
+			p->armortype = NULL;
 		// inventory count
 		count = tmp >> 16;
 		// weapon
