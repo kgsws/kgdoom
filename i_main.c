@@ -80,7 +80,9 @@ void main_finish()
 	am_finalize();
 	gpu_finalize();
 	hid_finalize();
+#ifdef NET_STDOUT
 	bsd_finalize();
+#endif
 	sm_finalize();
 #endif
 }
@@ -150,17 +152,21 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
+#ifdef NET_STDOUT
 	if((r = bsd_init()) != RESULT_OK)
 	{
 		printf("- failed to init bsd: 0x%x, %d\n", r, bsd_errno);
 		sm_finalize();
 		return 2;
 	}
+#endif
 
 	if((r = hid_init()) != RESULT_OK)
 	{
 		printf("- failed to init hid: 0x%x\n", r);
+#ifdef NET_STDOUT
 		bsd_finalize();
+#endif
 		sm_finalize();
 		return 3;
 	}
@@ -189,16 +195,10 @@ int main(int argc, char **argv)
 	if(ret)
 	{
 		main_finish();
-#ifndef LINUX
-		svcExitProcess();
-#endif
 		return ret - 1;
 	}
 
 	D_DoomMain();
-#ifndef LINUX
-	svcExitProcess();
-#endif
 	return 0;
 }
 
